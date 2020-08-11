@@ -13,11 +13,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/delete-package-versions@v1
-        with:
-          package-name: 'app'
-          num-old-versions-to-delete: 3
-
       - uses: actions/checkout@v2
 
       - name: Set up JDK 1.8
@@ -52,7 +47,7 @@ jobs:
       - name: Update deployment file
         run: sed -i 's|<VERSION>|'${GITHUB_RUN_ID}'|' $GITHUB_WORKSPACE/deployment/dev/kube/deployment.yml
 
-      - name: Deploy namspace
+      - name: Deploy namespace
         run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig apply -f $GITHUB_WORKSPACE/deployment/dev/kube/namespace.yaml
 
       - name: Deploy the rest
@@ -60,6 +55,11 @@ jobs:
 
       - name: Verify eve-5v5 deployment
         run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig rollout status -n tournmgmt deployment/tournmgmt
+
+      - uses: actions/delete-package-versions@v1
+        with:
+          package-name: 'app'
+          num-old-versions-to-delete: 3
 
 #      - uses: sarisia/actions-status-discord@v1
 #        if: always()
