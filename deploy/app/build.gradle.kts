@@ -21,7 +21,7 @@ jib {
         )
     }
     to {
-        image = "docker.pkg.github.com/eve-gatt/tournament-mgmt/app:1." + System.getenv("GITHUB_RUN_ID")
+        image = "docker.pkg.github.com/eve-gatt/tournament-mgmt/tournmgmt:1." + System.getenv("GITHUB_RUN_ID")
 //        image = "docker.pkg.github.com/eve-gatt/evetoys/app:test-1.0"
         auth {
             username = System.getenv("GITHUB_ACTOR")

@@ -53,13 +53,13 @@ jobs:
       - name: Deploy the rest
         run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig apply -f $GITHUB_WORKSPACE/deployment/dev/kube/
 
-      - name: Verify eve-5v5 deployment
+      - name: Verify deployment
         run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig rollout status -n tournmgmt deployment/tournmgmt
 
       - uses: actions/delete-package-versions@v1
         with:
           package-name: 'app'
-          num-old-versions-to-delete: 3
+          num-old-versions-to-delete: 1
 
 #      - uses: sarisia/actions-status-discord@v1
 #        if: always()
