@@ -48,10 +48,10 @@ jobs:
         run: sed -i 's|<VERSION>|'${GITHUB_RUN_ID}'|' $GITHUB_WORKSPACE/deploy/k8s/deployment.yml
 
       - name: Deploy namespace
-        run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig apply -f $GITHUB_WORKSPACE/deployment/dev/kube/namespace.yaml
+        run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig apply -f $GITHUB_WORKSPACE/deploy/k8s/namespace.yaml
 
       - name: Deploy the rest
-        run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig apply -f $GITHUB_WORKSPACE/deployment/dev/kube/
+        run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig apply -f $GITHUB_WORKSPACE/deploy/k8s/
 
       - name: Verify deployment
         run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig rollout status -n tournmgmt deployment/tournmgmt
