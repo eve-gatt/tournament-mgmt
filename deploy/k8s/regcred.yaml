@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/dockerconfigjson
+metadata:
+  name: regcred
+  namespace: tournmgmt
+data:
+  .dockerconfigjson: eyJhdXRocyI6eyJkb2NrZXIucGtnLmdpdGh1Yi5jb20iOnsidXNlcm5hbWUiOiJldmUtZ2F0dCIsInBhc3N3b3JkIjoiNTA1NjEyNDY3MjliMzYxYjFmN2EyMzBiMTE3Mzk4ZTcwZDM1NjZlYiIsImF1dGgiOiJaWFpsTFdkaGRIUTZOVEExTmpFeU5EWTNNamxpTXpZeFlqRm1OMkV5TXpCaU1URTNNems0WlRjd1pETTFOalpsWWc9PSJ9fX0=

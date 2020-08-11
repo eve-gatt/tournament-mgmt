@@ -1,0 +1,281 @@
+head
+    if context.showAnalytics
+        script(async, src="https://www.googletagmanager.com/gtag/js?id=UA-159453647-2")
+        script.
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-159453647-2');
+    meta(charset='utf-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    meta(name="google" content="notranslate")
+    title Tournament Management
+    link(rel="stylesheet",
+        href="https://unpkg.com/purecss@1.0.1/build/pure-min.css",
+        integrity="sha384-oAOxQR6DkCoMliIh8yFnu25d7Eq/PHS21PClpwjOTeU2jRSq11vu66rf90/cZr47",
+        crossorigin="anonymous")
+    link(rel="stylesheet",
+        href="https://unpkg.com/purecss@1.0.1/build/grids-responsive-min.css")
+    link(rel="stylesheet",
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap")
+    script(src="https://kit.fontawesome.com/c82fdecc98.js", crossorigin="anonymous")
+    style.
+        body {
+            background-color: #080808;
+            color: #e2e2e2;
+            font-size: 14px;
+            overflow: hidden;
+        }
+
+        .pure-g [class*=pure-u] {
+            font-family: 'Orbitron', serif;
+        }
+
+        p, ol, ul {
+            font-family: 'Oswald', sans-serif;
+        }
+
+        .pure-form input,
+        .pure-form textarea,
+        .pure-form select,
+        .pure-form input[readonly],
+        .pure-form textarea[readonly],
+        .pure-form select[readonly] {
+            color: white;
+            background-color: #3a3a3a;
+        }
+
+        .pure-table caption {
+            color: #2a9fd6;
+        }
+
+        a {
+            color: #2a9fd6;
+            text-decoration: none;
+            line-height: 20px;
+            border-bottom: 2px solid transparent;
+        }
+
+        a:hover {
+            border-bottom: 2px solid #f99e00;
+        }
+
+        h2 {
+            color: #f99e00;
+        }
+
+        h1 > small {
+            margin-left: 12px;
+            opacity: 0.8;
+            font-size: 0.4em;
+        }
+
+        body {
+            line-height: 1.4em;
+        }
+
+        .back {
+            font-size: 2em;
+            font-weight: bold;
+            top: 38px;
+            position: relative;
+            text-align: center;
+        }
+
+        .back a {
+            color: #f99e00;
+        }
+
+        .header {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            justify-items: stretch;
+            align-items: start;
+            margin-top: 12px;
+        }
+
+        .header .left {
+            display: flex;
+            justify-content: left;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+        }
+
+        .header #logo {
+            margin-right: 24px;
+        }
+
+        .header #logo img {
+            width: 64px;
+            height: 64px;
+        }
+
+        .header .right {
+            display: flex;
+            justify-self: right;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .header .right > * {
+            margin-left: 12px;
+        }
+
+        .top-menu {
+            font-family: 'Orbitron', serif;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            white-space: nowrap;
+        }
+
+        .top-menu > * {
+            margin-left: 12px;
+        }
+
+        .user {
+            text-align: center;
+        }
+
+        .error-message {
+            color: red;
+        }
+
+        .white-border {
+            margin: 12px 12px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 3px solid white;
+        }
+
+        .pure-button.primary {
+            background-color: #2a9fd6;
+            color: white;
+            font-size: 0.8em;
+        }
+
+        .pilot {
+            display: flex;
+            justify-content: left;
+            align-items: flex-start;
+        }
+
+        .pilot img {
+            width: 40px;
+            margin-right: 6px;
+            border-radius: 6px;
+            border: 3px solid transparent;
+        }
+
+        button.clippy {
+            margin: 0 0 3px 6px;
+        }
+
+        .container {
+            height: 100vh;
+            width: 100vw;
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: 120px 1fr 48px;
+        }
+
+        .header-wrapper {
+        }
+
+        .content-wrapper {
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .footer-wrapper {
+            display: grid;
+            grid-template-columns: 130px auto 130px 130px auto 130px;
+            grid-template-areas: ". . twitch twitter . patreon";
+            justify-items: center;
+            font-size: 1.2em;
+            padding: 12px;
+        }
+
+        .footer-wrapper a {
+            margin: 0 12px;
+        }
+
+        .footer-wrapper {
+            display: flex;
+            justify-content: center;
+            font-size: 1.2em;
+            padding: 12px;
+        }
+
+        .footer-wrapper a {
+            margin: 0 12px;
+        }
+doctype html
+
+html
+    block styles
+
+    body
+        .container
+            .header-wrapper
+                .pure-g
+                    .pure-u-1-24
+                        div.back
+                            a(href="/") <
+                    .pure-u-22-24
+                        .header
+                            .left
+                                a(href="/")#logo
+                                    img(src="/assets/logo.png")
+                                h1 Tournament Management
+                            .right
+                                .top-menu
+                                    a(href="/involved") Get Involved
+                                if context.isTimerAdmin || context.isRef
+                                    .top-menu
+                                        if context.isAdmin
+                                            a(href="/auth/admin/thunderdome") Thunderdome
+
+                                if context.team
+                                    a(href="/auth/team/join/" + team.joinUuid) Manage Team
+
+                                if !context.user
+                                    a#eveLogin(href="/login/start")
+                                        img(src="https://web.ccpgamescdn.com/eveonlineassets/developers/eve-sso-login-black-small.png")
+
+                            if context.user
+                                .top-menu
+                                    a(href="/login/logout") Logout
+                                    span.user
+                                        a(href="/auth/profile/me")
+                                            img(src=context.user.principal().getString("portrait") title="Me me me")
+                                        p= context.user.principal().getString("characterName")
+                                        span.token.hidden= context.user.principal().getString("token")
+
+                    .pure-u-1-24
+
+            .content-wrapper
+                .pure-g
+                    .pure-u-1-24
+                    .pure-u-22-24
+                        block content
+                    .pure-u-1-24
+
+            .footer-wrapper
+                a(target="_blank", href="https://www.twitch.tv/5v5scrims/", style="grid-area: twitch")
+                    i.fab.fa-twitch
+                    | &nbsp;Twitch
+                a(target="_blank", href="https://twitter.com/5v5scrims", style="grid-area: twitter")
+                    i.fab.fa-twitter
+                    | &nbsp;Twitter
+                //
+                    a(target="_blank", href="https://www.patreon.com/eve_gatt", style="grid-area: patreon")
+                        i.fab.fa-patreon
+                        | &nbsp;patreon
+
+        script(src='https://cdnjs.cloudflare.com/ajax/libs/d3/5.9.2/d3.js')
+        script(src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.23.0/moment.min.js')
+        script(src='https://cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js')
+        script(src='https://cdnjs.cloudflare.com/ajax/libs/vertx/3.8.3/vertx-eventbus.min.js')
+        block scripts
