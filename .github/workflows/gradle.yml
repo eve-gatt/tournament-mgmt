@@ -45,7 +45,7 @@ jobs:
           ./gradlew build jib
 
       - name: Update deployment file
-        run: sed -i 's|<VERSION>|'${GITHUB_RUN_ID}'|' $GITHUB_WORKSPACE/deployment/dev/kube/deployment.yml
+        run: sed -i 's|<VERSION>|'${GITHUB_RUN_ID}'|' $GITHUB_WORKSPACE/deploy/k8s/deployment.yml
 
       - name: Deploy namespace
         run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig apply -f $GITHUB_WORKSPACE/deployment/dev/kube/namespace.yaml
