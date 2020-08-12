@@ -56,10 +56,10 @@ jobs:
       - name: Verify deployment
         run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig rollout status -n tournmgmt deployment/tournmgmt
 
-      - uses: actions/delete-package-versions@v1
-        with:
-          package-name: 'app'
-          num-old-versions-to-delete: 1
+#      - uses: actions/delete-package-versions@v1
+#        with:
+#          package-name: 'app'
+#          num-old-versions-to-delete: 1
 
 #      - uses: sarisia/actions-status-discord@v1
 #        if: always()
