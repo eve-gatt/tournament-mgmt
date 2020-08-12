@@ -4,6 +4,28 @@ block styles
     style.
 
 block content
+    h2 Create a tournament
+    p.
+        Please provide some details about your tournament. This data can be changed up until you go live with your
+        tournament.
+    form.pure-form.pure-form-aligned
+        fieldset
+            legend Tournament details
+            .pure-control-group
+                label(for="tournament-name") Tournament name
+                input(type="text", placeholder="")#tournament-name
+                span.pure-form-message-inline required
+
+            legend Thunderdome usage
+            p.
+                Please describe your intending usage of Thunderdome. This tool will assist with handing out logins
+                to your competitors (subject to CCP agreement).
+            .pure-control-group
+                label(for="practice-on-td") Practice on Thunderdome
+                input(type="checkbox")#practice-on-td
+            .pure-control-group
+                label(for="play-on-td") Matches on Thunderdome
+                input(type="checkbox")#play-on-td
 
 
 block scripts
