@@ -1,10 +1,12 @@
-val vertxVersion = "3.9.0"
+val vertxVersion = "3.9.2"
 
 val USERNAME: String by project
 val PASSWORD: String by project
 
 dependencies {
     compile(project(":web"))
+
+    implementation("io.vertx:vertx-core:$vertxVersion")
 }
 
 plugins {

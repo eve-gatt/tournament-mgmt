@@ -1,14 +1,13 @@
-val vertxVersion = "3.9.0"
+val vertxVersion = "3.9.2"
 
 dependencies {
-    //    compile("com.google.guava:guava:28.1-jre")
-    compile("net.troja.eve:eve-esi:3.0.0")
-    compile("io.vertx:vertx-circuit-breaker:$vertxVersion")
-    compile("io.vertx:vertx-core:$vertxVersion")
-    compile("io.vertx:vertx-micrometer-metrics:$vertxVersion")
-    compile("io.vertx:vertx-web-client:$vertxVersion")
+    implementation("io.vertx:vertx-core:$vertxVersion")
+    implementation("io.vertx:vertx-web:$vertxVersion")
+    implementation("io.vertx:vertx-web-templ-jade:$vertxVersion")
+    implementation("io.vertx:vertx-web-client:$vertxVersion")
 
-    compile("io.micrometer:micrometer-registry-prometheus:1.4.1")
+    implementation("io.vertx:vertx-micrometer-metrics:$vertxVersion")
+    implementation("io.micrometer:micrometer-registry-prometheus:1.4.1")
 
 }
 

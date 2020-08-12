@@ -1,27 +1,29 @@
-package eve.toys.tournmgmt.web;
+package eve.toys.tournmgmt.web.routes;
+
 
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import toys.eve.tournmgmt.common.util.RenderHelper;
 
-public class HomeRouter {
+public class TournamentRouter {
 
     private final Router router;
     private final RenderHelper render;
 
-    public HomeRouter(Vertx vertx, RenderHelper render) {
+    public TournamentRouter(Vertx vertx, RenderHelper render) {
         router = Router.router(vertx);
         this.render = render;
-        router.get("/").handler(this::home);
+        router.get("/create").handler(this::create);
     }
 
-    private void home(RoutingContext ctx) {
-        render.renderPage(ctx, "/home", new JsonObject(ctx.data()));
+    private void create(RoutingContext ctx) {
+        render.renderPage(ctx, "/tournament/create", new JsonObject());
     }
 
     public static Router routes(Vertx vertx, RenderHelper render) {
-        return new HomeRouter(vertx, render).router();
+        return new TournamentRouter(vertx, render).router();
     }
 
     private Router router() {

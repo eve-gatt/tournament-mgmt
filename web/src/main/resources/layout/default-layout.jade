@@ -28,11 +28,11 @@ head
         }
 
         .pure-g [class*=pure-u] {
-            font-family: 'Orbitron', serif;
         }
 
         p, ol, ul {
-            font-family: 'Oswald', sans-serif;
+            font-size: 32px;
+            line-height: 1.6em;
         }
 
         .pure-form input,
@@ -71,7 +71,6 @@ head
         }
 
         body {
-            line-height: 1.4em;
         }
 
         .back {
@@ -88,17 +87,13 @@ head
 
         .header {
             display: grid;
-            grid-template-columns: auto 1fr auto;
-            justify-items: stretch;
-            align-items: start;
-            margin-top: 12px;
+            background: transparent url('/assets/ACSENSION_HEADER_B.png') 0 0 no-repeat padding-box;
+            grid-template-columns: 420px auto;
+            height: 240px;
         }
 
         .header .left {
-            display: flex;
-            justify-content: left;
-            flex-wrap: nowrap;
-            white-space: nowrap;
+            padding: 24px;
         }
 
         .header #logo {
@@ -106,47 +101,22 @@ head
         }
 
         .header #logo img {
-            width: 64px;
-            height: 64px;
         }
 
         .header .right {
-            display: flex;
             justify-self: right;
-            flex-wrap: wrap;
-            align-items: flex-start;
+            padding: 24px;
         }
 
-        .header .right > * {
+        .header .top-menu {
+        }
+
+        .header .top-menu > * {
             margin-left: 12px;
-        }
-
-        .top-menu {
-            font-family: 'Orbitron', serif;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            align-items: flex-start;
-            white-space: nowrap;
-        }
-
-        .top-menu > * {
-            margin-left: 12px;
-        }
-
-        .user {
-            text-align: center;
         }
 
         .error-message {
             color: red;
-        }
-
-        .white-border {
-            margin: 12px 12px;
-            padding: 8px 12px;
-            border-radius: 12px;
-            border: 3px solid white;
         }
 
         .pure-button.primary {
@@ -177,7 +147,7 @@ head
             width: 100vw;
             display: grid;
             grid-template-columns: 1fr;
-            grid-template-rows: 120px 1fr 48px;
+            grid-template-rows: 240px 1fr 48px;
         }
 
         .header-wrapper {
@@ -186,19 +156,6 @@ head
         .content-wrapper {
             overflow-y: auto;
             overflow-x: hidden;
-        }
-
-        .footer-wrapper {
-            display: grid;
-            grid-template-columns: 130px auto 130px 130px auto 130px;
-            grid-template-areas: ". . twitch twitter . patreon";
-            justify-items: center;
-            font-size: 1.2em;
-            padding: 12px;
-        }
-
-        .footer-wrapper a {
-            margin: 0 12px;
         }
 
         .footer-wrapper {
@@ -219,41 +176,37 @@ html
     body
         .container
             .header-wrapper
-                .pure-g
-                    .pure-u-1-24
-                        div.back
-                            a(href="/") <
-                    .pure-u-22-24
-                        .header
-                            .left
-                                a(href="/")#logo
-                                    img(src="/assets/logo.png")
-                                h1 Tournament Management
-                            .right
+                .header
+                    .left
+                        //
+                            a(href="/")#logo
+                                img(src="/assets/logo.png")
+                        h1 Tournament Management
+                    .right
+                        //
+                            .top-menu
+                                a(href="/involved") Get Involved
+                            if context.isTimerAdmin || context.isRef
                                 .top-menu
-                                    a(href="/involved") Get Involved
-                                if context.isTimerAdmin || context.isRef
-                                    .top-menu
-                                        if context.isAdmin
-                                            a(href="/auth/admin/thunderdome") Thunderdome
+                                    if context.isAdmin
+                                        a(href="/auth/admin/thunderdome") Thunderdome
 
-                                if context.team
-                                    a(href="/auth/team/join/" + team.joinUuid) Manage Team
+                            if context.team
+                                a(href="/auth/team/join/" + team.joinUuid) Manage Team
 
-                                if !context.user
-                                    a#eveLogin(href="/login/start")
-                                        img(src="https://web.ccpgamescdn.com/eveonlineassets/developers/eve-sso-login-black-small.png")
+                        if !context.user
+                            a#eveLogin(href="/login/start")
+                                img(src="https://web.ccpgamescdn.com/eveonlineassets/developers/eve-sso-login-black-small.png")
 
-                            if context.user
-                                .top-menu
-                                    a(href="/login/logout") Logout
-                                    span.user
-                                        a(href="/auth/profile/me")
-                                            img(src=context.user.principal().getString("portrait") title="Me me me")
-                                        p= context.user.principal().getString("characterName")
-                                        span.token.hidden= context.user.principal().getString("token")
+                        if context.user
+                            .top-menu
+                                a(href="/login/logout") Logout
+                                span.user
+                                    a(href="/auth/profile/me")
+                                        img(src=context.user.principal().getString("portrait") title="Me me me")
+                                    p= context.user.principal().getString("characterName")
+                                    span.token.hidden= context.user.principal().getString("token")
 
-                    .pure-u-1-24
 
             .content-wrapper
                 .pure-g
@@ -263,16 +216,20 @@ html
                     .pure-u-1-24
 
             .footer-wrapper
-                a(target="_blank", href="https://www.twitch.tv/5v5scrims/", style="grid-area: twitch")
-                    i.fab.fa-twitch
-                    | &nbsp;Twitch
-                a(target="_blank", href="https://twitter.com/5v5scrims", style="grid-area: twitter")
-                    i.fab.fa-twitter
-                    | &nbsp;Twitter
                 //
-                    a(target="_blank", href="https://www.patreon.com/eve_gatt", style="grid-area: patreon")
-                        i.fab.fa-patreon
-                        | &nbsp;patreon
+                    a(target="_blank", href="https://www.twitch.tv/5v5scrims/", style="grid-area: twitch")
+                        i.fab.fa-twitch
+                        | &nbsp;Twitch
+
+                    a(target="_blank", href="https://twitter.com/5v5scrims", style="grid-area: twitter")
+                        i.fab.fa-twitter
+                        | &nbsp;Twitter
+
+                a(target="_blank", href="https://www.patreon.com/eve_gatt")
+                    i.fab.fa-patreon
+                    | &nbsp;patreon
+                a(href="/support")
+                    | &nbsp;support
 
         script(src='https://cdnjs.cloudflare.com/ajax/libs/d3/5.9.2/d3.js')
         script(src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.23.0/moment.min.js')

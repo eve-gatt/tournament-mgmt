@@ -1,5 +1,7 @@
 package eve.toys.tournmgmt.web;
 
+import eve.toys.tournmgmt.web.routes.HomeRouter;
+import eve.toys.tournmgmt.web.routes.TournamentRouter;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.ext.bridge.PermittedOptions;
@@ -15,6 +17,7 @@ import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
 import io.vertx.ext.web.sstore.LocalSessionStore;
 import io.vertx.ext.web.sstore.SessionStore;
 import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
+import toys.eve.tournmgmt.common.util.RenderHelper;
 
 public class WebVerticle extends AbstractVerticle {
 
@@ -43,10 +46,11 @@ public class WebVerticle extends AbstractVerticle {
         router.get("/assets/*").handler(StaticHandler.create("assets").setCachingEnabled(pseudoStaticCaching));
 
         JadeTemplateEngine engine = JadeTemplateEngine.create(vertx);
-        RenderHelper render = new RenderHelper(engine);
+        RenderHelper render = new RenderHelper(engine, "web-templates");
 
         router.post().handler(BodyHandler.create());
         router.mountSubRouter("/", HomeRouter.routes(vertx, render));
+        router.mountSubRouter("/tournament", TournamentRouter.routes(vertx, render));
 
         SockJSHandler sockJSHandler = SockJSHandler.create(vertx, new SockJSHandlerOptions());
         sockJSHandler.bridge(new BridgeOptions()
