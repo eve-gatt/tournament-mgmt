@@ -48,11 +48,21 @@ head
 
         .pure-form legend {
             color: #f99e00;
+            margin-top: 2em;
             margin-bottom: 2em;
+        }
+
+        .pure-form .pure-form-message-inline {
+            font-style: italic;
+            color: #e2e2e2;
         }
 
         .pure-form-aligned .pure-control-group label {
             width: 16em;
+        }
+
+        .pure-form-aligned .pure-controls {
+            margin: 1.5em 0 0 17em;
         }
 
         .pure-form input[type=checkbox] {
@@ -80,7 +90,6 @@ head
         }
 
         h2 {
-
             color: #f99e00;
         }
 
@@ -118,6 +127,14 @@ head
 
         .header #logo {
             margin-right: 24px;
+        }
+
+        .header h1 {
+            letter-spacing: 10px;
+        }
+
+        .header h1 .accent {
+            color: #f99e00;
         }
 
         .header #logo img {
@@ -201,7 +218,9 @@ html
                         //
                             a(href="/")#logo
                                 img(src="/assets/logo.png")
-                        h1 Tournament Management
+                        h1 Tournament
+                            | &nbsp;&nbsp;
+                            span.accent Management
                     .right
                         //
                             .top-menu
@@ -244,8 +263,7 @@ html
                     a(target="_blank", href="https://twitter.com/5v5scrims", style="grid-area: twitter")
                         i.fab.fa-twitter
                         | &nbsp;Twitter
-
-                a(target="_blank", href="https://www.patreon.com/eve_gatt")
+                a(target="_blank", href="https://www.patreon.com/bePatron?u=36212194")
                     i.fab.fa-patreon
                     | &nbsp;patreon
                 a(href="/support")

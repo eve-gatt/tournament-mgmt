@@ -15,6 +15,10 @@ block content
                 label(for="tournament-name") Tournament name
                 input(type="text", placeholder="")#tournament-name
                 span.pure-form-message-inline required
+            .pure-control-group
+                label(for="start-date") Start date
+                input(type="text", placeholder="")#start-date
+                span.pure-form-message-inline dd/mm/yyyy required
 
             legend Thunderdome usage
             p.
@@ -27,5 +31,7 @@ block content
                 label(for="play-on-td") Matches on Thunderdome
                 input(type="checkbox")#play-on-td
 
+            .pure-controls
+                button.pure-button.pure-button-primary(type="submit") Create
 
 block scripts
