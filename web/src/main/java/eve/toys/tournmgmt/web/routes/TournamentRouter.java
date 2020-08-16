@@ -75,8 +75,10 @@ public class TournamentRouter {
                                         msg.cause().getMessage().contains("tournament_name_uindex")
                                                 ? "This tournament name has already been used"
                                                 : msg.cause().getMessage());
+                        ctx.reroute(HttpMethod.GET, "/tournament/create");
+                    } else {
+                        RenderHelper.doRedirect(ctx.response(), "/tournament/create");
                     }
-                    ctx.reroute(HttpMethod.GET, "/tournament/create");
                 });
     }
 
