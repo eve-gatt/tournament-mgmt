@@ -1,5 +1,5 @@
 /deploy/kubeconfig/kubeconfig.yaml
-/deploy/k8s/postgres-secrets.yaml
+/deploy/k8s/*-secrets.yaml
 /.gradle/
 /gradle.properties
 build/
