@@ -10,6 +10,7 @@ node {
 
 dependencies {
     compile(project(":common"))
+    compile(project(":db"))
 
     implementation("io.vertx:vertx-auth-common:$vertxVersion")
     implementation("io.vertx:vertx-circuit-breaker:$vertxVersion")
@@ -17,6 +18,7 @@ dependencies {
     implementation("io.vertx:vertx-web-client:$vertxVersion")
     implementation("io.vertx:vertx-web-templ-jade:$vertxVersion")
     implementation("io.vertx:vertx-web:$vertxVersion")
+    implementation("io.vertx:vertx-web-api-contract:$vertxVersion")
     implementation("io.vertx:vertx-jdbc-client:$vertxVersion")
     implementation("io.vertx:vertx-sql-common:$vertxVersion")
 

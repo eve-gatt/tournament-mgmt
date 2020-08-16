@@ -8,17 +8,17 @@ block content
     p.
         Please provide some details about your tournament. This data can be changed up until you go live with your
         tournament.
-    form.pure-form.pure-form-aligned
+    form.pure-form.pure-form-aligned(action="/tournament/create", method="POST")
         fieldset
             legend Tournament details
             .pure-control-group
                 label(for="tournament-name") Tournament name
-                input(type="text", placeholder="")#tournament-name
-                span.pure-form-message-inline required
+                input(type="text", name="name", placeholder="", value=form.getString("name"))#tournament-name
+                span.pure-form-message-inline(class=errorField.equals("name") ? "error" : null)= errorField.equals("name") ? "min length 3, ascii characters only" : "required"
             .pure-control-group
                 label(for="start-date") Start date
-                input(type="text", placeholder="")#start-date
-                span.pure-form-message-inline dd/mm/yyyy required
+                input(type="text", , name="startDate", placeholder="", value=form.getString("startDate"))#start-date
+                span.pure-form-message-inline(class=errorField.equals("startDate") ? "error" : null)= errorField.equals("startDate") ? "please provide date as yyyy-mm-dd, e.g. 2020-10-03" : "yyyy-mm-dd required"
 
             legend Thunderdome usage
             p.
@@ -26,12 +26,13 @@ block content
                 to your competitors (subject to CCP agreement).
             .pure-control-group
                 label(for="practice-on-td") Practice on Thunderdome
-                input(type="checkbox")#practice-on-td
+                input(type="checkbox", name="practiceOnTd", checked=form.getString("practiceOnTd"))#practice-on-td
             .pure-control-group
                 label(for="play-on-td") Matches on Thunderdome
-                input(type="checkbox")#play-on-td
+                input(type="checkbox", name="playOnTd", checked=form.getString("playOnTd"))#play-on-td
 
             .pure-controls
+                .error= errorField.equals("general") ? errorMessage : null
                 button.pure-button.pure-button-primary(type="submit") Create
 
 block scripts

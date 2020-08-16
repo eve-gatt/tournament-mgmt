@@ -1,8 +1,9 @@
-package toys.eve.tournamgmt;
+package toys.eve.tournmgmt.deploy;
 
 import eve.toys.tournmgmt.web.WebVerticle;
 import io.vertx.core.*;
 import toys.eve.tournmgmt.common.vertx.GlobalOptions;
+import toys.eve.tournmgmt.db.DbVerticle;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +24,7 @@ public class SingleProcessMain {
     private static void deploy(Vertx vertx) {
 
         List<Future> dbs = new ArrayList<>();
-//        dbs.add(deployHelper(vertx, 5v5db.class, new DeploymentOptions().setWorker(true)));
+        dbs.add(deployHelper(vertx, DbVerticle.class, new DeploymentOptions().setWorker(true)));
 
         CompositeFuture.all(dbs)
                 .onSuccess(f -> {

@@ -25,6 +25,7 @@ head
             color: #e2e2e2;
             font-size: 14px;
             overflow: hidden;
+            font-family: 'Poppins', sans-serif;
         }
 
         .pure-g [class*=pure-u] {
@@ -77,7 +78,7 @@ head
         a {
             color: #2a9fd6;
             text-decoration: none;
-            line-height: 20px;
+            padding-bottom: 0.2em;
             border-bottom: 2px solid transparent;
         }
 
@@ -141,19 +142,26 @@ head
         }
 
         .header .right {
-            justify-self: right;
-            padding: 24px;
+            padding: 12px 24px;
+            display: grid;
+            grid-template-columns: auto 380px;
         }
 
-        .header .top-menu {
+        .header .right .top-menu {
+            margin-right: 24px;
+            align-self: end;
+        }
+
+        .header .user {
+            justify-self: right;
         }
 
         .header .top-menu > * {
             margin-left: 12px;
         }
 
-        .error-message {
-            color: red;
+        .error {
+            color: red !important;
         }
 
         .pure-button.primary {
@@ -222,6 +230,8 @@ html
                             | &nbsp;&nbsp;
                             span.accent Management
                     .right
+                        .top-menu
+                            a(href="/") Home
                         //
                             .top-menu
                                 a(href="/involved") Get Involved
@@ -233,18 +243,20 @@ html
                             if context.team
                                 a(href="/auth/team/join/" + team.joinUuid) Manage Team
 
-                        if !context.user
-                            a#eveLogin(href="/login/start")
-                                img(src="https://web.ccpgamescdn.com/eveonlineassets/developers/eve-sso-login-black-small.png")
+                        .user
+                            if !context.user
+                                div
+                                    a#eveLogin(href="/login/start")
+                                        img(src="https://web.ccpgamescdn.com/eveonlineassets/developers/eve-sso-login-black-small.png")
 
-                        if context.user
-                            .top-menu
-                                a(href="/login/logout") Logout
-                                span.user
-                                    a(href="/auth/profile/me")
-                                        img(src=context.user.principal().getString("portrait") title="Me me me")
-                                    p= context.user.principal().getString("characterName")
-                                    span.token.hidden= context.user.principal().getString("token")
+                            if context.user
+                                .top-menu
+                                    a(href="/login/logout") Logout
+                                    span.user
+                                        a(href="/auth/profile/me")
+                                            img(src=context.user.principal().getString("portrait") title="Me me me")
+                                        p= context.user.principal().getString("characterName")
+                                        span.token.hidden= context.user.principal().getString("token")
 
 
             .content-wrapper
