@@ -1,3 +1,5 @@
-/gradle.properties
-/deploy/kubeconfig/gskillfarm-cluster-kubeconfig.yaml
+/deploy/kubeconfig/kubeconfig.yaml
+/deploy/k8s/postgres-secrets.yaml
 /.gradle/
+/gradle.properties
+build/

@@ -62,7 +62,7 @@ spec:
       containers:
         - name: tournmgmt
           #          image: giraffeostrich/noodle:latest
-          image: docker.pkg.github.com/eve-gatt/tournament-mgmt/tournmgmt:1.<VERSION>
+          image: docker.pkg.github.com/eve-gatt/tournament-mgmt/tournmgmt:1.211111903
           imagePullPolicy: IfNotPresent
           readinessProbe:
             httpGet:

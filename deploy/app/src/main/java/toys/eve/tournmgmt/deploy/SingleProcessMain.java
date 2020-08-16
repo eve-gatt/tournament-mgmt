@@ -28,9 +28,13 @@ public class SingleProcessMain {
 
         CompositeFuture.all(dbs)
                 .onSuccess(f -> {
+                    System.out.println("DB(s) deployed successfully");
                     List<Future> webApps = new ArrayList<>();
                     webApps.add(deployHelper(vertx, WebVerticle.class, new DeploymentOptions()));
                     CompositeFuture.all(webApps)
+                            .onSuccess(f2 -> {
+                                System.out.println("Apps deployed successfully");
+                            })
                             .onFailure(t -> {
                                 System.err.println("webapp deployment failed");
                                 t.printStackTrace();
