@@ -16,7 +16,7 @@ plugins {
 jib {
     container {
         ports = listOf("6070")
-        mainClass = "toys.eve.tournamgmt.SingleProcessMain"
+        mainClass = "toys.eve.tournmgmt.deploy.SingleProcessMain"
         jvmFlags = listOf(
                 "-Dhttp.agent=Gatt2111@tweetfleet"
 //                "-Dsun.net.inetaddr.ttl=0"
