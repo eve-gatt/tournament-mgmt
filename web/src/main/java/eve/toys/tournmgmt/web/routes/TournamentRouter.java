@@ -70,7 +70,7 @@ public class TournamentRouter {
                         form.put("practiceOnTd", form.getBoolean("practiceOnTd") ? "on" : "off");
                         form.put("playOnTd", form.getBoolean("playOnTd") ? "on" : "off");
                         ctx.put("form", form)
-                                .put("errorField", msg.cause().getMessage().contains("tournament_name_uindex") ? "name" : "general")
+                                .put("errorField", "general")
                                 .put("errorMessage",
                                         msg.cause().getMessage().contains("tournament_name_uindex")
                                                 ? "This tournament name has already been used"
