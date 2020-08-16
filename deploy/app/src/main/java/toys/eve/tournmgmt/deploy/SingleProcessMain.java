@@ -2,6 +2,8 @@ package toys.eve.tournmgmt.deploy;
 
 import eve.toys.tournmgmt.web.WebVerticle;
 import io.vertx.core.*;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import toys.eve.tournmgmt.common.vertx.GlobalOptions;
 import toys.eve.tournmgmt.db.DbVerticle;
 
@@ -9,14 +11,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SingleProcessMain {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SingleProcessMain.class.getName());
+
     public static void main(String[] args) {
-        System.out.println("http.agent=" + System.getProperty("http.agent"));
+        LOGGER.info("http.agent=" + System.getProperty("http.agent"));
         VertxOptions vertxOptions = GlobalOptions.vertxOptions(9092);
         Vertx vertx = Vertx.vertx(vertxOptions);
         GlobalOptions.globalInit();
         deploy(vertx);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("shut 'er down");
+            LOGGER.info("shut 'er down");
             vertx.close();
         }));
     }
@@ -28,20 +33,20 @@ public class SingleProcessMain {
 
         CompositeFuture.all(dbs)
                 .onSuccess(f -> {
-                    System.out.println("DB(s) deployed successfully");
+                    LOGGER.info("DB(s) deployed successfully");
                     List<Future> webApps = new ArrayList<>();
                     webApps.add(deployHelper(vertx, WebVerticle.class, new DeploymentOptions()));
                     CompositeFuture.all(webApps)
                             .onSuccess(f2 -> {
-                                System.out.println("Apps deployed successfully");
+                                LOGGER.info("Apps deployed successfully");
                             })
                             .onFailure(t -> {
-                                System.err.println("webapp deployment failed");
+                                LOGGER.error("webapp deployment failed");
                                 t.printStackTrace();
                             });
                 })
                 .onFailure(t -> {
-                    System.err.println("db deployment failed");
+                    LOGGER.error("db deployment failed");
                     t.printStackTrace();
                 });
     }
