@@ -23,10 +23,14 @@ public class DbVerticle extends AbstractVerticle {
 
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
+        LOGGER.info("Initialising Flyway");
+
         Flyway flyway = Flyway.configure().dataSource(URL, USER, PASSWORD).load();
         if (Boolean.parseBoolean(System.getenv().getOrDefault("DB_DO_CLEAN", "false"))) {
+            LOGGER.info("Flyway cleaning");
             flyway.clean();
         }
+        LOGGER.info("Flyway migration");
         flyway.migrate();
 
         LOGGER.info("Successfully migrated database schema");

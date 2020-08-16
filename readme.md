@@ -1,3 +1,4 @@
 ```
-kubectl --kubeconfig="deploy\kubeconfig\kubeconfig.yaml" apply -f deploy\k8s\postgres-secrets.yaml
+kubectl apply -f deploy\k8s\postgres-secrets.yaml
+kubectl patch deployment tournmgmt -p "{\"spec\": { \"replicas\" : 0}}"
 ```
