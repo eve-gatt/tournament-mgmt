@@ -8,5 +8,6 @@ dependencies {
     compile("org.ethereum:leveldbjni-all:1.18.3")
     compile("org.flywaydb:flyway-core:6.2.4")
     compile("org.postgresql:postgresql:42.2.10")
+    runtime("org.slf4j:slf4j-simple:1.7.26")
 }
 
