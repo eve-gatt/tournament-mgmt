@@ -152,8 +152,28 @@ head
             align-self: end;
         }
 
-        .header .user {
+        .header .character {
             justify-self: right;
+            display: grid;
+            justify-items: right;
+            column-gap: 48px;
+            grid-template-columns: auto 1fr;
+            grid-template-rows: auto auto auto auto auto;
+            grid-template-areas:
+                "button-row   button-row"
+                "logged-in-as portrait"
+                "name         portrait"
+                "profile      portrait"
+                "logout       portrait"
+        }
+
+        .header .character .portrait {
+            grid-area: portrait;
+        }
+
+        .header .character .portrait img {
+            width: 194px;
+            height: 194px;
         }
 
         .header .top-menu > * {
@@ -231,7 +251,7 @@ html
                             span.accent Management
                     .right
                         .top-menu
-                            a(href="/") Home
+                            a(href="/", style="grid-area: button-row") Home
                         //
                             .top-menu
                                 a(href="/involved") Get Involved
@@ -243,20 +263,19 @@ html
                             if context.team
                                 a(href="/auth/team/join/" + team.joinUuid) Manage Team
 
-                        .user
-                            if !context.user
-                                div
+                        .character
+                            if !character
+                                div(style="grid-area: button-row")
                                     a#eveLogin(href="/login/start")
                                         img(src="https://web.ccpgamescdn.com/eveonlineassets/developers/eve-sso-login-black-small.png")
 
-                            if context.user
-                                .top-menu
-                                    a(href="/login/logout") Logout
-                                    span.user
-                                        a(href="/auth/profile/me")
-                                            img(src=context.user.principal().getString("portrait") title="Me me me")
-                                        p= context.user.principal().getString("characterName")
-                                        span.token.hidden= context.user.principal().getString("token")
+                            if character
+                                p(style="grid-area: name")= character.getString("characterName")
+                                span(style="grid-area: logged-in-as") Logged in as
+                                a(style="grid-area: logout", href="/login/logout") Logout
+                                a.portrait(href="/auth/profile/me")
+                                    img(src="https://images.evetech.net/characters/" + character.getInteger("characterId") + "/portrait?size=256" title="Me me me")
+                        span.token.hidden= "some-token"
 
 
             .content-wrapper
