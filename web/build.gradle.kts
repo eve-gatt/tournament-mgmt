@@ -21,6 +21,7 @@ dependencies {
     implementation("io.vertx:vertx-web-api-contract:$vertxVersion")
     implementation("io.vertx:vertx-jdbc-client:$vertxVersion")
     implementation("io.vertx:vertx-sql-common:$vertxVersion")
+    implementation("io.vertx:vertx-auth-oauth2:$vertxVersion")
 
     implementation("me.escoffier.vertx:vertx-completable-future:0.1.2")
 
