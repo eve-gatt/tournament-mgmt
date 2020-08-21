@@ -97,6 +97,21 @@ spec:
                 secretKeyRef:
                   name: postgres-secrets
                   key: POSTGRES_PASSWORD
+            - name: ESI_CLIENT
+              valueFrom:
+                secretKeyRef:
+                  name: esi-secrets
+                  key: ESI_CLIENT
+            - name: ESI_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: esi-secrets
+                  key: ESI_SECRET
+            - name: ESI_CALLBACK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: esi-secrets
+                  key: ESI_CALLBACK_URL
 
       imagePullSecrets:
         - name: regcred
