@@ -2,6 +2,7 @@ package eve.toys.tournmgmt.web;
 
 import eve.toys.tournmgmt.web.routes.HomeRouter;
 import eve.toys.tournmgmt.web.routes.LoginRouter;
+import eve.toys.tournmgmt.web.routes.ProfileRouter;
 import eve.toys.tournmgmt.web.routes.TournamentRouter;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
@@ -79,6 +80,7 @@ public class WebVerticle extends AbstractVerticle {
         router.mountSubRouter("/", HomeRouter.routes(vertx, render));
         router.mountSubRouter("/login", LoginRouter.routes(vertx, render, oauth2));
         router.mountSubRouter("/auth/tournament", TournamentRouter.routes(vertx, render));
+        router.mountSubRouter("/auth/profile", ProfileRouter.routes(vertx, render));
 
 
         SockJSHandler sockJSHandler = SockJSHandler.create(vertx, new SockJSHandlerOptions());

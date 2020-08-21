@@ -1,0 +1,46 @@
+extends ../../layout/default-layout
+
+block styles
+    style.
+        .tournaments table tbody td:nth-child(2) {
+
+        }
+
+        .tournaments table tbody td:nth-child(2) a {
+            white-space: nowrap;
+        }
+
+        .tournaments table tbody td:nth-child(2) a+a {
+            margin-left: 12px;
+        }
+
+block content
+    h2 Tournaments
+
+    .tournaments
+        .no-tournaments You are currently not involved in any tournaments.
+        table.pure-table
+            thead
+                th Name
+                th Actions
+            tbody
+
+    h2 Ship skills check
+
+    p Type a ship name to verify that your character has the skills to fly it.
+
+    form.pure-form.pure-form-aligned(action="/auth/profile/shipcheck", method="POST")
+        fieldset
+            .pure-control-group
+                label(for="ship-name") Ship name
+                input(type="text", name="name", placeholder="")#ship-name
+
+            .pure-controls
+                button.pure-button.pure-button-primary(type="submit") Check
+
+
+
+
+
+block scripts
+    script(src='/js/profile/me.js')

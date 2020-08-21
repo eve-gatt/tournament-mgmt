@@ -13,6 +13,7 @@ import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
 
 import java.util.UUID;
+import java.util.stream.Collector;
 
 public class DbVerticle extends AbstractVerticle {
 
@@ -25,7 +26,6 @@ public class DbVerticle extends AbstractVerticle {
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
         LOGGER.info("Initialising Flyway");
-
 
         try {
             Flyway flyway = Flyway.configure().dataSource(URL, USER, PASSWORD).load();
@@ -50,8 +50,27 @@ public class DbVerticle extends AbstractVerticle {
         sqlClient = JDBCClient.createShared(vertx, config);
 
         vertx.eventBus().consumer(DbClient.DB_CREATE_TOURNAMENT, this::createTournament);
+        vertx.eventBus().consumer(DbClient.DB_FETCH_ORGANISED_TOURNAMENTS, this::fetchOrganisedTournaments);
 
         startPromise.complete();
+    }
+
+    private void fetchOrganisedTournaments(Message<JsonObject> msg) {
+        String organiser = msg.body().getString("organiser");
+        sqlClient.queryWithParams(
+                "select uuid, name, practice_on_td, play_on_td " +
+                        "from tournament where created_by = ?",
+                new JsonArray().add(organiser),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    msg.reply(ar.result().getRows().stream()
+                            .collect(toJsonArray()));
+                }
+        );
     }
 
     private void createTournament(Message<JsonObject> msg) {
@@ -73,4 +92,7 @@ public class DbVerticle extends AbstractVerticle {
                 });
     }
 
+    private Collector<JsonObject, JsonArray, JsonArray> toJsonArray() {
+        return Collector.of(JsonArray::new, JsonArray::add, JsonArray::addAll);
+    }
 }

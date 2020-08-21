@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+    <data-source source="LOCAL" name="db-postgresql-lon1-96765-do-user-6869887-0.a.db.ondigitalocean.com" uuid="beb68acb-ea5a-44fa-a279-e548663414d1">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://db-postgresql-lon1-96765-do-user-6869887-0.a.db.ondigitalocean.com:25060/tournmgmt</jdbc-url>
+      <driver-properties>
+        <property name="sslmode" value="require" />
+      </driver-properties>
+    </data-source>
+  </component>
+</project>
