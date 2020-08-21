@@ -147,6 +147,10 @@ head
             grid-template-columns: auto 380px;
         }
 
+        .header .right a {
+            font-size: 1.2em;
+        }
+
         .header .right .top-menu {
             margin-right: 24px;
             align-self: end;
@@ -165,6 +169,28 @@ head
                 "name         portrait"
                 "profile      portrait"
                 "logout       portrait"
+        }
+
+        .header .character .logged-in-as {
+            grid-area: logged-in-as;
+            font-size: 26px;
+            color: #BCBCBC;
+            white-space: nowrap;
+        }
+
+        .header .character .name {
+            grid-area: name;
+            font-size: 32px;
+            color: white;
+            white-space: nowrap;
+        }
+
+        .header .character .profile {
+            grid-area: profile;
+        }
+
+        .header .character .logout {
+            grid-area: logout;
         }
 
         .header .character .portrait {
@@ -251,7 +277,7 @@ html
                             span.accent Management
                     .right
                         .top-menu
-                            a(href="/", style="grid-area: button-row") Home
+                            a(href="/") Home
                         //
                             .top-menu
                                 a(href="/involved") Get Involved
@@ -270,11 +296,15 @@ html
                                         img(src="https://web.ccpgamescdn.com/eveonlineassets/developers/eve-sso-login-black-small.png")
 
                             if character
-                                p(style="grid-area: name")= character.getString("characterName")
-                                span(style="grid-area: logged-in-as") Logged in as
-                                a(style="grid-area: logout", href="/login/logout") Logout
-                                a.portrait(href="/auth/profile/me")
-                                    img(src="https://images.evetech.net/characters/" + character.getInteger("characterId") + "/portrait?size=256" title="Me me me")
+                                .logged-in-as Logged in as
+                                .name= character.getString("characterName")
+                                .profile
+                                    a(href="/auth/profile/me") Profile
+                                .logout
+                                    a(href="/login/logout") Logout
+                                .portrait
+                                    a(href="/auth/profile/me")
+                                        img(src="https://images.evetech.net/characters/" + character.getInteger("characterId") + "/portrait?size=256" title="Me me me")
                         span.token.hidden= "some-token"
 
 

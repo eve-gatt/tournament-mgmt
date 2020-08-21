@@ -21,6 +21,7 @@ public class LoginRouter {
         this.oauth2 = oauth2;
         router.get("/start").handler(this::start);
         router.get("/callback").handler(this::callback);
+        router.get("/logout").handler(this::logout);
     }
 
     private void start(RoutingContext ctx) {
@@ -51,6 +52,12 @@ public class LoginRouter {
             String returnURL = ctx.session().remove("return_url");
             RenderHelper.doRedirect(ctx.response(), returnURL == null ? "/" : returnURL);
         });
+    }
+
+    private void logout(RoutingContext ctx) {
+        ctx.clearUser();
+        ctx.session().destroy();
+        RenderHelper.doRedirect(ctx.response(), "/");
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, OAuth2Auth oauth2) {
