@@ -63,6 +63,7 @@ public class TournamentRouter {
     private void handleCreate(RoutingContext ctx) {
         RequestParameters params = ctx.get("parsedParameters");
         JsonObject form = params.toJson().getJsonObject("form");
+        form.put("createdBy", ((JsonObject) ctx.data().get("character")).getString("characterName"));
         eventBus.request(DbClient.DB_CREATE_TOURNAMENT,
                 form,
                 msg -> {
@@ -75,9 +76,9 @@ public class TournamentRouter {
                                         msg.cause().getMessage().contains("tournament_name_uindex")
                                                 ? "This tournament name has already been used"
                                                 : msg.cause().getMessage());
-                        ctx.reroute(HttpMethod.GET, "/tournament/create");
+                        ctx.reroute(HttpMethod.GET, "/auth/tournament/create");
                     } else {
-                        RenderHelper.doRedirect(ctx.response(), "/tournament/create");
+                        RenderHelper.doRedirect(ctx.response(), "/auth/tournament/create");
                     }
                 });
     }
@@ -92,7 +93,7 @@ public class TournamentRouter {
         } else {
             failure.printStackTrace();
         }
-        ctx.reroute(HttpMethod.GET, "/tournament/create");
+        ctx.reroute(HttpMethod.GET, "/auth/tournament/create");
     }
 
     private Collector<Map.Entry<String, String>, JsonObject, JsonObject> formEntriesToJson() {

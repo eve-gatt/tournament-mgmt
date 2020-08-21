@@ -10,6 +10,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLClient;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.FlywayException;
 
 import java.util.UUID;
 
@@ -25,13 +26,19 @@ public class DbVerticle extends AbstractVerticle {
     public void start(Promise<Void> startPromise) throws Exception {
         LOGGER.info("Initialising Flyway");
 
-        Flyway flyway = Flyway.configure().dataSource(URL, USER, PASSWORD).load();
-        if (Boolean.parseBoolean(System.getenv().getOrDefault("DB_DO_CLEAN", "false"))) {
-            LOGGER.info("Flyway cleaning");
-            flyway.clean();
+
+        try {
+            Flyway flyway = Flyway.configure().dataSource(URL, USER, PASSWORD).load();
+            if (Boolean.parseBoolean(System.getProperty("db_do_clean", "false"))) {
+                LOGGER.info("Flyway cleaning");
+                flyway.clean();
+            }
+            LOGGER.info("Flyway migration");
+            flyway.migrate();
+        } catch (FlywayException e) {
+            startPromise.fail(e);
+            return;
         }
-        LOGGER.info("Flyway migration");
-        flyway.migrate();
 
         LOGGER.info("Successfully migrated database schema");
 
@@ -49,12 +56,13 @@ public class DbVerticle extends AbstractVerticle {
 
     private void createTournament(Message<JsonObject> msg) {
         JsonObject input = msg.body();
-        sqlClient.updateWithParams("insert into tournament(uuid, name, practice_on_td, play_on_td) " +
-                        "values ('" + UUID.randomUUID().toString() + "', ?, ?, ?)",
+        sqlClient.updateWithParams("insert into tournament(uuid, name, practice_on_td, play_on_td, created_by) " +
+                        "values ('" + UUID.randomUUID().toString() + "', ?, ?, ?, ?)",
                 new JsonArray()
                         .add(input.getString("name").trim())
                         .add(input.getBoolean("practiceOnTd"))
-                        .add(input.getBoolean("playOnTd")),
+                        .add(input.getBoolean("playOnTd"))
+                        .add(input.getString("createdBy")),
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();

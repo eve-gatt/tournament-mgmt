@@ -43,11 +43,13 @@ public class SingleProcessMain {
                             .onFailure(t -> {
                                 LOGGER.error("webapp deployment failed");
                                 t.printStackTrace();
+                                vertx.close();
                             });
                 })
                 .onFailure(t -> {
                     LOGGER.error("db deployment failed");
                     t.printStackTrace();
+                    vertx.close();
                 });
     }
 

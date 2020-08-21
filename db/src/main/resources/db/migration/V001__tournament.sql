@@ -6,7 +6,9 @@ create table tournament
     uuid           uuid    not null,
     name           varchar not null,
     practice_on_td boolean not null default false,
-    play_on_td     boolean not null default false
+    play_on_td     boolean not null default false,
+    created_by     varchar not null,
+    created_on     timestamptz not null default now()
 );
 
 create unique index tournament_name_uindex
