@@ -112,6 +112,11 @@ spec:
                 secretKeyRef:
                   name: esi-secrets
                   key: ESI_CALLBACK_URL
+            - name: SUPERUSER
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: SUPERUSER
 
       imagePullSecrets:
         - name: regcred

@@ -16,6 +16,8 @@
             var tournaments = d3.select('.tournaments table tbody').selectAll('tr').data(data);
             var entering = tournaments.enter().append('tr');
             entering.append('td').text(d => d.name);
+            entering.append('td').text(d => d.created_by);
+            entering.append('td').text(d => d.teams_locked);
             entering.append('td').call(actions)
         } else {
             d3.select('.tournaments table').style('display', 'none');

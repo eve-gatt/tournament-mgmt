@@ -2,15 +2,16 @@ extends ../../layout/default-layout
 
 block styles
     style.
-        .tournaments table tbody td:nth-child(2) {
 
+        .tournaments table {
+            margin-bottom: 12px;
         }
 
-        .tournaments table tbody td:nth-child(2) a {
+        .tournaments table tbody td:nth-child(4) a {
             white-space: nowrap;
         }
 
-        .tournaments table tbody td:nth-child(2) a+a {
+        .tournaments table tbody td:nth-child(4) a+a {
             margin-left: 12px;
         }
 
@@ -22,8 +23,11 @@ block content
         table.pure-table
             thead
                 th Name
+                th Organiser
+                th Teams locked
                 th Actions
             tbody
+        a(href="/auth/tournament/create") Create
 
     h2 Ship skills check
 

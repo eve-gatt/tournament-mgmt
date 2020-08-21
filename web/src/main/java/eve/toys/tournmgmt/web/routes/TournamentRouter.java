@@ -78,7 +78,7 @@ public class TournamentRouter {
                                                 : msg.cause().getMessage());
                         ctx.reroute(HttpMethod.GET, "/auth/tournament/create");
                     } else {
-                        RenderHelper.doRedirect(ctx.response(), "/auth/tournament/create");
+                        RenderHelper.doRedirect(ctx.response(), "/auth/profile/me");
                     }
                 });
     }
