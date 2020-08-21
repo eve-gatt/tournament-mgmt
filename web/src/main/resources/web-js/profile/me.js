@@ -4,7 +4,7 @@
         sel.filter(d => d.canEdit).append('a').attr('href', '#').text('Edit details');
         sel.filter(d => d.canDelete).append('a').attr('href', '#').text('Delete');
         sel.filter(d => d.canSearchPilot).append('a').attr('href', '#').text('Search for pilot');
-        sel.filter(d => d.canManageTeams).append('a').attr('href', '#').text('Manage teams');
+        sel.filter(d => d.canManageTeams).append('a').attr('href', d => '/auth/tournament/' + d.uuid + '/teams').text('Manage teams');
         sel.filter(d => d.canManageTD).append('a').attr('href', '#').text('Manage Thunderdome');
         sel.filter(d => d.canManageRoles).append('a').attr('href', '#').text('Manage Roles');
         sel.filter(d => d.canManageBranding).append('a').attr('href', '#').text('Manage Branding');

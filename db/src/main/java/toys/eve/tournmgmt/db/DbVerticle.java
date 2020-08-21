@@ -50,7 +50,7 @@ public class DbVerticle extends AbstractVerticle {
         sqlClient = JDBCClient.createShared(vertx, config);
 
         vertx.eventBus().consumer(DbClient.DB_CREATE_TOURNAMENT, this::createTournament);
-        vertx.eventBus().consumer(DbClient.DB_FETCH_ORGANISED_TOURNAMENTS, this::fetchOrganisedTournaments);
+        vertx.eventBus().consumer(DbClient.DB_FETCH_TOURNAMENTS, this::fetchOrganisedTournaments);
 
         startPromise.complete();
     }

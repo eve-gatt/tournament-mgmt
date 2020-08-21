@@ -43,11 +43,9 @@ public class ProfileRouter {
     private void tournaments(RoutingContext ctx) {
         String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
 
-        Future<Message<Object>> f1 = Future.future(promise -> {
-            eventBus.request(DbClient.DB_FETCH_ORGANISED_TOURNAMENTS,
-                    new JsonObject(),
-                    promise);
-        });
+        Future<Message<Object>> f1 = Future.future(promise -> eventBus.request(DbClient.DB_FETCH_TOURNAMENTS,
+                new JsonObject(),
+                promise));
 
         f1.onSuccess(msg -> ctx.response().end(((JsonArray) msg.body()).stream()
                 .map(o -> (JsonObject) o)
