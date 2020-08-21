@@ -57,10 +57,9 @@ public class DbVerticle extends AbstractVerticle {
 
     private void fetchOrganisedTournaments(Message<JsonObject> msg) {
         String organiser = msg.body().getString("organiser");
-        sqlClient.queryWithParams(
+        sqlClient.query(
                 "select uuid, name, created_by, practice_on_td, play_on_td, teams_locked " +
-                        "from tournament where created_by = ?",
-                new JsonArray().add(organiser),
+                        "from tournament",
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();

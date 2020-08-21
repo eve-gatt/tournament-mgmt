@@ -25,8 +25,8 @@ public class ProfileRouter {
     );
 
     private final EventBus eventBus;
-    private Router router;
     private final RenderHelper render;
+    private Router router;
 
     public ProfileRouter(Vertx vertx, RenderHelper render) {
         router = Router.router(vertx);
@@ -36,34 +36,34 @@ public class ProfileRouter {
         router.get("/tournaments").handler(this::tournaments);
     }
 
+    public static Router routes(Vertx vertx, RenderHelper render) {
+        return new ProfileRouter(vertx, render).router();
+    }
+
     private void tournaments(RoutingContext ctx) {
         String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
 
         Future<Message<Object>> f1 = Future.future(promise -> {
             eventBus.request(DbClient.DB_FETCH_ORGANISED_TOURNAMENTS,
-                    new JsonObject().put("organiser", characterName),
+                    new JsonObject(),
                     promise);
         });
 
-        f1.onSuccess(msg -> {
-            ctx.response().end(((JsonArray) msg.body()).stream()
-                    .peek(t -> {
-                        ORGANISER_ROLES.forEach(r -> ((JsonObject) t).put(r.name(), true));
-                        ((JsonObject) t).put(Role.canManageTD.name(),
-                                ((JsonObject) t).getBoolean("practice_on_td")
-                                        || ((JsonObject) t).getBoolean("play_on_td"));
-                    })
-                    .collect(JsonArray::new, JsonArray::add, JsonArray::addAll)
-                    .encode());
-        }).onFailure(Throwable::printStackTrace);
+        f1.onSuccess(msg -> ctx.response().end(((JsonArray) msg.body()).stream()
+                .map(o -> (JsonObject) o)
+                .filter(t -> characterName.equals(System.getenv("SUPERUSER"))
+                        || characterName.equals(t.getString("created_by")))
+                .peek(t -> {
+                    ORGANISER_ROLES.forEach(r -> t.put(r.name(), true));
+                    t.put(Role.canManageTD.name(), t.getBoolean("practice_on_td") || t.getBoolean("play_on_td"));
+                })
+                .collect(JsonArray::new, JsonArray::add, JsonArray::addAll)
+                .encode())
+        ).onFailure(Throwable::printStackTrace);
     }
 
     private void me(RoutingContext ctx) {
         render.renderPage(ctx, "/profile/me", new JsonObject());
-    }
-
-    public static Router routes(Vertx vertx, RenderHelper render) {
-        return new ProfileRouter(vertx, render).router();
     }
 
     private Router router() {
