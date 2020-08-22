@@ -2,6 +2,19 @@ extends ../../layout/default-layout
 
 block styles
     style.
+        @font-face {
+            font-family: "Shentox";
+            src: url("/assets/fonts/Shentox-Regular2.woff") format('woff');
+        }
+
+        body {
+            font-family: Shentox;
+        }
+
+        .pure-g [class*=pure-u] {
+            font-family: Shentox;
+        }
+
         .header .left h1 {
             display: none;
         }
