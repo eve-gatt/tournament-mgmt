@@ -1,0 +1,23 @@
+extends ../../layout/default-layout
+
+block styles
+    style.
+        !{tournament_styles}
+
+        h2  {
+            color: white;
+        }
+
+        h2 .accent {
+            color: #f99e00
+        }
+
+
+block content
+    - var uuid = tournament.getString("uuid")
+    h2= tournament.getString("name")
+        | &nbsp;
+        span.accent Import Teams
+
+block scripts
+    script(src='/js/teams/import.js')

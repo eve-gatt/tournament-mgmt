@@ -2,33 +2,34 @@ extends ../../layout/default-layout
 
 block styles
     style.
-        @font-face {
-            font-family: "Shentox";
-            src: url("/assets/fonts/Shentox-Regular2.woff") format('woff');
+        !{tournament_styles}
+
+        h2  {
+            color: white;
         }
 
-        body {
-            font-family: Shentox;
-        }
-
-        .pure-g [class*=pure-u] {
-            font-family: Shentox;
-        }
-
-        .header .left h1 {
-            display: none;
-        }
-
-        .header .left {
-            background: transparent url("/assets/eventao.png") 0% 0% no-repeat padding-box;
-            background-size: 324px 218px;
-            background-position: 12px 12px;
-            opacity: 1;
+        h2 .accent {
+            color: #f99e00
         }
 
 
 block content
-    h2 Teams
+    - var uuid = tournament.getString("uuid")
+    h2= tournament.getString("name")
+        | &nbsp;
+        span.accent Teams
+
+    .teams
+        .no-teams This tournament doesn't have any teams registered.
+        table.pure-table
+            thead
+                th Name
+                th Captain
+                th Actions
+            tbody
+        a(href="/auth/tournament/" + uuid + "/teams/import") Import CSV
+
+
 
 block scripts
     script(src='/js/teams/manage.js')

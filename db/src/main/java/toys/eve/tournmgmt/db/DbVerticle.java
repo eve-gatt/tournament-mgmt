@@ -51,8 +51,24 @@ public class DbVerticle extends AbstractVerticle {
 
         vertx.eventBus().consumer(DbClient.DB_CREATE_TOURNAMENT, this::createTournament);
         vertx.eventBus().consumer(DbClient.DB_FETCH_TOURNAMENTS, this::fetchOrganisedTournaments);
+        vertx.eventBus().consumer(DbClient.DB_TOURNAMENT_BY_UUID, this::tournamentByUuid);
 
         startPromise.complete();
+    }
+
+    private void tournamentByUuid(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.query("select name, uuid " +
+                        "from tournament " +
+                        "where uuid = '" + uuid + "'",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    msg.reply(ar.result().getRows().get(0));
+                });
     }
 
     private void fetchOrganisedTournaments(Message<JsonObject> msg) {
