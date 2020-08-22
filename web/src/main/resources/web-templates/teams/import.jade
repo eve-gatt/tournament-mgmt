@@ -12,12 +12,28 @@ block styles
             color: #f99e00
         }
 
+        textarea {
+            width: 50%;
+            height: 400px;
+        }
+
 
 block content
     - var uuid = tournament.getString("uuid")
     h2= tournament.getString("name")
         | &nbsp;
         span.accent Import Teams
+
+    form.pure-form.pure-form-aligned(action="/auth/tournament/" + uuid + "/teams/import", method="POST")
+        fieldset
+            .pure-control-group
+                label(for="tsv") Tab-separated values
+                textarea(name="tsv", placeholder=placeholder)#tsv
+
+            .pure-controls
+                button.pure-button.pure-button-primary(type="submit") Import
+
+
 
 block scripts
     script(src='/js/teams/import.js')
