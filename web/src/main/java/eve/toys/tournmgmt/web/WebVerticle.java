@@ -36,6 +36,7 @@ public class WebVerticle extends AbstractVerticle {
                 .setSite("https://login.eveonline.com/v2/oauth")
                 .setTokenPath("/token")
                 .setAuthorizationPath("/authorize")
+                .setUserAgent(System.getProperty("http.agent"))
         );
 
         SessionHandler sessionHandler = SessionHandler.create(sessionStore)

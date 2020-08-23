@@ -5,7 +5,6 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.oauth2.AccessToken;
 import io.vertx.ext.web.Router;
@@ -34,13 +33,13 @@ public class TeamsRouter {
         router = Router.router(vertx);
         this.render = render;
         this.eventBus = vertx.eventBus();
-        router.get("/:tournamentUuid/*").handler(this::loadTournament);
+        router.route("/:tournamentUuid/*").handler(this::loadTournament);
         router.get("/:tournamentUuid/teams").handler(this::manage);
         router.get("/:tournamentUuid/teams/data").handler(this::teamsData);
         router.get("/:tournamentUuid/teams/import").handler(this::importTeams);
         HTTPRequestValidationHandler importValidator = HTTPRequestValidationHandler.create()
                 .addFormParamWithCustomTypeValidator("tsv",
-                        ParameterTypeValidator.createStringTypeValidator("\\p{ASCII}+", 3, null, null),
+                        ParameterTypeValidator.createStringTypeValidator("\\p{ASCII}+", 7, null, null),
                         true,
                         false);
 
@@ -79,11 +78,39 @@ public class TeamsRouter {
 
         CompositeFuture.all(searches)
                 .onSuccess(f -> {
-                    System.out.println(new JsonArray(f.list()).encodePrettily());
-                }).onFailure(Throwable::printStackTrace);
-
-        RenderHelper.doRedirect(ctx.response(),
-                "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/teams/import");
+                    String msg = f.list().stream()
+                            .map(o -> (JsonObject) o)
+                            .flatMap(r -> {
+                                String result = "";
+                                if (r.getJsonObject("alliance").getJsonArray("result") == null) {
+                                    result += r.getJsonObject("alliance").getString("name") + " is not a valid alliance\n";
+                                }
+                                if (r.getJsonObject("character").getJsonArray("result") == null) {
+                                    result += r.getJsonObject("character").getString("name") + " is not a valid character name\n";
+                                }
+                                if (r.containsKey("membership")
+                                        && r.getInteger("membership") == null) {
+                                    result += r.getJsonObject("character").getString("name") + " is not in an alliance\n";
+                                }
+                                if (r.containsKey("membership")
+                                        && r.getInteger("membership") != null
+                                        && !r.getInteger("membership")
+                                        .equals(r.getJsonObject("alliance").getJsonArray("result").getInteger(0))) {
+                                    result += r.getJsonObject("character").getString("name") + " is not in "
+                                            + r.getJsonObject("alliance").getString("name") + "\n";
+                                }
+                                return result.isEmpty() ? Stream.empty() : Stream.of(result);
+                            })
+                            .collect(Collectors.joining());
+                    render.renderPage(ctx,
+                            "/teams/import",
+                            new JsonObject().put("placeholder", msg));
+                })
+                .onFailure(throwable -> {
+                    throwable.printStackTrace();
+                    RenderHelper.doRedirect(ctx.response(),
+                            "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/teams/import");
+                });
     }
 
     private Future<JsonObject> checkMembership(AccessToken token,
@@ -128,7 +155,7 @@ public class TeamsRouter {
                                 return;
                             }
                             promise.complete(new JsonObject()
-                                    .put("alliance", alliance)
+                                    .put("name", alliance)
                                     .put("result", ar.result().body().toJsonObject().getJsonArray("alliance")));
                         }));
     }
@@ -143,7 +170,7 @@ public class TeamsRouter {
                                 return;
                             }
                             promise.complete(new JsonObject()
-                                    .put("character", character)
+                                    .put("name", character)
                                     .put("result", ar.result().body().toJsonObject().getJsonArray("character")));
                         }));
     }
