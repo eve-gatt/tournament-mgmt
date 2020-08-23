@@ -3,6 +3,7 @@ package toys.eve.tournmgmt.db;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.eventbus.Message;
+import io.vertx.core.impl.StringEscapeUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -12,8 +13,10 @@ import io.vertx.ext.sql.SQLClient;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
 
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 public class DbVerticle extends AbstractVerticle {
 
@@ -52,8 +55,66 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_CREATE_TOURNAMENT, this::createTournament);
         vertx.eventBus().consumer(DbClient.DB_FETCH_TOURNAMENTS, this::fetchOrganisedTournaments);
         vertx.eventBus().consumer(DbClient.DB_TOURNAMENT_BY_UUID, this::tournamentByUuid);
+        vertx.eventBus().consumer(DbClient.DB_WRITE_TEAM_TSV, this::writeTeamTsv);
+        vertx.eventBus().consumer(DbClient.DB_TEAMS_BY_TOURNAMENT, this::teamsByTournament);
 
         startPromise.complete();
+    }
+
+    private void teamsByTournament(Message<JsonObject> msg) {
+        String uuid = msg.body().getString("uuid");
+        sqlClient.query("select name, captain " +
+                        "from team " +
+                        "where tournament_uuid = '" + uuid + "'",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    msg.reply(new JsonArray(ar.result().getRows()));
+                });
+    }
+
+    private void writeTeamTsv(Message<JsonObject> msg) {
+        String tsv = msg.body().getString("tsv");
+        String createdBy = msg.body().getString("createdBy");
+        String uuid = msg.body().getString("uuid");
+        String[] rows = tsv.split("[\\r\\n]+");
+        String values = Arrays.stream(rows)
+                .map(row -> {
+                    String[] cols = row.split("\t");
+                    try {
+                        String alliance = StringEscapeUtils.escapeJavaScript(cols[0]);
+                        String character = StringEscapeUtils.escapeJavaScript(cols[1]);
+                        return "(" +
+                                "'" + UUID.randomUUID().toString() + "'" +
+                                ", " +
+                                "'" + uuid + "'" +
+                                ", " +
+                                "'" + alliance + "'" +
+                                ", " +
+                                "'" + character + "'" +
+                                ", " +
+                                "'" + createdBy + "'" +
+                                ")";
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        msg.fail(2, e.getMessage());
+                        return null;
+                    }
+                })
+                .collect(Collectors.joining(","));
+        sqlClient.update("insert into team (uuid, tournament_uuid, name, captain, created_by) " +
+                        "values " + values,
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    msg.reply(null);
+                });
     }
 
     private void tournamentByUuid(Message<String> msg) {
@@ -65,6 +126,10 @@ public class DbVerticle extends AbstractVerticle {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
                         msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    if (ar.result().getRows().size() != 1) {
+                        msg.fail(2, "No tournament found for uuid: " + uuid);
                         return;
                     }
                     msg.reply(ar.result().getRows().get(0));

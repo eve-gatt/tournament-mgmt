@@ -5,6 +5,7 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.oauth2.AccessToken;
 import io.vertx.ext.web.Router;
@@ -68,11 +69,10 @@ public class TeamsRouter {
         List<Future> searches = Arrays.stream(rows)
                 .flatMap(row -> {
                     String[] cols = row.split("\t");
-                    return Stream.of(
-                            checkMembership(
-                                    token,
-                                    checkAlliance(token, cols[0]),
-                                    checkCharacter(token, cols[1])));
+                    return Stream.of(checkMembership(
+                            token,
+                            checkAlliance(token, cols[0]),
+                            checkCharacter(token, cols[1])));
                 })
                 .collect(Collectors.toList());
 
@@ -102,9 +102,31 @@ public class TeamsRouter {
                                 return result.isEmpty() ? Stream.empty() : Stream.of(result);
                             })
                             .collect(Collectors.joining());
-                    render.renderPage(ctx,
-                            "/teams/import",
-                            new JsonObject().put("placeholder", msg));
+                    if (msg.isEmpty()) {
+                        eventBus.request(DbClient.DB_WRITE_TEAM_TSV,
+                                new JsonObject()
+                                        .put("tsv", tsv)
+                                        .put("createdBy",
+                                                ((JsonObject) ctx.data().get("character")).getString("characterName"))
+                                        .put("uuid", ctx.request().getParam("tournamentUuid")),
+                                ar -> {
+                                    if (ar.failed()) {
+                                        ar.cause().printStackTrace();
+                                        RenderHelper.doRedirect(ctx.response(),
+                                                "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/teams/import");
+                                    }
+                                    RenderHelper.doRedirect(ctx.response(),
+                                            "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/teams");
+                                });
+                    } else {
+                        render.renderPage(ctx,
+                                "/teams/import",
+                                new JsonObject()
+                                        .put("placeholder",
+                                                "Please fix the errors and paste in the revised data.")
+                                        .put("tsv", tsv)
+                                        .put("errors", msg));
+                    }
                 })
                 .onFailure(throwable -> {
                     throwable.printStackTrace();
@@ -176,7 +198,15 @@ public class TeamsRouter {
     }
 
     private void teamsData(RoutingContext ctx) {
-        ctx.response().end("[]");
+        eventBus.request(DbClient.DB_TEAMS_BY_TOURNAMENT,
+                new JsonObject().put("uuid", ctx.request().getParam("tournamentUuid")),
+                ar -> {
+                    if (ar.failed()) {
+                        ctx.fail(ar.cause());
+                        return;
+                    }
+                    ctx.response().end(((JsonArray) ar.result().body()).encode());
+                });
     }
 
     private void loadTournament(RoutingContext ctx) {
@@ -201,12 +231,14 @@ public class TeamsRouter {
     private void importTeams(RoutingContext ctx) {
         render.renderPage(ctx,
                 "/teams/import",
-                new JsonObject().put("placeholder",
-                        "Paste values straight from spreadsheet as two column, name and captain, e.g. \n" +
-                                "The Tuskers\tMira Chieve\n" +
-                                "Big Alliancia\tCaptain Jack\n" +
-                                "\n" +
-                                "This is the default format when copy and pasting a range from a spreadsheet."));
+                new JsonObject()
+                        .put("tsv", "")
+                        .put("placeholder",
+                                "Paste values straight from spreadsheet as two column, name and captain, e.g. \n" +
+                                        "The Tuskers\tMira Chieve\n" +
+                                        "Big Alliancia\tCaptain Jack\n" +
+                                        "\n" +
+                                        "This is the default format when copy and pasting a range from a spreadsheet."));
     }
 
     private Router router() {

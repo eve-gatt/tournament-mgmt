@@ -16,9 +16,8 @@
         }
     }
 
-    d3.json("/auth/tournament/4507dd3a-b2d8-49c3-982f-feca116f56d6/teams/data").then(function (data) {
+    d3.json('/auth/tournament/' + uuid + '/teams/data').then(function (data) {
         renderTeams(data);
     });
-
 
 })();

@@ -17,6 +17,11 @@ block styles
             height: 400px;
         }
 
+        .errors {
+            color: red;
+            white-space: pre;
+        }
+
 
 block content
     - var uuid = tournament.getString("uuid")
@@ -26,13 +31,15 @@ block content
 
     form.pure-form.pure-form-aligned(action="/auth/tournament/" + uuid + "/teams/import", method="POST")
         fieldset
+            .pure-controls
+                .errors= errors
+
             .pure-control-group
                 label(for="tsv") Tab-separated values
-                textarea(name="tsv", placeholder=placeholder)#tsv
+                textarea(name="tsv", placeholder=placeholder)#tsv= tsv
 
             .pure-controls
                 button.pure-button.pure-button-primary(type="submit") Import
-
 
 
 block scripts
