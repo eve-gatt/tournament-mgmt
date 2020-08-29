@@ -38,6 +38,7 @@ public class TeamsRouter {
         router.get("/:tournamentUuid/teams").handler(this::manage);
         router.get("/:tournamentUuid/teams/data").handler(this::teamsData);
         router.get("/:tournamentUuid/teams/import").handler(this::importTeams);
+        router.get("/:tournamentUuid/teams/:teamUuid/edit").handler(this::editTeam);
         HTTPRequestValidationHandler importValidator = HTTPRequestValidationHandler.create()
                 .addFormParamWithCustomTypeValidator("tsv",
                         ParameterTypeValidator.createStringTypeValidator("\\p{ASCII}+", 7, null, null),
@@ -51,13 +52,53 @@ public class TeamsRouter {
                 .failureHandler(this::handleImportFail);
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render) {
-        return new TeamsRouter(vertx, render).router();
+    private void loadTournament(RoutingContext ctx) {
+        eventBus.request(DbClient.DB_TOURNAMENT_BY_UUID,
+                ctx.request().getParam("tournamentUuid"),
+                ar -> {
+                    if (ar.failed()) {
+                        ctx.fail(ar.cause());
+                        return;
+                    }
+                    ctx.data().put("tournament", ar.result().body());
+                    ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
+
+                    ctx.next();
+                });
     }
 
-    private void handleImportFail(RoutingContext ctx) {
-        RenderHelper.doRedirect(ctx.response(),
-                "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/teams/import");
+    private void manage(RoutingContext ctx) {
+        render.renderPage(ctx, "/teams/manage", new JsonObject());
+    }
+
+    private void teamsData(RoutingContext ctx) {
+        eventBus.request(DbClient.DB_TEAMS_BY_TOURNAMENT,
+                new JsonObject().put("uuid", ctx.request().getParam("tournamentUuid")),
+                ar -> {
+                    if (ar.failed()) {
+                        ctx.fail(ar.cause());
+                        return;
+                    }
+                    ctx.response().end(((JsonArray) ar.result().body()).encode());
+                });
+    }
+
+    private void importTeams(RoutingContext ctx) {
+        render.renderPage(ctx,
+                "/teams/import",
+                new JsonObject()
+                        .put("tsv", "")
+                        .put("placeholder",
+                                "Paste values straight from spreadsheet as two column, name and captain, e.g. \n" +
+                                        "The Tuskers\tMira Chieve\n" +
+                                        "Big Alliancia\tCaptain Jack\n" +
+                                        "\n" +
+                                        "Tab-separated values are the default format when copy and pasting a range from " +
+                                        "a spreadsheet. CSV also works."));
+    }
+
+    private void editTeam(RoutingContext ctx) {
+        render.renderPage(ctx, "/teams/edit", new JsonObject());
     }
 
     private void handleImport(RoutingContext ctx) {
@@ -68,7 +109,7 @@ public class TeamsRouter {
         String[] rows = tsv.split("[\\r\\n]+");
         List<Future> searches = Arrays.stream(rows)
                 .flatMap(row -> {
-                    String[] cols = row.split("\t");
+                    String[] cols = row.split("[\\t,]");
                     return Stream.of(checkMembership(
                             token,
                             checkAlliance(token, cols[0]),
@@ -135,6 +176,11 @@ public class TeamsRouter {
                 });
     }
 
+    private void handleImportFail(RoutingContext ctx) {
+        RenderHelper.doRedirect(ctx.response(),
+                "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/teams/import");
+    }
+
     private Future<JsonObject> checkMembership(AccessToken token,
                                                Future<JsonObject> checkAlliance,
                                                Future<JsonObject> checkCharacter) {
@@ -197,48 +243,8 @@ public class TeamsRouter {
                         }));
     }
 
-    private void teamsData(RoutingContext ctx) {
-        eventBus.request(DbClient.DB_TEAMS_BY_TOURNAMENT,
-                new JsonObject().put("uuid", ctx.request().getParam("tournamentUuid")),
-                ar -> {
-                    if (ar.failed()) {
-                        ctx.fail(ar.cause());
-                        return;
-                    }
-                    ctx.response().end(((JsonArray) ar.result().body()).encode());
-                });
-    }
-
-    private void loadTournament(RoutingContext ctx) {
-        eventBus.request(DbClient.DB_TOURNAMENT_BY_UUID,
-                ctx.request().getParam("tournamentUuid"),
-                ar -> {
-                    if (ar.failed()) {
-                        ctx.fail(ar.cause());
-                        return;
-                    }
-                    ctx.data().put("tournament", ar.result().body());
-                    ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
-
-                    ctx.next();
-                });
-    }
-
-    private void manage(RoutingContext ctx) {
-        render.renderPage(ctx, "/teams/manage", new JsonObject());
-    }
-
-    private void importTeams(RoutingContext ctx) {
-        render.renderPage(ctx,
-                "/teams/import",
-                new JsonObject()
-                        .put("tsv", "")
-                        .put("placeholder",
-                                "Paste values straight from spreadsheet as two column, name and captain, e.g. \n" +
-                                        "The Tuskers\tMira Chieve\n" +
-                                        "Big Alliancia\tCaptain Jack\n" +
-                                        "\n" +
-                                        "This is the default format when copy and pasting a range from a spreadsheet."));
+    public static Router routes(Vertx vertx, RenderHelper render) {
+        return new TeamsRouter(vertx, render).router();
     }
 
     private Router router() {

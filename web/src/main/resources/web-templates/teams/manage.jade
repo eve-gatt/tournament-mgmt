@@ -1,23 +1,24 @@
-extends ../../layout/default-layout
+extends ../../layout/tournament-layout
 
-block styles
+block append styles
     style.
-        !{tournament_styles}
-
-        h2  {
-            color: white;
+        .teams table {
+            margin-bottom: 12px;
         }
 
-        h2 .accent {
-            color: #f99e00
+        .teams table tbody td:nth-child(3) a {
+            display: inline-block;
+        }
+
+        .teams table tbody td:nth-child(3) a + a {
+            margin-left: 12px;
         }
 
 
 block content
     - var uuid = tournament.getString("uuid")
-    h2= tournament.getString("name")
-        | &nbsp;
-        span.accent Teams
+
+    mixin subtitle("Teams")
 
     .teams
         .no-teams This tournament doesn't have any teams registered.
@@ -28,7 +29,6 @@ block content
                 th Actions
             tbody
         a(href="/auth/tournament/" + uuid + "/teams/import") Import teams
-
 
 
 block scripts

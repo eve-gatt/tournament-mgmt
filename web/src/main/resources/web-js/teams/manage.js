@@ -1,6 +1,11 @@
 (function () {
 
     function actions(sel) {
+        sel.append('a').attr('href', '#').text('View');
+        sel.append('a')
+            .attr('href', d => '/auth/tournament/' + uuid + '/teams/' + d.uuid + '/edit')
+            .text('Edit (Captain\'s link)');
+        sel.append('a').attr('href', '#').text('Remove');
     }
 
     function renderTeams(data) {

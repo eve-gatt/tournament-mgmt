@@ -1,17 +1,7 @@
-extends ../../layout/default-layout
+extends ../../layout/tournament-layout
 
-block styles
+block append styles
     style.
-        !{tournament_styles}
-
-        h2  {
-            color: white;
-        }
-
-        h2 .accent {
-            color: #f99e00
-        }
-
         textarea {
             width: 50%;
             height: 400px;
@@ -25,9 +15,8 @@ block styles
 
 block content
     - var uuid = tournament.getString("uuid")
-    h2= tournament.getString("name")
-        | &nbsp;
-        span.accent Import Teams
+
+    mixin subtitle("Import Teams")
 
     form.pure-form.pure-form-aligned(action="/auth/tournament/" + uuid + "/teams/import", method="POST")
         fieldset
@@ -35,7 +24,7 @@ block content
                 .errors= errors
 
             .pure-control-group
-                label(for="tsv") Tab-separated values
+                label(for="tsv") Data
                 textarea(name="tsv", placeholder=placeholder)#tsv= tsv
 
             .pure-controls
