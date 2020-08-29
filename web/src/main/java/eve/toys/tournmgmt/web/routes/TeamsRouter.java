@@ -5,6 +5,7 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.impl.StringEscapeUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.oauth2.AccessToken;
@@ -43,7 +44,7 @@ public class TeamsRouter {
         router.get("/:tournamentUuid/teams/:teamUuid/remove/confirm").handler(this::removeTeamConfirm);
         HTTPRequestValidationHandler importValidator = HTTPRequestValidationHandler.create()
                 .addFormParamWithCustomTypeValidator("tsv",
-                        ParameterTypeValidator.createStringTypeValidator("\\p{ASCII}+", 7, null, null),
+                        ParameterTypeValidator.createStringTypeValidator(null, 7, null, null),
                         true,
                         false);
 
@@ -146,12 +147,21 @@ public class TeamsRouter {
 
         String[] rows = tsv.split("[\\r\\n]+");
         List<Future> searches = Arrays.stream(rows)
+                .filter(row -> !row.trim().isEmpty())
                 .flatMap(row -> {
                     String[] cols = row.split("[\\t,]");
-                    return Stream.of(checkMembership(
-                            token,
-                            checkAlliance(token, cols[0]),
-                            checkCharacter(token, cols[1])));
+                    if (cols.length != 2) {
+                        return Stream.of(Future.succeededFuture(new JsonObject().put("error", "Didn't find 2 columns separated by a tab or comma: " + row)));
+                    }
+                    try {
+                        return Stream.of(checkMembership(
+                                token,
+                                checkAlliance(token, StringEscapeUtils.escapeJavaScript(cols[0])),
+                                checkCharacter(token, StringEscapeUtils.escapeJavaScript(cols[1]))));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return Stream.of(Future.succeededFuture(new JsonObject().put("error", "Error row: " + row)));
+                    }
                 })
                 .collect(Collectors.toList());
 
@@ -161,22 +171,26 @@ public class TeamsRouter {
                             .map(o -> (JsonObject) o)
                             .flatMap(r -> {
                                 String result = "";
-                                if (r.getJsonObject("alliance").getJsonArray("result") == null) {
-                                    result += r.getJsonObject("alliance").getString("name") + " is not a valid alliance\n";
-                                }
-                                if (r.getJsonObject("character").getJsonArray("result") == null) {
-                                    result += r.getJsonObject("character").getString("name") + " is not a valid character name\n";
-                                }
-                                if (r.containsKey("membership")
-                                        && r.getInteger("membership") == null) {
-                                    result += r.getJsonObject("character").getString("name") + " is not in an alliance\n";
-                                }
-                                if (r.containsKey("membership")
-                                        && r.getInteger("membership") != null
-                                        && !r.getInteger("membership")
-                                        .equals(r.getJsonObject("alliance").getJsonArray("result").getInteger(0))) {
-                                    result += r.getJsonObject("character").getString("name") + " is not in "
-                                            + r.getJsonObject("alliance").getString("name") + "\n";
+                                if (r.containsKey("error")) {
+                                    result += r.getString("error") + "\n";
+                                } else {
+                                    if (r.getJsonObject("alliance").getJsonArray("result") == null) {
+                                        result += r.getJsonObject("alliance").getString("name") + " is not a valid alliance\n";
+                                    }
+                                    if (r.getJsonObject("character").getJsonArray("result") == null) {
+                                        result += r.getJsonObject("character").getString("name") + " is not a valid character name\n";
+                                    }
+                                    if (r.containsKey("membership")
+                                            && r.getInteger("membership") == null) {
+                                        result += r.getJsonObject("character").getString("name") + " is not in an alliance\n";
+                                    }
+                                    if (r.containsKey("membership")
+                                            && r.getInteger("membership") != null
+                                            && !r.getInteger("membership")
+                                            .equals(r.getJsonObject("alliance").getJsonArray("result").getInteger(0))) {
+                                        result += r.getJsonObject("character").getString("name") + " is not in "
+                                                + r.getJsonObject("alliance").getString("name") + "\n";
+                                    }
                                 }
                                 return result.isEmpty() ? Stream.empty() : Stream.of(result);
                             })
@@ -216,6 +230,8 @@ public class TeamsRouter {
     }
 
     private void handleImportFail(RoutingContext ctx) {
+        Throwable failure = ctx.failure();
+        failure.printStackTrace();
         RenderHelper.doRedirect(ctx.response(),
                 "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/teams/import");
     }
