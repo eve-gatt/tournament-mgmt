@@ -120,7 +120,7 @@ public class DbVerticle extends AbstractVerticle {
 
     private void teamByUuid(Message<String> msg) {
         String uuid = msg.body();
-        sqlClient.query("select name, uuid " +
+        sqlClient.query("select name, captain, uuid " +
                         "from team " +
                         "where uuid = '" + uuid + "'",
                 ar -> {
@@ -144,7 +144,7 @@ public class DbVerticle extends AbstractVerticle {
         String[] rows = tsv.trim().split("[\\r\\n]+");
         String values = Arrays.stream(rows)
                 .map(String::trim)
-                .filter(row -> row.split("[\\t,]").length == 2)
+                .filter(row -> row.split("[\\t,]+").length == 2)
                 .map(row -> {
                     String[] cols = row.split("[\\t,]");
                     try {
