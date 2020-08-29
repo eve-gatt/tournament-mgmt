@@ -3,7 +3,6 @@ package toys.eve.tournmgmt.db;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.eventbus.Message;
-import io.vertx.core.impl.StringEscapeUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -148,8 +147,8 @@ public class DbVerticle extends AbstractVerticle {
                 .map(row -> {
                     String[] cols = row.split("[\\t,]");
                     try {
-                        String alliance = StringEscapeUtils.escapeJavaScript(cols[0].trim());
-                        String character = StringEscapeUtils.escapeJavaScript(cols[1].trim());
+                        String alliance = cols[0].trim().replaceAll("'", "''");
+                        String character = cols[1].trim().replaceAll("'", "''");
                         return "(" +
                                 "'" + UUID.randomUUID().toString() + "'" +
                                 ", " +
