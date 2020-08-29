@@ -55,24 +55,85 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_CREATE_TOURNAMENT, this::createTournament);
         vertx.eventBus().consumer(DbClient.DB_FETCH_TOURNAMENTS, this::fetchOrganisedTournaments);
         vertx.eventBus().consumer(DbClient.DB_TOURNAMENT_BY_UUID, this::tournamentByUuid);
+        vertx.eventBus().consumer(DbClient.DB_TEAM_BY_UUID, this::teamByUuid);
         vertx.eventBus().consumer(DbClient.DB_WRITE_TEAM_TSV, this::writeTeamTsv);
         vertx.eventBus().consumer(DbClient.DB_TEAMS_BY_TOURNAMENT, this::teamsByTournament);
+        vertx.eventBus().consumer(DbClient.DB_DELETE_TEAM_BY_UUID, this::deleteTeamByUuid);
 
         startPromise.complete();
     }
 
-    private void teamsByTournament(Message<JsonObject> msg) {
-        String uuid = msg.body().getString("uuid");
-        sqlClient.query("select name, uuid, captain " +
-                        "from team " +
-                        "where tournament_uuid = '" + uuid + "'",
+    private void createTournament(Message<JsonObject> msg) {
+        JsonObject input = msg.body();
+        sqlClient.updateWithParams("insert into tournament(uuid, name, practice_on_td, play_on_td, created_by) " +
+                        "values ('" + UUID.randomUUID().toString() + "', ?, ?, ?, ?)",
+                new JsonArray()
+                        .add(input.getString("name").trim())
+                        .add(input.getBoolean("practiceOnTd"))
+                        .add(input.getBoolean("playOnTd"))
+                        .add(input.getString("createdBy")),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(input);
+                    }
+                });
+    }
+
+    private void fetchOrganisedTournaments(Message<JsonObject> msg) {
+        String organiser = msg.body().getString("organiser");
+        sqlClient.query(
+                "select uuid, name, created_by, practice_on_td, play_on_td, teams_locked " +
+                        "from tournament",
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
                         msg.fail(1, ar.cause().getMessage());
                         return;
                     }
-                    msg.reply(new JsonArray(ar.result().getRows()));
+                    msg.reply(ar.result().getRows().stream()
+                            .collect(toJsonArray()));
+                }
+        );
+    }
+
+    private void tournamentByUuid(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.query("select name, uuid " +
+                        "from tournament " +
+                        "where uuid = '" + uuid + "'",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    if (ar.result().getRows().size() != 1) {
+                        msg.fail(2, "No tournament found for uuid: " + uuid);
+                        return;
+                    }
+                    msg.reply(ar.result().getRows().get(0));
+                });
+    }
+
+    private void teamByUuid(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.query("select name, uuid " +
+                        "from team " +
+                        "where uuid = '" + uuid + "'",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    if (ar.result().getRows().size() != 1) {
+                        msg.fail(2, "No team found for uuid: " + uuid);
+                        return;
+                    }
+                    msg.reply(ar.result().getRows().get(0));
                 });
     }
 
@@ -117,58 +178,31 @@ public class DbVerticle extends AbstractVerticle {
                 });
     }
 
-    private void tournamentByUuid(Message<String> msg) {
-        String uuid = msg.body();
-        sqlClient.query("select name, uuid " +
-                        "from tournament " +
-                        "where uuid = '" + uuid + "'",
+    private void teamsByTournament(Message<JsonObject> msg) {
+        String uuid = msg.body().getString("uuid");
+        sqlClient.query("select name, uuid, captain " +
+                        "from team " +
+                        "where tournament_uuid = '" + uuid + "'",
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
                         msg.fail(1, ar.cause().getMessage());
                         return;
                     }
-                    if (ar.result().getRows().size() != 1) {
-                        msg.fail(2, "No tournament found for uuid: " + uuid);
-                        return;
-                    }
-                    msg.reply(ar.result().getRows().get(0));
+                    msg.reply(new JsonArray(ar.result().getRows()));
                 });
     }
 
-    private void fetchOrganisedTournaments(Message<JsonObject> msg) {
-        String organiser = msg.body().getString("organiser");
-        sqlClient.query(
-                "select uuid, name, created_by, practice_on_td, play_on_td, teams_locked " +
-                        "from tournament",
+    private void deleteTeamByUuid(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.update("delete from team where uuid = '" + uuid + "'",
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
                         msg.fail(1, ar.cause().getMessage());
                         return;
                     }
-                    msg.reply(ar.result().getRows().stream()
-                            .collect(toJsonArray()));
-                }
-        );
-    }
-
-    private void createTournament(Message<JsonObject> msg) {
-        JsonObject input = msg.body();
-        sqlClient.updateWithParams("insert into tournament(uuid, name, practice_on_td, play_on_td, created_by) " +
-                        "values ('" + UUID.randomUUID().toString() + "', ?, ?, ?, ?)",
-                new JsonArray()
-                        .add(input.getString("name").trim())
-                        .add(input.getBoolean("practiceOnTd"))
-                        .add(input.getBoolean("playOnTd"))
-                        .add(input.getString("createdBy")),
-                ar -> {
-                    if (ar.failed()) {
-                        ar.cause().printStackTrace();
-                        msg.fail(1, ar.cause().getMessage());
-                    } else {
-                        msg.reply(input);
-                    }
+                    msg.reply(null);
                 });
     }
 

@@ -5,7 +5,9 @@
         sel.append('a')
             .attr('href', d => '/auth/tournament/' + uuid + '/teams/' + d.uuid + '/edit')
             .text('Edit (Captain\'s link)');
-        sel.append('a').attr('href', '#').text('Remove');
+        sel.append('a')
+            .attr('href', d => '/auth/tournament/' + uuid + '/teams/' + d.uuid + '/remove')
+            .text('Remove');
     }
 
     function renderTeams(data) {

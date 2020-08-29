@@ -6,6 +6,9 @@ mixin subtitle(name)
         a(href="/auth/tournament/" + uuid + "/teams")= tournament.getString("name")
         | &nbsp;
         span.accent= name
+    if team
+        h2
+            a(href="/auth/tournament/" + uuid + "/teams/" + team.getString("uuid") + "/edit")= team.getString("name")
 
 block styles
     style.
@@ -16,6 +19,14 @@ block styles
 
         h2 .accent {
             color: #f99e00
+        }
+
+        a {
+            display: inline-block;
+        }
+
+        a + a {
+            margin-left: 12px;
         }
 
 block scripts

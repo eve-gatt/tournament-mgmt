@@ -35,10 +35,13 @@ public class TeamsRouter {
         this.render = render;
         this.eventBus = vertx.eventBus();
         router.route("/:tournamentUuid/*").handler(this::loadTournament);
+        router.route("/:tournamentUuid/teams/:teamUuid/*").handler(this::loadTeam);
         router.get("/:tournamentUuid/teams").handler(this::manage);
         router.get("/:tournamentUuid/teams/data").handler(this::teamsData);
         router.get("/:tournamentUuid/teams/import").handler(this::importTeams);
         router.get("/:tournamentUuid/teams/:teamUuid/edit").handler(this::editTeam);
+        router.get("/:tournamentUuid/teams/:teamUuid/remove").handler(this::removeTeam);
+        router.get("/:tournamentUuid/teams/:teamUuid/remove/confirm").handler(this::removeTeamConfirm);
         HTTPRequestValidationHandler importValidator = HTTPRequestValidationHandler.create()
                 .addFormParamWithCustomTypeValidator("tsv",
                         ParameterTypeValidator.createStringTypeValidator("\\p{ASCII}+", 7, null, null),
@@ -62,7 +65,19 @@ public class TeamsRouter {
                     }
                     ctx.data().put("tournament", ar.result().body());
                     ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
+                    ctx.next();
+                });
+    }
 
+    private void loadTeam(RoutingContext ctx) {
+        eventBus.request(DbClient.DB_TEAM_BY_UUID,
+                ctx.request().getParam("teamUuid"),
+                ar -> {
+                    if (ar.failed()) {
+                        ctx.fail(ar.cause());
+                        return;
+                    }
+                    ctx.data().put("team", ar.result().body());
                     ctx.next();
                 });
     }
@@ -99,6 +114,29 @@ public class TeamsRouter {
 
     private void editTeam(RoutingContext ctx) {
         render.renderPage(ctx, "/teams/edit", new JsonObject());
+    }
+
+    private void removeTeam(RoutingContext ctx) {
+        render.renderPage(ctx, "/teams/remove", new JsonObject());
+    }
+
+    private void removeTeamConfirm(RoutingContext ctx) {
+        eventBus.request(DbClient.DB_DELETE_TEAM_BY_UUID,
+                ctx.request().getParam("teamUuid"),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        RenderHelper.doRedirect(ctx.response(),
+                                "/auth/tournament/"
+                                        + ctx.request().getParam("tournamentUuid")
+                                        + "/teams/"
+                                        + ctx.request().getParam("teamUuid")
+                                        + "/remove");
+                        return;
+                    }
+                    RenderHelper.doRedirect(ctx.response(),
+                            "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/teams");
+                });
     }
 
     private void handleImport(RoutingContext ctx) {
@@ -155,6 +193,7 @@ public class TeamsRouter {
                                         ar.cause().printStackTrace();
                                         RenderHelper.doRedirect(ctx.response(),
                                                 "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/teams/import");
+                                        return;
                                     }
                                     RenderHelper.doRedirect(ctx.response(),
                                             "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/teams");

@@ -1,0 +1,14 @@
+extends ../../layout/tournament-layout
+
+block content
+    - var uuid = tournament.getString("uuid")
+    - var teamUuid = team.getString("uuid")
+
+    mixin subtitle("Remove team")
+
+    p Warning, removing a team will remove all data for this team. This includes team members, team captain, etc.
+    a(href="/auth/tournament/" + uuid + "/teams/" + teamUuid + "/remove/confirm") Confirm
+    a(href="/auth/tournament/" + uuid + "/teams") Cancel
+
+block scripts
+
