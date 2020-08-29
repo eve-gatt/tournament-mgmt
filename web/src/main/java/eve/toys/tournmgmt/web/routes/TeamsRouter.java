@@ -38,7 +38,6 @@ public class TeamsRouter {
         router.route("/:tournamentUuid/teams/:teamUuid/*").handler(this::loadTeam);
         router.get("/:tournamentUuid/teams").handler(this::manage);
         router.get("/:tournamentUuid/teams/data").handler(this::teamsData);
-        router.get("/:tournamentUuid/teams/import").handler(this::importTeams);
         router.get("/:tournamentUuid/teams/:teamUuid/edit").handler(this::editTeam);
         router.get("/:tournamentUuid/teams/:teamUuid/remove").handler(this::removeTeam);
         router.get("/:tournamentUuid/teams/:teamUuid/remove/confirm").handler(this::removeTeamConfirm);
@@ -48,6 +47,7 @@ public class TeamsRouter {
                         true,
                         false);
 
+        router.get("/:tournamentUuid/teams/import").handler(this::importTeams);
         router.post("/:tournamentUuid/teams/import")
                 .handler(BodyHandler.create())
                 .handler(importValidator)
@@ -98,20 +98,6 @@ public class TeamsRouter {
                 });
     }
 
-    private void importTeams(RoutingContext ctx) {
-        render.renderPage(ctx,
-                "/teams/import",
-                new JsonObject()
-                        .put("tsv", "")
-                        .put("placeholder",
-                                "Paste values straight from spreadsheet as two column, name and captain, e.g. \n" +
-                                        "The Tuskers\tMira Chieve\n" +
-                                        "Big Alliancia\tCaptain Jack\n" +
-                                        "\n" +
-                                        "Tab-separated values are the default format when copy and pasting a range from " +
-                                        "a spreadsheet. CSV also works."));
-    }
-
     private void editTeam(RoutingContext ctx) {
         render.renderPage(ctx, "/teams/edit", new JsonObject());
     }
@@ -137,6 +123,20 @@ public class TeamsRouter {
                     RenderHelper.doRedirect(ctx.response(),
                             "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/teams");
                 });
+    }
+
+    private void importTeams(RoutingContext ctx) {
+        render.renderPage(ctx,
+                "/teams/import",
+                new JsonObject()
+                        .put("tsv", "")
+                        .put("placeholder",
+                                "Paste values straight from spreadsheet as two column, name and captain, e.g. \n" +
+                                        "The Tuskers\tMira Chieve\n" +
+                                        "Big Alliancia\tCaptain Jack\n" +
+                                        "\n" +
+                                        "Tab-separated values are the default format when copy and pasting a range from " +
+                                        "a spreadsheet. CSV also works."));
     }
 
     private void handleImport(RoutingContext ctx) {

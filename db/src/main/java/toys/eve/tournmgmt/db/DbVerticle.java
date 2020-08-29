@@ -141,13 +141,15 @@ public class DbVerticle extends AbstractVerticle {
         String tsv = msg.body().getString("tsv");
         String createdBy = msg.body().getString("createdBy");
         String uuid = msg.body().getString("uuid");
-        String[] rows = tsv.split("[\\r\\n]+");
+        String[] rows = tsv.trim().split("[\\r\\n]+");
         String values = Arrays.stream(rows)
+                .map(String::trim)
+                .filter(row -> row.split("[\\t,]").length == 2)
                 .map(row -> {
-                    String[] cols = row.split("\t");
+                    String[] cols = row.split("[\\t,]");
                     try {
-                        String alliance = StringEscapeUtils.escapeJavaScript(cols[0]);
-                        String character = StringEscapeUtils.escapeJavaScript(cols[1]);
+                        String alliance = StringEscapeUtils.escapeJavaScript(cols[0].trim());
+                        String character = StringEscapeUtils.escapeJavaScript(cols[1].trim());
                         return "(" +
                                 "'" + UUID.randomUUID().toString() + "'" +
                                 ", " +
