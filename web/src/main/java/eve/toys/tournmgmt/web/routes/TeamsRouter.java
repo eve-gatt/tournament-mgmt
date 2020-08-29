@@ -1,6 +1,5 @@
 package eve.toys.tournmgmt.web.routes;
 
-import eve.toys.tournmgmt.web.Branding;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -35,7 +34,6 @@ public class TeamsRouter {
         router = Router.router(vertx);
         this.render = render;
         this.eventBus = vertx.eventBus();
-        router.route("/:tournamentUuid/*").handler(this::loadTournament);
         router.route("/:tournamentUuid/teams/:teamUuid/*").handler(this::loadTeam);
         router.get("/:tournamentUuid/teams").handler(this::manage);
         router.get("/:tournamentUuid/teams/data").handler(this::teamsData);
@@ -54,20 +52,6 @@ public class TeamsRouter {
                 .handler(importValidator)
                 .handler(this::handleImport)
                 .failureHandler(this::handleImportFail);
-    }
-
-    private void loadTournament(RoutingContext ctx) {
-        eventBus.request(DbClient.DB_TOURNAMENT_BY_UUID,
-                ctx.request().getParam("tournamentUuid"),
-                ar -> {
-                    if (ar.failed()) {
-                        ctx.fail(ar.cause());
-                        return;
-                    }
-                    ctx.data().put("tournament", ar.result().body());
-                    ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
-                    ctx.next();
-                });
     }
 
     private void loadTeam(RoutingContext ctx) {

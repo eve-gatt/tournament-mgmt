@@ -52,6 +52,7 @@ public class DbVerticle extends AbstractVerticle {
         sqlClient = JDBCClient.createShared(vertx, config);
 
         vertx.eventBus().consumer(DbClient.DB_CREATE_TOURNAMENT, this::createTournament);
+        vertx.eventBus().consumer(DbClient.DB_EDIT_TOURNAMENT, this::editTournament);
         vertx.eventBus().consumer(DbClient.DB_FETCH_TOURNAMENTS, this::fetchOrganisedTournaments);
         vertx.eventBus().consumer(DbClient.DB_TOURNAMENT_BY_UUID, this::tournamentByUuid);
         vertx.eventBus().consumer(DbClient.DB_TEAM_BY_UUID, this::teamByUuid);
@@ -64,13 +65,37 @@ public class DbVerticle extends AbstractVerticle {
 
     private void createTournament(Message<JsonObject> msg) {
         JsonObject input = msg.body();
-        sqlClient.updateWithParams("insert into tournament(uuid, name, practice_on_td, play_on_td, created_by) " +
-                        "values ('" + UUID.randomUUID().toString() + "', ?, ?, ?, ?)",
+        sqlClient.updateWithParams("insert into tournament(uuid, name, start_date, practice_on_td, play_on_td, created_by) " +
+                        "values ('" + UUID.randomUUID().toString() + "', ?, ?, ?, ?, ?)",
                 new JsonArray()
                         .add(input.getString("name").trim())
+                        .add(input.getInstant("parsedStartDate"))
                         .add(input.getBoolean("practiceOnTd"))
                         .add(input.getBoolean("playOnTd"))
                         .add(input.getString("createdBy")),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(input);
+                    }
+                });
+    }
+
+    private void editTournament(Message<JsonObject> msg) {
+        JsonObject input = msg.body();
+        sqlClient.updateWithParams("update tournament " +
+                        "set name = ?, " +
+                        "start_date = ?, " +
+                        "practice_on_td = ?, " +
+                        "play_on_td = ? " +
+                        "where uuid = '" + input.getString("uuid") + "'",
+                new JsonArray()
+                        .add(input.getString("name").trim())
+                        .add(input.getInstant("parsedStartDate"))
+                        .add(input.getBoolean("practiceOnTd"))
+                        .add(input.getBoolean("playOnTd")),
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
@@ -100,7 +125,7 @@ public class DbVerticle extends AbstractVerticle {
 
     private void tournamentByUuid(Message<String> msg) {
         String uuid = msg.body();
-        sqlClient.query("select name, uuid " +
+        sqlClient.query("select name, uuid, start_date, practice_on_td, play_on_td " +
                         "from tournament " +
                         "where uuid = '" + uuid + "'",
                 ar -> {

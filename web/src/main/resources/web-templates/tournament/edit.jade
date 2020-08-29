@@ -1,0 +1,45 @@
+extends ../../layout/tournament-layout
+
+block styles
+    style.
+        .pure-form-aligned .pure-control-group label {
+            width: 16em;
+        }
+
+        .pure-form-aligned .pure-controls {
+            margin: 1.5em 0 0 17em;
+        }
+
+block content
+    - var uuid = tournament.getString("uuid")
+
+    mixin subtitle("Edit")
+
+    form.pure-form.pure-form-aligned(action="/auth/tournament/" + uuid + "/edit", method="POST")
+        fieldset
+            legend Tournament details
+            .pure-control-group
+                label(for="tournament-name") Tournament name
+                input(type="text", name="name", placeholder="", value=form.getString("name"))#tournament-name
+                span.pure-form-message-inline(class=errorField.equals("name") ? "error" : null)= errorField.equals("name") ? "min length 3, ascii characters only" : "required"
+            .pure-control-group
+                label(for="start-date") Start date
+                input(type="text", , name="startDate", placeholder="", value=form.getString("startDate"))#start-date
+                span.pure-form-message-inline(class=errorField.equals("startDate") ? "error" : null)= errorField.equals("startDate") ? "please provide date as yyyy-mm-dd, e.g. 2020-10-03" : "yyyy-mm-dd required"
+
+            legend Thunderdome usage
+            p.
+                Please describe your intending usage of Thunderdome. This tool will assist with handing out logins
+                to your competitors (subject to CCP agreement).
+            .pure-control-group
+                label(for="practice-on-td") Practice on Thunderdome
+                input(type="checkbox", name="practiceOnTd", checked=form.getString("practiceOnTd"))#practice-on-td
+            .pure-control-group
+                label(for="play-on-td") Matches on Thunderdome
+                input(type="checkbox", name="playOnTd", checked=form.getString("playOnTd"))#play-on-td
+
+            .pure-controls
+                .error= errorField.equals("general") ? errorMessage : null
+                button.pure-button.pure-button-primary(type="submit") Update
+
+block scripts
