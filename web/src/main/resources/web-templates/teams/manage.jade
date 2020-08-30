@@ -6,6 +6,14 @@ block append styles
             margin-bottom: 12px;
         }
 
+        .teams table td:nth-child(3) {
+            text-align: center;
+        }
+
+        .teams table td:nth-child(4) {
+            text-align: right;
+        }
+
 block content
     - var uuid = tournament.getString("uuid")
 
@@ -18,6 +26,7 @@ block content
                 th Name
                 th Captain
                 th Locked
+                th Members
                 th Actions
             tbody
         a(href="/auth/tournament/" + uuid + "/teams/import") Import teams

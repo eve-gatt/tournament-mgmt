@@ -19,6 +19,7 @@
             entering.append('td').text(d => d.name);
             entering.append('td').text(d => d.captain);
             entering.append('td').text(d => d.locked ? 'yes' : 'no');
+            entering.append('td').text(d => d.member_count > 0 ? d.member_count : '-');
             entering.append('td').call(actions)
         } else {
             d3.select('.teams table').style('display', 'none');
