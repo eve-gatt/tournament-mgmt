@@ -1,0 +1,36 @@
+extends ../../layout/tournament-layout
+
+block append styles
+    style.
+        textarea {
+            width: 50%;
+            height: 400px;
+        }
+
+        .errors {
+            color: red;
+            white-space: pre;
+        }
+
+
+block content
+    - var tournamentUuid = tournament.getString("uuid")
+    - var teamUuid = team.getString("uuid")
+
+    mixin subtitle("Add members")
+
+    form.pure-form.pure-form-aligned(action="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/add-members", method="POST")
+        fieldset
+            .pure-controls
+                .errors= errors
+
+            .pure-control-group
+                label(for="tsv") Data
+                textarea(name="tsv", placeholder=placeholder)#tsv= tsv
+
+            .pure-controls
+                button.pure-button.pure-button-primary(type="submit") Import
+
+
+block scripts
+    script(src='/js/teams/import.js')

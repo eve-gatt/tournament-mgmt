@@ -13,6 +13,7 @@
     function renderTeams(data) {
         if (data.length > 0) {
             d3.select('.teams .no-teams').style('display', 'none');
+            data.sort((a, b) => d3.ascending(a.name, b.name));
             var teams = d3.select('.teams table tbody').selectAll('tr').data(data);
             var entering = teams.enter().append('tr');
             entering.append('td').text(d => d.name);

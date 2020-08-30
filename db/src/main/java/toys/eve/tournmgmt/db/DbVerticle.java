@@ -30,12 +30,15 @@ public class DbVerticle extends AbstractVerticle {
         LOGGER.info("Initialising Flyway");
 
         try {
-            Flyway flyway = Flyway.configure().dataSource(URL, USER, PASSWORD).load();
+            Flyway flyway = Flyway.configure()
+                    .baselineVersion("002")
+                    .dataSource(URL, USER, PASSWORD).load();
             if (Boolean.parseBoolean(System.getProperty("db_do_clean", "false"))) {
                 LOGGER.info("Flyway cleaning");
                 flyway.clean();
             }
             LOGGER.info("Flyway migration");
+            flyway.baseline();
             flyway.migrate();
         } catch (FlywayException e) {
             startPromise.fail(e);
@@ -59,6 +62,8 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_WRITE_TEAM_TSV, this::writeTeamTsv);
         vertx.eventBus().consumer(DbClient.DB_TEAMS_BY_TOURNAMENT, this::teamsByTournament);
         vertx.eventBus().consumer(DbClient.DB_DELETE_TEAM_BY_UUID, this::deleteTeamByUuid);
+        vertx.eventBus().consumer(DbClient.DB_WRITE_TEAM_MEMBERS_TSV, this::writeTeamMembersTsv);
+        vertx.eventBus().consumer(DbClient.DB_MEMBERS_BY_TEAM, this::membersByTeam);
 
         startPromise.complete();
     }
@@ -229,6 +234,53 @@ public class DbVerticle extends AbstractVerticle {
                         return;
                     }
                     msg.reply(null);
+                });
+    }
+
+    private void writeTeamMembersTsv(Message<JsonObject> msg) {
+        String tsv = msg.body().getString("tsv");
+        String addedBy = msg.body().getString("addedBy");
+        String uuid = msg.body().getString("uuid");
+        String[] rows = tsv.trim().split("[\\r\\n]+");
+        String values = Arrays.stream(rows)
+                .map(String::trim)
+                .map(row -> {
+                    String character = row.trim().replaceAll("'", "''");
+                    return "(" +
+                            "'" + UUID.randomUUID().toString() + "'" +
+                            ", " +
+                            "'" + uuid + "'" +
+                            ", " +
+                            "'" + character + "'" +
+                            ", " +
+                            "'" + addedBy + "'" +
+                            ")";
+                })
+                .collect(Collectors.joining(","));
+        sqlClient.update("insert into team_member (uuid, team_uuid, name, added_by) " +
+                        "values " + values,
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    msg.reply(null);
+                });
+    }
+
+    private void membersByTeam(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.query("select name, uuid " +
+                        "from team_member " +
+                        "where team_uuid = '" + uuid + "'",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    msg.reply(new JsonArray(ar.result().getRows()));
                 });
     }
 
