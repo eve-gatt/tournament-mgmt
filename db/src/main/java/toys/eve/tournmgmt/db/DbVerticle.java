@@ -149,7 +149,7 @@ public class DbVerticle extends AbstractVerticle {
 
     private void teamByUuid(Message<String> msg) {
         String uuid = msg.body();
-        sqlClient.query("select name, captain, uuid " +
+        sqlClient.query("select name, captain, locked, uuid " +
                         "from team " +
                         "where uuid = '" + uuid + "'",
                 ar -> {

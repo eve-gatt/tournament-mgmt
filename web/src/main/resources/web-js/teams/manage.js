@@ -18,6 +18,7 @@
             var entering = teams.enter().append('tr');
             entering.append('td').text(d => d.name);
             entering.append('td').text(d => d.captain);
+            entering.append('td').text(d => d.locked ? 'yes' : 'no');
             entering.append('td').call(actions)
         } else {
             d3.select('.teams table').style('display', 'none');

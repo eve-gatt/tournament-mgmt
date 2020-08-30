@@ -25,6 +25,7 @@ create table team
     tournament_uuid uuid                                   not null,
     name            varchar                                not null,
     captain         varchar                                not null,
+    locked          boolean                  default false not null,
     created_by      varchar                                not null,
     created_on      timestamp with time zone default now() not null,
     constraint team_pk
