@@ -12,7 +12,7 @@ public class Esi {
 
     public static final String ESI_BASE = "https://esi.evetech.net/latest";
 
-    public static Future<JsonObject> lookupALliance(AccessToken token, String alliance) {
+    public static Future<JsonObject> lookupAlliance(AccessToken token, String alliance) {
         return Future.future(promise ->
                 token.fetch(ESI_BASE + "/search/?categories=alliance&strict=true&search=" + encode(alliance),
                         ar -> {

@@ -30,16 +30,16 @@ create table team
     created_on      timestamp with time zone default now() not null,
     constraint team_pk
         primary key (team_id),
-    constraint team_tournament_uuid_fk
+    constraint team_tournament_uuid_fkq8
         foreign key (tournament_uuid) references tournament (uuid)
             on update cascade on delete cascade
 );
 
-create unique index team_name_uindex
-    on team (name);
-
 create unique index team_uuid_uindex
     on team (uuid);
+
+create unique index team_tournament_uuid_name_uindex
+    on team (tournament_uuid, name);
 
 create table team_member
 (

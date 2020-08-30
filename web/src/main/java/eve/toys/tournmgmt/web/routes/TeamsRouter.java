@@ -1,11 +1,11 @@
 package eve.toys.tournmgmt.web.routes;
 
 import eve.toys.tournmgmt.web.esi.Esi;
+import eve.toys.tournmgmt.web.tsv.TSV;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.impl.StringEscapeUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.oauth2.AccessToken;
@@ -18,7 +18,6 @@ import io.vertx.ext.web.handler.BodyHandler;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -147,26 +146,13 @@ public class TeamsRouter {
 
     private void handleImport(RoutingContext ctx) {
         RequestParameters params = ctx.get("parsedParameters");
-        String tsv = params.formParameter("tsv").getString();
+        TSV tsv = new TSV(params.formParameter("tsv").getString(), 2);
         AccessToken token = (AccessToken) ctx.user();
 
-        String[] rows = tsv.split("[\\r\\n]+");
-        List<Future> searches = Arrays.stream(rows)
-                .filter(row -> !row.trim().isEmpty())
-                .flatMap(row -> {
-                    String[] cols = row.split("[\\t,]");
-                    if (cols.length != 2) {
-                        return Stream.of(Future.succeededFuture(new JsonObject().put("error", "Didn't find 2 columns separated by a tab or comma: " + row)));
-                    }
-                    try {
-                        return Stream.of(Esi.checkMembership(token,
-                                Esi.lookupALliance(token, StringEscapeUtils.escapeJavaScript(cols[0])),
-                                Esi.checkCharacter(token, StringEscapeUtils.escapeJavaScript(cols[1]))));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return Stream.of(Future.succeededFuture(new JsonObject().put("error", "Error row: " + row)));
-                    }
-                })
+        List<Future> searches = tsv.stream()
+                .map(row -> Esi.checkMembership(token,
+                        Esi.lookupAlliance(token, row.getCol(0)),
+                        Esi.checkCharacter(token, row.getCol(1))))
                 .collect(Collectors.toList());
 
         CompositeFuture.all(searches).onSuccess(f -> {
@@ -202,14 +188,24 @@ public class TeamsRouter {
             if (msg.isEmpty()) {
                 eventBus.request(DbClient.DB_WRITE_TEAM_TSV,
                         new JsonObject()
-                                .put("tsv", tsv)
+                                .put("tsv", tsv.json())
                                 .put("createdBy",
                                         ((JsonObject) ctx.data().get("character")).getString("characterName"))
                                 .put("uuid", ctx.request().getParam("tournamentUuid")),
                         ar -> {
                             if (ar.failed()) {
-                                ar.cause().printStackTrace();
-                                RenderHelper.doRedirect(ctx.response(), tournamentUrl(ctx, "/teams/import"));
+                                String error = ar.cause().getMessage();
+                                if (error.contains("duplicate key value")) {
+                                    error = "This data contains a team that is already in this tournament.";
+                                } else {
+                                    ar.cause().printStackTrace();
+                                }
+                                render.renderPage(ctx,
+                                        "/teams/import",
+                                        new JsonObject()
+                                                .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                                .put("tsv", tsv.text())
+                                                .put("errors", error));
                                 return;
                             }
                             RenderHelper.doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
@@ -219,7 +215,7 @@ public class TeamsRouter {
                         "/teams/import",
                         new JsonObject()
                                 .put("placeholder", "Please fix the errors and paste in the revised data.")
-                                .put("tsv", tsv)
+                                .put("tsv", tsv.text())
                                 .put("errors", msg));
             }
         }).onFailure(throwable -> {
@@ -248,13 +244,11 @@ public class TeamsRouter {
 
     private void handleAddMembers(RoutingContext ctx) {
         RequestParameters params = ctx.get("parsedParameters");
-        String tsv = params.formParameter("tsv").getString();
+        TSV tsv = new TSV(params.formParameter("tsv").getString(), 1);
         AccessToken token = (AccessToken) ctx.user();
 
-        String[] rows = tsv.split("[\\r\\n]+");
-        List<Future> searches = Arrays.stream(rows)
-                .filter(row -> !row.trim().isEmpty())
-                .map(row -> Esi.checkCharacter(token, row))
+        List<Future> searches = tsv.stream()
+                .map(row -> Esi.checkCharacter(token, row.getCol(0)))
                 .collect(Collectors.toList());
 
         CompositeFuture.all(searches).onSuccess(f -> {
@@ -271,14 +265,19 @@ public class TeamsRouter {
             if (msg.isEmpty()) {
                 eventBus.request(DbClient.DB_WRITE_TEAM_MEMBERS_TSV,
                         new JsonObject()
-                                .put("tsv", tsv)
+                                .put("tsv", tsv.json())
                                 .put("addedBy",
                                         ((JsonObject) ctx.data().get("character")).getString("characterName"))
                                 .put("uuid", ctx.request().getParam("teamUuid")),
                         ar -> {
                             if (ar.failed()) {
                                 ar.cause().printStackTrace();
-                                RenderHelper.doRedirect(ctx.response(), teamUrl(ctx, "/add-members"));
+                                render.renderPage(ctx,
+                                        "/teams/addmembers",
+                                        new JsonObject()
+                                                .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                                .put("tsv", tsv.text())
+                                                .put("errors", ar.cause().getMessage()));
                                 return;
                             }
                             RenderHelper.doRedirect(ctx.response(), teamUrl(ctx, "/edit"));
@@ -288,9 +287,8 @@ public class TeamsRouter {
                         "/teams/addmembers",
                         new JsonObject()
                                 .put("placeholder", "Please fix the errors and paste in the revised data.")
-                                .put("tsv", tsv)
+                                .put("tsv", tsv.text())
                                 .put("errors", msg));
-
             }
         }).onFailure(throwable -> {
             throwable.printStackTrace();

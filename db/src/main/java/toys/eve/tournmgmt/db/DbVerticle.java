@@ -167,18 +167,15 @@ public class DbVerticle extends AbstractVerticle {
     }
 
     private void writeTeamTsv(Message<JsonObject> msg) {
-        String tsv = msg.body().getString("tsv");
+        JsonArray tsv = msg.body().getJsonArray("tsv");
         String createdBy = msg.body().getString("createdBy");
         String uuid = msg.body().getString("uuid");
-        String[] rows = tsv.trim().split("[\\r\\n]+");
-        String values = Arrays.stream(rows)
-                .map(String::trim)
-                .filter(row -> row.split("[\\t,]+").length == 2)
+        String values = tsv.stream()
+                .map(row -> (JsonArray) row)
                 .map(row -> {
-                    String[] cols = row.split("[\\t,]");
                     try {
-                        String alliance = cols[0].trim().replaceAll("'", "''");
-                        String character = cols[1].trim().replaceAll("'", "''");
+                        String alliance = row.getString(0).replaceAll("'", "''");
+                        String character = row.getString(1).replaceAll("'", "''");
                         return "(" +
                                 "'" + UUID.randomUUID().toString() + "'" +
                                 ", " +
