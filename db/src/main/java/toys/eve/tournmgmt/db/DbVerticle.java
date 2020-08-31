@@ -12,7 +12,6 @@ import io.vertx.ext.sql.SQLClient;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
 
-import java.util.Arrays;
 import java.util.UUID;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -236,14 +235,13 @@ public class DbVerticle extends AbstractVerticle {
     }
 
     private void writeTeamMembersTsv(Message<JsonObject> msg) {
-        String tsv = msg.body().getString("tsv");
+        JsonArray tsv = msg.body().getJsonArray("tsv");
         String addedBy = msg.body().getString("addedBy");
         String uuid = msg.body().getString("uuid");
-        String[] rows = tsv.trim().split("[\\r\\n]+");
-        String values = Arrays.stream(rows)
-                .map(String::trim)
+        String values = tsv.stream()
+                .map(o -> (JsonArray) o)
                 .map(row -> {
-                    String character = row.trim().replaceAll("'", "''");
+                    String character = row.getString(0).trim().replaceAll("'", "''");
                     return "(" +
                             "'" + UUID.randomUUID().toString() + "'" +
                             ", " +

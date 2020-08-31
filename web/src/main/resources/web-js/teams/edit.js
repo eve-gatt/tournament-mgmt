@@ -2,7 +2,7 @@
 
     function actions(sel) {
         sel.append('a').attr('href', '#').text('Kick');
-        sel.append('a').attr('href', '#').text('Raise TD name clean request');
+        sel.append('a').attr('href', '#').text('Name in use on TD');
     }
 
     function renderTeamMembers(data) {
