@@ -58,7 +58,7 @@ jobs:
 
       - uses: actions/delete-package-versions@v1
         with:
-          package-name: 'app'
+          package-name: 'tournmgmt'
           num-old-versions-to-delete: 1
 
 #      - uses: sarisia/actions-status-discord@v1
