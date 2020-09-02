@@ -1,5 +1,6 @@
 package eve.toys.tournmgmt.web;
 
+import eve.toys.tournmgmt.web.authn.AppRBAC;
 import eve.toys.tournmgmt.web.routes.*;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
@@ -88,7 +89,7 @@ public class WebVerticle extends AbstractVerticle {
         router.mountSubRouter("/auth/tournament", TournamentRouter.routes(vertx, render));
         router.mountSubRouter("/auth/profile", ProfileRouter.routes(vertx, render));
         router.mountSubRouter("/auth/tournament", TeamsRouter.routes(vertx, render));
-
+        router.mountSubRouter("/auth/referee", RefereeRouter.routes(vertx, render));
 
         SockJSHandler sockJSHandler = SockJSHandler.create(vertx, new SockJSHandlerOptions());
         sockJSHandler.bridge(new BridgeOptions()

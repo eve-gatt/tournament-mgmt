@@ -1,6 +1,6 @@
 package eve.toys.tournmgmt.web.routes;
 
-import eve.toys.tournmgmt.web.AppRBAC;
+import eve.toys.tournmgmt.web.authn.AppRBAC;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;

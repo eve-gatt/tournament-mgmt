@@ -2,7 +2,9 @@ package eve.toys.tournmgmt.web.routes;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 
 public class RefereeRouter {
@@ -15,6 +17,11 @@ public class RefereeRouter {
         router = Router.router(vertx);
         this.render = render;
         this.eventBus = vertx.eventBus();
+        router.get("/").handler(this::home);
+    }
+
+    private void home(RoutingContext ctx) {
+        render.renderPage(ctx, "/referee/home", new JsonObject());
     }
 
     public static Router routes(Vertx vertx, RenderHelper render) {

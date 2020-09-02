@@ -62,6 +62,14 @@ public class TeamsRouter {
         router.get("/:tournamentUuid/teams/:teamUuid/lock-team/confirm").handler(this::lockTeamConfirm);
     }
 
+    public static Router routes(Vertx vertx, RenderHelper render) {
+        return new TeamsRouter(vertx, render).router();
+    }
+
+    private Router router() {
+        return router;
+    }
+
     private void handleAddMembers(RoutingContext ctx) {
         RequestParameters params = ctx.get("parsedParameters");
         TSV tsv = new TSV(params.formParameter("tsv").getString(), 1);
@@ -115,14 +123,6 @@ public class TeamsRouter {
             throwable.printStackTrace();
             RenderHelper.doRedirect(ctx.response(), teamUrl(ctx, "/add-members"));
         });
-    }
-
-    public static Router routes(Vertx vertx, RenderHelper render) {
-        return new TeamsRouter(vertx, render).router();
-    }
-
-    private Router router() {
-        return router;
     }
 
     private void membersData(RoutingContext ctx) {

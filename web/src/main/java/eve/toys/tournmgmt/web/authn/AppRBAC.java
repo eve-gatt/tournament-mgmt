@@ -1,4 +1,4 @@
-package eve.toys.tournmgmt.web;
+package eve.toys.tournmgmt.web.authn;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
