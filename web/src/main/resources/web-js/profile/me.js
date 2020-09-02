@@ -9,8 +9,9 @@
         sel.filter(d => d.canManageTeams).append('a')
             .attr('href', d => '/auth/tournament/' + d.uuid + '/teams').text('Manage teams');
         sel.filter(d => d.canManageTD).append('a').attr('href', '#').text('Manage Thunderdome');
-        sel.filter(d => d.canManageRoles).append('a').attr('href', '#').text('Manage Roles');
-        sel.filter(d => d.canManageBranding).append('a').attr('href', '#').text('Manage Branding');
+        sel.filter(d => d.canManageRoles).append('a')
+            .attr('href', d => '/auth/tournament/' + d.uuid + '/roles').text('Manage roles')
+        sel.filter(d => d.canManageBranding).append('a').attr('href', '#').text('Manage branding');
     }
 
     function renderTournaments(data) {

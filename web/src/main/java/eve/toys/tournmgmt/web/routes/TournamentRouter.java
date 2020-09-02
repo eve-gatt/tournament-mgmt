@@ -57,7 +57,11 @@ public class TournamentRouter {
                 .handler(tournamentValidator)
                 .handler(this::handleEdit)
                 .failureHandler(this::handleEditFailure);
+        router.get("/:tournamentUuid/roles").handler(this::roles);
+    }
 
+    private void roles(RoutingContext ctx) {
+        render.renderPage(ctx, "/role/edit", new JsonObject());
     }
 
     private void loadTournament(RoutingContext ctx) {

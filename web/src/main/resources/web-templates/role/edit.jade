@@ -1,0 +1,49 @@
+extends ../../layout/tournament-layout
+
+mixin import
+    form.pure-form.pure-form-aligned(method="POST")
+        fieldset
+            .pure-controls
+                .errors= errors
+
+            .pure-control-group
+                label(for="tsv") Data
+                textarea(name="tsv", placeholder=placeholder)#tsv= tsv
+
+            .pure-controls
+                button.pure-button.pure-button-primary(type="submit") Update
+
+block append styles
+    style.
+        textarea {
+            width: 50%;
+            height: 200px;
+        }
+
+        .errors {
+            color: red;
+            white-space: pre;
+        }
+
+block content
+    - var uuid = tournament.getString("uuid")
+
+    mixin subtitle("Roles")
+
+    h3 Organisers
+    p Organisers have full permissions to carry out all admin for a tournament, manage teams, referee, etc.
+    mixin import
+
+    h3 Referees
+    p Referees can validate custom tournament rules and view team rosters
+    mixin import
+
+    h3 Other staff
+    p All other staff will can be issued Thunderdome accounts and read-only access to team rosters but have no other special priveleges.
+    mixin import
+
+    h3
+
+
+block scripts
+
