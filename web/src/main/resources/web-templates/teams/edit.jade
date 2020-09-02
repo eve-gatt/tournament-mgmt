@@ -32,4 +32,5 @@ block scripts
     script.
         const tournamentUuid = '#{tournamentUuid}';
         const teamUuid = '#{teamUuid}';
+        const locked = #{team.getBoolean("locked")};
     script(src='/js/teams/edit.js')
