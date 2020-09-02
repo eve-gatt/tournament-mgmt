@@ -24,7 +24,6 @@ public class WebVerticle extends AbstractVerticle {
     private static final String ESI_CLIENT = System.getenv("ESI_CLIENT");
     private static final String ESI_SECRET = System.getenv("ESI_SECRET");
 
-
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
 
@@ -36,8 +35,8 @@ public class WebVerticle extends AbstractVerticle {
                 .setSite("https://login.eveonline.com/v2/oauth")
                 .setTokenPath("/token")
                 .setAuthorizationPath("/authorize")
-                .setUserAgent(System.getProperty("http.agent"))
-        );
+                .setUserAgent(System.getProperty("http.agent")))
+                .rbacHandler(new AppRBAC());
 
         SessionHandler sessionHandler = SessionHandler.create(sessionStore)
                 .setAuthProvider(oauth2);
@@ -52,6 +51,7 @@ public class WebVerticle extends AbstractVerticle {
         router.route().handler(sessionHandler);
 
         AuthHandler redirectAuthHandler = RedirectAuthHandler.create(oauth2, "/login/start");
+
         router.route("/auth/*").handler(redirectAuthHandler);
 
         router.get("/js/*").handler(StaticHandler.create("web-js").setCachingEnabled(pseudoStaticCaching));
@@ -70,6 +70,14 @@ public class WebVerticle extends AbstractVerticle {
                         .put("characterName", parsed.getString("name"))
                         .put("characterId", Integer.parseInt(parsed.getString("sub").split(":")[2]));
                 ctx.data().put("character", character);
+
+                user.isAuthorised("isSuperuser", ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                    } else {
+                        System.out.println("isSuperuser: " + ar.result());
+                    }
+                });
             }
             ctx.next();
         });

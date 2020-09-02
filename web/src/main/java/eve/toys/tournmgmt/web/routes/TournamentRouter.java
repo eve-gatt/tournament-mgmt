@@ -96,8 +96,8 @@ public class TournamentRouter {
                 form,
                 msg -> {
                     if (msg.failed()) {
-                        form.put("practiceOnTd", form.getBoolean("practiceOnTd") ? "on" : "off");
-                        form.put("playOnTd", form.getBoolean("playOnTd") ? "on" : "off");
+                        form.put("practiceOnTd", form.getBoolean("practiceOnTd"));
+                        form.put("playOnTd", form.getBoolean("playOnTd"));
                         ctx.put("form", form)
                                 .put("errorField", "general")
                                 .put("errorMessage",
@@ -115,6 +115,9 @@ public class TournamentRouter {
         Throwable failure = ctx.failure();
         if (failure instanceof ValidationException) {
             JsonObject form = ctx.request().formAttributes().entries().stream().collect(formEntriesToJson());
+            // unvalidated form has strings not booleans for checkboxes so convert them
+            form.put("practiceOnTd", form.getString("practiceOnTd", "off").equals("on"));
+            form.put("playOnTd", form.getString("playOnTd", "off").equals("on"));
             ctx.put("form", form)
                     .put("errorField", ((ValidationException) failure).parameterName())
                     .put("errorMessage", failure.getMessage());
@@ -131,8 +134,8 @@ public class TournamentRouter {
             form = new JsonObject()
                     .put("name", tournament.getString("name"))
                     .put("startDate", DATE_FORMAT.format(tournament.getInstant("start_date")))
-                    .put("practiceOnTd", tournament.getBoolean("practice_on_td") ? "on" : "off")
-                    .put("playOnTd", tournament.getBoolean("play_on_td") ? "on" : "off");
+                    .put("practiceOnTd", tournament.getBoolean("practice_on_td"))
+                    .put("playOnTd", tournament.getBoolean("play_on_td"));
             ctx.put("errorField", "");
             ctx.put("errorMessage", "");
         }
@@ -152,8 +155,8 @@ public class TournamentRouter {
                 form,
                 msg -> {
                     if (msg.failed()) {
-                        form.put("practiceOnTd", form.getBoolean("practiceOnTd") ? "on" : "off");
-                        form.put("playOnTd", form.getBoolean("playOnTd") ? "on" : "off");
+                        form.put("practiceOnTd", form.getBoolean("practiceOnTd"));
+                        form.put("playOnTd", form.getBoolean("playOnTd"));
                         ctx.put("form", form)
                                 .put("errorField", "general")
                                 .put("errorMessage",
@@ -171,6 +174,9 @@ public class TournamentRouter {
         Throwable failure = ctx.failure();
         if (failure instanceof ValidationException) {
             JsonObject form = ctx.request().formAttributes().entries().stream().collect(formEntriesToJson());
+            // unvalidated form has strings not booleans for checkboxes so convert them
+            form.put("practiceOnTd", form.getString("practiceOnTd", "off").equals("on"));
+            form.put("playOnTd", form.getString("playOnTd", "off").equals("on"));
             ctx.put("form", form)
                     .put("errorField", ((ValidationException) failure).parameterName())
                     .put("errorMessage", failure.getMessage());

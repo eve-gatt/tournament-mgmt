@@ -33,10 +33,10 @@ block content
                 to your competitors (subject to CCP agreement).
             .pure-control-group
                 label(for="practice-on-td") Practice on Thunderdome
-                input(type="checkbox", name="practiceOnTd", checked=form.getString("practiceOnTd"))#practice-on-td
+                input(type="checkbox", name="practiceOnTd", checked=form.getBoolean("practiceOnTd"))#practice-on-td
             .pure-control-group
                 label(for="play-on-td") Matches on Thunderdome
-                input(type="checkbox", name="playOnTd", checked=form.getString("playOnTd"))#play-on-td
+                input(type="checkbox", name="playOnTd", checked=form.getBoolean("playOnTd"))#play-on-td
 
             .pure-controls
                 .error= errorField.equals("general") ? errorMessage : null

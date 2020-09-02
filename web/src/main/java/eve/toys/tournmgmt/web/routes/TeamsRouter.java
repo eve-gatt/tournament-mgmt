@@ -26,7 +26,7 @@ public class TeamsRouter {
 
     private final EventBus eventBus;
     private final RenderHelper render;
-    private Router router;
+    private final Router router;
 
     public TeamsRouter(Vertx vertx, RenderHelper render) {
         router = Router.router(vertx);
@@ -83,6 +83,8 @@ public class TeamsRouter {
                     }).collect(Collectors.joining("\n"))
                     .trim();
             if (msg.isEmpty()) {
+                // TODO: check if too many members after import
+                // TODO: check members aren't in other teams
                 eventBus.request(DbClient.DB_WRITE_TEAM_MEMBERS_TSV,
                         new JsonObject()
                                 .put("tsv", tsv.json())
