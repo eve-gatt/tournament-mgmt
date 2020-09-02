@@ -61,6 +61,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_WRITE_TEAM_TSV, this::writeTeamTsv);
         vertx.eventBus().consumer(DbClient.DB_TEAMS_BY_TOURNAMENT, this::teamsByTournament);
         vertx.eventBus().consumer(DbClient.DB_DELETE_TEAM_BY_UUID, this::deleteTeamByUuid);
+        vertx.eventBus().consumer(DbClient.DB_LOCK_TEAM_BY_UUID, this::lockTeamByUuid);
         vertx.eventBus().consumer(DbClient.DB_WRITE_TEAM_MEMBERS_TSV, this::writeTeamMembersTsv);
         vertx.eventBus().consumer(DbClient.DB_MEMBERS_BY_TEAM, this::membersByTeam);
 
@@ -148,7 +149,7 @@ public class DbVerticle extends AbstractVerticle {
 
     private void teamByUuid(Message<String> msg) {
         String uuid = msg.body();
-        sqlClient.query("select name, captain, uuid " +
+        sqlClient.query("select name, captain, uuid, locked " +
                         "from team " +
                         "where uuid = '" + uuid + "'",
                 ar -> {
@@ -224,6 +225,20 @@ public class DbVerticle extends AbstractVerticle {
     private void deleteTeamByUuid(Message<String> msg) {
         String uuid = msg.body();
         sqlClient.update("delete from team where uuid = '" + uuid + "'",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    msg.reply(null);
+                });
+    }
+
+    private void lockTeamByUuid(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.update("update team set locked = true " +
+                        "where uuid = '" + uuid + "'",
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();

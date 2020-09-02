@@ -1,0 +1,16 @@
+extends ../../layout/tournament-layout
+
+block content
+    - var uuid = tournament.getString("uuid")
+    - var teamUuid = team.getString("uuid")
+
+    mixin subtitle("Lock team")
+
+    p Locking your team roster means that you can no longer add or remove members from the team.
+    p Once locked your team can get access to Thunderdome accounts.
+
+    a(href="/auth/tournament/" + uuid + "/teams/" + teamUuid + "/lock-team/confirm") Confirm
+    a(href="/auth/tournament/" + uuid + "/teams") Cancel
+
+block scripts
+

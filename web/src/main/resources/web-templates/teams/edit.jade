@@ -22,9 +22,11 @@ block content
                 th Actions
             tbody
 
-    a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/add-members") Add team members
-    a(href='#') Lock team
-    a(href='#') Thunderdome accounts
+    if !team.getBoolean("locked")
+        a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/add-members") Add team members
+        a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/lock-team") Lock team
+    if team.getBoolean("locked")
+        a(href='#') Thunderdome accounts
 
 block scripts
     script.

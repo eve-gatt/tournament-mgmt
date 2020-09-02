@@ -58,6 +58,61 @@ public class TeamsRouter {
                 .handler(this::handleAddMembers)
                 .failureHandler(this::handleAddMembersFail);
         router.get("/:tournamentUuid/teams/:teamUuid/members/data").handler(this::membersData);
+        router.get("/:tournamentUuid/teams/:teamUuid/lock-team").handler(this::lockTeam);
+        router.get("/:tournamentUuid/teams/:teamUuid/lock-team/confirm").handler(this::lockTeamConfirm);
+    }
+
+    private void handleAddMembers(RoutingContext ctx) {
+        RequestParameters params = ctx.get("parsedParameters");
+        TSV tsv = new TSV(params.formParameter("tsv").getString(), 1);
+        AccessToken token = (AccessToken) ctx.user();
+
+        List<Future> searches = tsv.stream()
+                .map(row -> Esi.checkCharacter(token, row.getCol(0)))
+                .collect(Collectors.toList());
+
+        CompositeFuture.all(searches).onSuccess(f -> {
+            String msg = f.list().stream()
+                    .map(o -> (JsonObject) o)
+                    .flatMap(r -> {
+                        String result = "";
+                        if (r.getJsonArray("result") == null) {
+                            result += r.getString("name") + " is not a valid character name";
+                        }
+                        return result.isEmpty() ? Stream.empty() : Stream.of(result);
+                    }).collect(Collectors.joining("\n"))
+                    .trim();
+            if (msg.isEmpty()) {
+                eventBus.request(DbClient.DB_WRITE_TEAM_MEMBERS_TSV,
+                        new JsonObject()
+                                .put("tsv", tsv.json())
+                                .put("addedBy", ((JsonObject) ctx.data().get("character")).getString("characterName"))
+                                .put("uuid", ctx.request().getParam("teamUuid")),
+                        ar -> {
+                            if (ar.failed()) {
+                                ar.cause().printStackTrace();
+                                render.renderPage(ctx,
+                                        "/teams/addmembers",
+                                        new JsonObject()
+                                                .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                                .put("tsv", tsv.text())
+                                                .put("errors", ar.cause().getMessage()));
+                                return;
+                            }
+                            RenderHelper.doRedirect(ctx.response(), teamUrl(ctx, "/edit"));
+                        });
+            } else {
+                render.renderPage(ctx,
+                        "/teams/addmembers",
+                        new JsonObject()
+                                .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                .put("tsv", tsv.text())
+                                .put("errors", msg));
+            }
+        }).onFailure(throwable -> {
+            throwable.printStackTrace();
+            RenderHelper.doRedirect(ctx.response(), teamUrl(ctx, "/add-members"));
+        });
     }
 
     public static Router routes(Vertx vertx, RenderHelper render) {
@@ -128,6 +183,10 @@ public class TeamsRouter {
                     }
                     RenderHelper.doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
                 });
+    }
+
+    private void lockTeam(RoutingContext ctx) {
+        render.renderPage(ctx, "/teams/lockteam", new JsonObject());
     }
 
     private void importTeams(RoutingContext ctx) {
@@ -242,58 +301,17 @@ public class TeamsRouter {
                                         "Josie Tackle\n"));
     }
 
-    private void handleAddMembers(RoutingContext ctx) {
-        RequestParameters params = ctx.get("parsedParameters");
-        TSV tsv = new TSV(params.formParameter("tsv").getString(), 1);
-        AccessToken token = (AccessToken) ctx.user();
-
-        List<Future> searches = tsv.stream()
-                .map(row -> Esi.checkCharacter(token, row.getCol(0)))
-                .collect(Collectors.toList());
-
-        CompositeFuture.all(searches).onSuccess(f -> {
-            String msg = f.list().stream()
-                    .map(o -> (JsonObject) o)
-                    .flatMap(r -> {
-                        String result = "";
-                        if (r.getJsonArray("result") == null) {
-                            result += r.getString("name") + " is not a valid character name";
-                        }
-                        return result.isEmpty() ? Stream.empty() : Stream.of(result);
-                    }).collect(Collectors.joining("\n"))
-                    .trim();
-            if (msg.isEmpty()) {
-                eventBus.request(DbClient.DB_WRITE_TEAM_MEMBERS_TSV,
-                        new JsonObject()
-                                .put("tsv", tsv.json())
-                                .put("addedBy",
-                                        ((JsonObject) ctx.data().get("character")).getString("characterName"))
-                                .put("uuid", ctx.request().getParam("teamUuid")),
-                        ar -> {
-                            if (ar.failed()) {
-                                ar.cause().printStackTrace();
-                                render.renderPage(ctx,
-                                        "/teams/addmembers",
-                                        new JsonObject()
-                                                .put("placeholder", "Please fix the errors and paste in the revised data.")
-                                                .put("tsv", tsv.text())
-                                                .put("errors", ar.cause().getMessage()));
-                                return;
-                            }
-                            RenderHelper.doRedirect(ctx.response(), teamUrl(ctx, "/edit"));
-                        });
-            } else {
-                render.renderPage(ctx,
-                        "/teams/addmembers",
-                        new JsonObject()
-                                .put("placeholder", "Please fix the errors and paste in the revised data.")
-                                .put("tsv", tsv.text())
-                                .put("errors", msg));
-            }
-        }).onFailure(throwable -> {
-            throwable.printStackTrace();
-            RenderHelper.doRedirect(ctx.response(), teamUrl(ctx, "/add-members"));
-        });
+    private void lockTeamConfirm(RoutingContext ctx) {
+        eventBus.request(DbClient.DB_LOCK_TEAM_BY_UUID,
+                ctx.request().getParam("teamUuid"),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        RenderHelper.doRedirect(ctx.response(), teamUrl(ctx, "/lock-team"));
+                        return;
+                    }
+                    RenderHelper.doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
+                });
     }
 
     private void handleAddMembersFail(RoutingContext ctx) {

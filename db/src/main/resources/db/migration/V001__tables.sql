@@ -58,3 +58,8 @@ create table team_member
             on update cascade on delete cascade
 );
 
+alter table team_member
+    add constraint team_member_only_once
+        unique (team_uuid, name);
+
+
