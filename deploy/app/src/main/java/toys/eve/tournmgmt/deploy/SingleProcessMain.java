@@ -1,6 +1,7 @@
 package toys.eve.tournmgmt.deploy;
 
 import eve.toys.tournmgmt.web.WebVerticle;
+import eve.toys.tournmgmt.web.job.JobVerticle;
 import io.vertx.core.*;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -28,12 +29,13 @@ public class SingleProcessMain {
 
     private static void deploy(Vertx vertx) {
 
-        List<Future> dbs = new ArrayList<>();
-        dbs.add(deployHelper(vertx, DbVerticle.class, new DeploymentOptions().setWorker(true)));
+        List<Future> workers = new ArrayList<>();
+        workers.add(deployHelper(vertx, DbVerticle.class, new DeploymentOptions().setWorker(true)));
+        workers.add(deployHelper(vertx, JobVerticle.class, new DeploymentOptions().setWorker(true)));
 
-        CompositeFuture.all(dbs)
+        CompositeFuture.all(workers)
                 .onSuccess(f -> {
-                    LOGGER.info("DB(s) deployed successfully");
+                    LOGGER.info("Worker(s) deployed successfully");
                     List<Future> webApps = new ArrayList<>();
                     webApps.add(deployHelper(vertx, WebVerticle.class, new DeploymentOptions()));
                     CompositeFuture.all(webApps)
@@ -47,7 +49,7 @@ public class SingleProcessMain {
                             });
                 })
                 .onFailure(t -> {
-                    LOGGER.error("db deployment failed");
+                    LOGGER.error("Worker deployment failed");
                     t.printStackTrace();
                     vertx.close();
                 });

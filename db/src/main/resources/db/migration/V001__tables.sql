@@ -28,6 +28,7 @@ create table team
     locked          boolean                  default false not null,
     created_by      varchar                                not null,
     created_on      timestamp with time zone default now() not null,
+    msg             varchar,
     constraint team_pk
         primary key (team_id),
     constraint team_tournament_uuid_fkq8

@@ -9,6 +9,8 @@ import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.oauth2.*;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.handler.*;
 import io.vertx.ext.web.handler.sockjs.BridgeEvent;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
@@ -24,9 +26,12 @@ public class WebVerticle extends AbstractVerticle {
     private static final boolean pseudoStaticCaching = false;
     private static final String ESI_CLIENT = System.getenv("ESI_CLIENT");
     private static final String ESI_SECRET = System.getenv("ESI_SECRET");
+    private WebClient webClient;
 
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
+
+        this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
 
         SessionStore sessionStore = LocalSessionStore.create(vertx);
 
@@ -70,17 +75,19 @@ public class WebVerticle extends AbstractVerticle {
                 JsonObject character = new JsonObject()
                         .put("characterName", parsed.getString("name"))
                         .put("characterId", Integer.parseInt(parsed.getString("sub").split(":")[2]));
-                ctx.data().put("character", character);
 
                 user.isAuthorised("isSuperuser", ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
                     } else {
-                        System.out.println("isSuperuser: " + ar.result());
+                        character.put("isSuperuser", ar.result());
                     }
+                    ctx.data().put("character", character);
+                    ctx.next();
                 });
+            } else {
+                ctx.next();
             }
-            ctx.next();
         });
 
         router.post().handler(BodyHandler.create());
@@ -88,8 +95,12 @@ public class WebVerticle extends AbstractVerticle {
         router.mountSubRouter("/login", LoginRouter.routes(vertx, render, oauth2));
         router.mountSubRouter("/auth/tournament", TournamentRouter.routes(vertx, render));
         router.mountSubRouter("/auth/profile", ProfileRouter.routes(vertx, render));
-        router.mountSubRouter("/auth/tournament", TeamsRouter.routes(vertx, render));
+        router.mountSubRouter("/auth/tournament", TeamsRouter.routes(vertx, render, webClient));
         router.mountSubRouter("/auth/referee", RefereeRouter.routes(vertx, render));
+        router.route("/auth/superuser/*")
+                .handler(RedirectAuthHandler.create(oauth2, "/login/start")
+                        .addAuthority("isSuperuser"));
+        router.mountSubRouter("/auth/superuser", SuperuserRouter.routes(vertx, render));
 
         SockJSHandler sockJSHandler = SockJSHandler.create(vertx, new SockJSHandlerOptions());
         sockJSHandler.bridge(new BridgeOptions()

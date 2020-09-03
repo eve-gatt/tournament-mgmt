@@ -1,6 +1,7 @@
 package eve.toys.tournmgmt.web.routes;
 
 import eve.toys.tournmgmt.web.esi.Esi;
+import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.tsv.TSV;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -14,6 +15,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.api.RequestParameters;
 import io.vertx.ext.web.api.validation.HTTPRequestValidationHandler;
 import io.vertx.ext.web.api.validation.ParameterTypeValidator;
+import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.BodyHandler;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
@@ -27,11 +29,13 @@ public class TeamsRouter {
     private final EventBus eventBus;
     private final RenderHelper render;
     private final Router router;
+    private final WebClient webClient;
 
-    public TeamsRouter(Vertx vertx, RenderHelper render) {
+    public TeamsRouter(Vertx vertx, RenderHelper render, WebClient webClient) {
         router = Router.router(vertx);
         this.render = render;
         this.eventBus = vertx.eventBus();
+        this.webClient = webClient;
 
         HTTPRequestValidationHandler tsvValidator = HTTPRequestValidationHandler.create()
                 .addFormParamWithCustomTypeValidator("tsv",
@@ -49,7 +53,7 @@ public class TeamsRouter {
         router.post("/:tournamentUuid/teams/import")
                 .handler(BodyHandler.create())
                 .handler(tsvValidator)
-                .handler(this::handleImport)
+                .handler(this::handleImportTeams)
                 .failureHandler(this::handleImportFail);
         router.get("/:tournamentUuid/teams/:teamUuid/add-members").handler(this::addMembers);
         router.post("/:tournamentUuid/teams/:teamUuid/add-members")
@@ -62,8 +66,78 @@ public class TeamsRouter {
         router.get("/:tournamentUuid/teams/:teamUuid/lock-team/confirm").handler(this::lockTeamConfirm);
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render) {
-        return new TeamsRouter(vertx, render).router();
+    private void handleImportTeams(RoutingContext ctx) {
+        RequestParameters params = ctx.get("parsedParameters");
+        TSV tsv = new TSV(params.formParameter("tsv").getString(), 2);
+        AccessToken token = (AccessToken) ctx.user();
+
+        List<Future> searches = tsv.stream()
+                .flatMap(row -> Stream.of(
+                        Esi.lookupAlliance(webClient, row.getCol(0)),
+                        Esi.checkCharacter(webClient, row.getCol(1))))
+                .collect(Collectors.toList());
+
+        CompositeFuture.all(searches).onSuccess(f -> {
+            String msg = f.list().stream()
+                    .map(o -> (JsonObject) o)
+                    .flatMap(r -> {
+                        String result = "";
+                        if (r.containsKey("error")) {
+                            result += r.getString("error") + "\n";
+                        } else {
+                            if ("alliance".equals(r.getString("category"))) {
+                                if (r.getJsonArray("result") == null) {
+                                    result += r.getString("name") + " is not a valid alliance\n";
+                                }
+                            }
+                            if ("character".equals(r.getString("category"))) {
+                                if (r.getJsonArray("result") == null) {
+                                    result += r.getString("name") + " is not a valid character name\n";
+                                }
+                            }
+                        }
+                        return result.isEmpty() ? Stream.empty() : Stream.of(result);
+                    })
+                    .collect(Collectors.joining());
+
+            if (msg.isEmpty()) {
+                eventBus.request(DbClient.DB_WRITE_TEAM_TSV,
+                        new JsonObject()
+                                .put("tsv", tsv.json())
+                                .put("createdBy",
+                                        ((JsonObject) ctx.data().get("character")).getString("characterName"))
+                                .put("uuid", ctx.request().getParam("tournamentUuid")),
+                        ar -> {
+                            if (ar.failed()) {
+                                String error = ar.cause().getMessage();
+                                if (error.contains("duplicate key value")) {
+                                    error = "This data contains a team that is already in this tournament.";
+                                } else {
+                                    ar.cause().printStackTrace();
+                                }
+                                render.renderPage(ctx,
+                                        "/teams/import",
+                                        new JsonObject()
+                                                .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                                .put("tsv", tsv.text())
+                                                .put("errors", error));
+                                return;
+                            }
+                            eventBus.publish(JobClient.JOB_CHECK_ALLIANCE_MEMBERSHIP, new JsonObject());
+                            RenderHelper.doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
+                        });
+            } else {
+                render.renderPage(ctx,
+                        "/teams/import",
+                        new JsonObject()
+                                .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                .put("tsv", tsv.text())
+                                .put("errors", msg));
+            }
+        }).onFailure(throwable -> {
+            throwable.printStackTrace();
+            RenderHelper.doRedirect(ctx.response(), tournamentUrl(ctx, "/teams/import"));
+        });
     }
 
     private Router router() {
@@ -76,7 +150,7 @@ public class TeamsRouter {
         AccessToken token = (AccessToken) ctx.user();
 
         List<Future> searches = tsv.stream()
-                .map(row -> Esi.checkCharacter(token, row.getCol(0)))
+                .map(row -> Esi.checkCharacter(webClient, row.getCol(0)))
                 .collect(Collectors.toList());
 
         CompositeFuture.all(searches).onSuccess(f -> {
@@ -205,84 +279,8 @@ public class TeamsRouter {
                                         "a spreadsheet. CSV also works."));
     }
 
-    private void handleImport(RoutingContext ctx) {
-        RequestParameters params = ctx.get("parsedParameters");
-        TSV tsv = new TSV(params.formParameter("tsv").getString(), 2);
-        AccessToken token = (AccessToken) ctx.user();
-
-        List<Future> searches = tsv.stream()
-                .map(row -> Esi.checkMembership(token,
-                        Esi.lookupAlliance(token, row.getCol(0)),
-                        Esi.checkCharacter(token, row.getCol(1))))
-                .collect(Collectors.toList());
-
-        CompositeFuture.all(searches).onSuccess(f -> {
-            String msg = f.list().stream()
-                    .map(o -> (JsonObject) o)
-                    .flatMap(r -> {
-                        String result = "";
-                        if (r.containsKey("error")) {
-                            result += r.getString("error") + "\n";
-                        } else {
-                            if (r.getJsonObject("alliance").getJsonArray("result") == null) {
-                                result += r.getJsonObject("alliance").getString("name") + " is not a valid alliance\n";
-                            }
-                            if (r.getJsonObject("character").getJsonArray("result") == null) {
-                                result += r.getJsonObject("character").getString("name") + " is not a valid character name\n";
-                            }
-                            if (r.containsKey("membership")
-                                    && r.getInteger("membership") == null) {
-                                result += r.getJsonObject("character").getString("name") + " is not in an alliance\n";
-                            }
-                            if (r.containsKey("membership")
-                                    && r.getInteger("membership") != null
-                                    && !r.getInteger("membership")
-                                    .equals(r.getJsonObject("alliance").getJsonArray("result").getInteger(0))) {
-                                result += r.getJsonObject("character").getString("name") + " is not in "
-                                        + r.getJsonObject("alliance").getString("name") + "\n";
-                            }
-                        }
-                        return result.isEmpty() ? Stream.empty() : Stream.of(result);
-                    })
-                    .collect(Collectors.joining());
-
-            if (msg.isEmpty()) {
-                eventBus.request(DbClient.DB_WRITE_TEAM_TSV,
-                        new JsonObject()
-                                .put("tsv", tsv.json())
-                                .put("createdBy",
-                                        ((JsonObject) ctx.data().get("character")).getString("characterName"))
-                                .put("uuid", ctx.request().getParam("tournamentUuid")),
-                        ar -> {
-                            if (ar.failed()) {
-                                String error = ar.cause().getMessage();
-                                if (error.contains("duplicate key value")) {
-                                    error = "This data contains a team that is already in this tournament.";
-                                } else {
-                                    ar.cause().printStackTrace();
-                                }
-                                render.renderPage(ctx,
-                                        "/teams/import",
-                                        new JsonObject()
-                                                .put("placeholder", "Please fix the errors and paste in the revised data.")
-                                                .put("tsv", tsv.text())
-                                                .put("errors", error));
-                                return;
-                            }
-                            RenderHelper.doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
-                        });
-            } else {
-                render.renderPage(ctx,
-                        "/teams/import",
-                        new JsonObject()
-                                .put("placeholder", "Please fix the errors and paste in the revised data.")
-                                .put("tsv", tsv.text())
-                                .put("errors", msg));
-            }
-        }).onFailure(throwable -> {
-            throwable.printStackTrace();
-            RenderHelper.doRedirect(ctx.response(), tournamentUrl(ctx, "/teams/import"));
-        });
+    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient) {
+        return new TeamsRouter(vertx, render, webClient).router();
     }
 
     private void handleImportFail(RoutingContext ctx) {

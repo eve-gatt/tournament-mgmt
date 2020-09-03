@@ -64,6 +64,8 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_LOCK_TEAM_BY_UUID, this::lockTeamByUuid);
         vertx.eventBus().consumer(DbClient.DB_WRITE_TEAM_MEMBERS_TSV, this::writeTeamMembersTsv);
         vertx.eventBus().consumer(DbClient.DB_MEMBERS_BY_TEAM, this::membersByTeam);
+        vertx.eventBus().consumer(DbClient.DB_ALL_TEAMS, this::allTeams);
+        vertx.eventBus().consumer(DbClient.DB_UPDATE_TEAM_MESSAGE, this::updateTeamMessage);
 
         startPromise.complete();
     }
@@ -208,7 +210,7 @@ public class DbVerticle extends AbstractVerticle {
 
     private void teamsByTournament(Message<JsonObject> msg) {
         String uuid = msg.body().getString("uuid");
-        sqlClient.query("select name, uuid, captain, locked, " +
+        sqlClient.query("select name, uuid, captain, locked, msg, " +
                         "(select count(*) from team_member where team.uuid = team_uuid) as member_count " +
                         "from team " +
                         "where tournament_uuid = '" + uuid + "'",
@@ -292,6 +294,31 @@ public class DbVerticle extends AbstractVerticle {
                         return;
                     }
                     msg.reply(new JsonArray(ar.result().getRows()));
+                });
+    }
+
+    private void allTeams(Message<JsonObject> msg) {
+        sqlClient.query("select name, captain, uuid from team", ar -> {
+            if (ar.failed()) {
+                ar.cause().printStackTrace();
+                msg.fail(1, ar.cause().getMessage());
+            } else {
+                msg.reply(new JsonArray(ar.result().getRows()));
+            }
+        });
+    }
+
+    private void updateTeamMessage(Message<JsonObject> msg) {
+        String message = msg.body().getString("message");
+        String uuid = msg.body().getString("uuid");
+        sqlClient.updateWithParams("update team set msg = ? " +
+                        "where uuid = '" + uuid + "'",
+                new JsonArray().add(message),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    }
                 });
     }
 

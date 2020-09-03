@@ -264,6 +264,9 @@ html
                         .top-menu
                             a(href="/") Home
                             a(href="/auth/referee") Referee
+                            if character
+                                if character.getBoolean("isSuperuser")
+                                    a(href="/auth/superuser/home") Superuser
                         //
                             .top-menu
                                 a(href="/involved") Get Involved

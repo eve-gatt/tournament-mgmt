@@ -1,0 +1,17 @@
+extends ../../layout/default-layout
+
+block content
+    h2 Superuser
+
+    h3 Jobs
+
+    table.pure-table
+        thead
+            th Job
+            th Actions
+        tbody
+            td Check alliance membership
+            td: a(href="/auth/superuser/job/check-alliance-membership") Run
+
+block scripts
+

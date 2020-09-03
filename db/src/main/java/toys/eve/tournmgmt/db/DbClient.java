@@ -13,4 +13,6 @@ public final class DbClient {
     public static final String DB_WRITE_TEAM_MEMBERS_TSV = "DB_WRITE_TEAM_MEMBERS_TSV";
     public static final String DB_MEMBERS_BY_TEAM = "DB_MEMBERS_BY_TEAM";
     public static final String DB_LOCK_TEAM_BY_UUID = "DB_LOCK_TEAM_BY_UUID";
+    public static final String DB_ALL_TEAMS = "DB_ALL_TEAMS";
+    public static final String DB_UPDATE_TEAM_MESSAGE = "DB_UPDATE_TEAM_MESSAGE";
 }
