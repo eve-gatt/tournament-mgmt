@@ -52,15 +52,16 @@ public class JobVerticle extends AbstractVerticle {
                                 .forEach(result -> {
                                     String uuid = result.getString("uuid");
                                     JsonArray expected = result.getJsonObject("expectedAlliance").getJsonArray("result");
+                                    String error = "";
                                     if (expected != null && !expected.getInteger(0).equals(result.getInteger("actualAlliance"))) {
-                                        String error = result.getJsonObject("character").getString("name")
+                                        error = result.getJsonObject("character").getString("name")
                                                 + " is not in "
                                                 + result.getJsonObject("expectedAlliance").getString("name");
-                                        vertx.eventBus().send(DbClient.DB_UPDATE_TEAM_MESSAGE,
-                                                new JsonObject()
-                                                        .put("message", error)
-                                                        .put("uuid", uuid));
                                     }
+                                    vertx.eventBus().send(DbClient.DB_UPDATE_TEAM_MESSAGE,
+                                            new JsonObject()
+                                                    .put("message", error)
+                                                    .put("uuid", uuid));
                                 });
 
                     });

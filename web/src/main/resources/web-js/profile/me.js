@@ -1,18 +1,6 @@
-(function () {
+import {tournamentActions} from '../modules/actions.js'
 
-    function actions(sel) {
-        sel.filter(d => d.canEdit).append('a')
-            .attr('href', d => '/auth/tournament/' + d.uuid + '/edit').text('Edit details');
-        sel.filter(d => d.canDelete).append('a')
-            .attr('href', d => '/auth/tournament/' + d.uuid + '/delete').text('Delete');
-        sel.filter(d => d.canSearchPilot).append('a').attr('href', '#').text('Search for pilot');
-        sel.filter(d => d.canManageTeams).append('a')
-            .attr('href', d => '/auth/tournament/' + d.uuid + '/teams').text('Manage teams');
-        sel.filter(d => d.canManageTD).append('a').attr('href', '#').text('Manage Thunderdome');
-        sel.filter(d => d.canManageRoles).append('a')
-            .attr('href', d => '/auth/tournament/' + d.uuid + '/roles').text('Manage roles')
-        sel.filter(d => d.canManageBranding).append('a').attr('href', '#').text('Manage branding');
-    }
+(function () {
 
     function renderTournaments(data) {
         if (data.length > 0) {
@@ -22,7 +10,7 @@
             entering.append('td').text(d => d.name);
             entering.append('td').text(d => d.created_by);
             entering.append('td').text(d => d.teams_locked);
-            entering.append('td').call(actions)
+            entering.append('td').call(tournamentActions)
         } else {
             d3.select('.tournaments table').style('display', 'none');
         }

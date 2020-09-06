@@ -23,18 +23,14 @@ public class ProfileRouter {
         this.render = render;
         this.eventBus = vertx.eventBus();
         router.get("/me").handler(this::me);
-        router.get("/tournaments").handler(this::tournaments);
-    }
-
-    public static Router routes(Vertx vertx, RenderHelper render) {
-        return new ProfileRouter(vertx, render).router();
+        router.get("/tournaments").handler(this::tournamentsJson);
     }
 
     private void me(RoutingContext ctx) {
         render.renderPage(ctx, "/profile/me", new JsonObject());
     }
 
-    private void tournaments(RoutingContext ctx) {
+    private void tournamentsJson(RoutingContext ctx) {
         String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
 
         Future<Message<Object>> f1 = Future.future(promise -> eventBus.request(DbClient.DB_FETCH_TOURNAMENTS,
@@ -44,13 +40,14 @@ public class ProfileRouter {
         f1.onSuccess(msg -> ctx.response().end(((JsonArray) msg.body()).stream()
                 .map(o -> (JsonObject) o)
                 .filter(t -> AppRBAC.isSuperuser(characterName) || characterName.equals(t.getString("created_by")))
-                .peek(t -> {
-                    AppRBAC.ORGANISER_PERMS.forEach(r -> t.put(r.name(), true));
-                    t.put(AppRBAC.Perm.canManageTD.name(), t.getBoolean("practice_on_td") || t.getBoolean("play_on_td"));
-                })
+                .peek(AppRBAC::addPermissionsToTournament)
                 .collect(JsonArray::new, JsonArray::add, JsonArray::addAll)
                 .encode())
         ).onFailure(Throwable::printStackTrace);
+    }
+
+    public static Router routes(Vertx vertx, RenderHelper render) {
+        return new ProfileRouter(vertx, render).router();
     }
 
     private Router router() {

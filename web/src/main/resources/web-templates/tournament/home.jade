@@ -1,0 +1,25 @@
+extends ../../layout/tournament-layout
+
+block append styles
+    style.
+
+block content
+    - var uuid = tournament.getString("uuid")
+
+    mixin subtitle("Home")
+
+    .menu
+        if tournament.getBoolean("canEdit")
+            a(href="/auth/tournament/" + uuid + "/edit") Edit details
+        if tournament.getBoolean("canDelete")
+            a(href="/auth/tournament/" + uuid + "/delete") Delete
+        if tournament.getBoolean("canSearchPilot")
+            a(href="#") Search for pilot
+        if tournament.getBoolean("canManageTeams")
+            a(href="/auth/tournament/" + uuid + "/teams") Manage teams
+        if tournament.getBoolean("canManageTD")
+            a(href="#") Manage Thunderdome
+        if tournament.getBoolean("canManageRoles")
+            a(href="/auth/tournament/" + uuid + "/roles") Manage roles
+        if tournament.getBoolean("canManageBranding")
+            a(href="#") Manage branding

@@ -20,6 +20,11 @@ public class AppRBAC implements OAuth2RBAC {
             Perm.canManageBranding
     );
 
+    public static void addPermissionsToTournament(JsonObject tournament) {
+        ORGANISER_PERMS.forEach(r -> tournament.put(r.name(), true));
+        tournament.put(Perm.canManageTD.name(), tournament.getBoolean("practice_on_td") || tournament.getBoolean("play_on_td"));
+    }
+
     @Override
     public void isAuthorized(AccessToken user, String authority, Handler<AsyncResult<Boolean>> handler) {
         // TODO: remember to user.clearCache() to have this re-evaluated if persisted perms changes

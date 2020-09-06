@@ -16,7 +16,6 @@ import io.vertx.ext.web.api.RequestParameters;
 import io.vertx.ext.web.api.validation.HTTPRequestValidationHandler;
 import io.vertx.ext.web.api.validation.ParameterTypeValidator;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.handler.BodyHandler;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
@@ -51,13 +50,11 @@ public class TeamsRouter {
         router.get("/:tournamentUuid/teams/:teamUuid/remove/confirm").handler(this::removeTeamConfirm);
         router.get("/:tournamentUuid/teams/import").handler(this::importTeams);
         router.post("/:tournamentUuid/teams/import")
-                .handler(BodyHandler.create())
                 .handler(tsvValidator)
                 .handler(this::handleImportTeams)
                 .failureHandler(this::handleImportFail);
         router.get("/:tournamentUuid/teams/:teamUuid/add-members").handler(this::addMembers);
         router.post("/:tournamentUuid/teams/:teamUuid/add-members")
-                .handler(BodyHandler.create())
                 .handler(tsvValidator)
                 .handler(this::handleAddMembers)
                 .failureHandler(this::handleAddMembersFail);

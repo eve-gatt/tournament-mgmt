@@ -2,6 +2,7 @@ package eve.toys.tournmgmt.web.routes;
 
 
 import eve.toys.tournmgmt.web.Branding;
+import eve.toys.tournmgmt.web.authn.AppRBAC;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpMethod;
@@ -13,7 +14,6 @@ import io.vertx.ext.web.api.validation.HTTPRequestValidationHandler;
 import io.vertx.ext.web.api.validation.ParameterType;
 import io.vertx.ext.web.api.validation.ParameterTypeValidator;
 import io.vertx.ext.web.api.validation.ValidationException;
-import io.vertx.ext.web.handler.BodyHandler;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
@@ -47,21 +47,16 @@ public class TournamentRouter {
         router.route("/:tournamentUuid/*").handler(this::loadTournament);
         router.get("/create").handler(this::create);
         router.post("/create")
-                .handler(BodyHandler.create())
                 .handler(tournamentValidator)
                 .handler(this::handleCreate)
                 .failureHandler(this::handleCreateFailure);
+        router.get("/:tournamentUuid/home").handler(this::home);
         router.get("/:tournamentUuid/edit").handler(this::edit);
         router.post("/:tournamentUuid/edit")
-                .handler(BodyHandler.create())
                 .handler(tournamentValidator)
                 .handler(this::handleEdit)
                 .failureHandler(this::handleEditFailure);
         router.get("/:tournamentUuid/roles").handler(this::roles);
-    }
-
-    private void roles(RoutingContext ctx) {
-        render.renderPage(ctx, "/role/edit", new JsonObject());
     }
 
     private void loadTournament(RoutingContext ctx) {
@@ -72,7 +67,12 @@ public class TournamentRouter {
                         ctx.fail(ar.cause());
                         return;
                     }
-                    ctx.data().put("tournament", ar.result().body());
+                    JsonObject tournament = (JsonObject) ar.result().body();
+                    String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
+                    if (AppRBAC.isSuperuser(characterName) || characterName.equals(tournament.getString("created_by"))) {
+                        AppRBAC.addPermissionsToTournament(tournament);
+                    }
+                    ctx.data().put("tournament", tournament);
                     ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
                     ctx.next();
                 });
@@ -129,6 +129,10 @@ public class TournamentRouter {
             failure.printStackTrace();
         }
         ctx.reroute(HttpMethod.GET, "/auth/tournament/create");
+    }
+
+    private void home(RoutingContext ctx) {
+        render.renderPage(ctx, "/tournament/home", new JsonObject());
     }
 
     private void edit(RoutingContext ctx) {
@@ -188,6 +192,10 @@ public class TournamentRouter {
             failure.printStackTrace();
         }
         ctx.reroute(HttpMethod.GET, "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/edit");
+    }
+
+    private void roles(RoutingContext ctx) {
+        render.renderPage(ctx, "/role/edit", new JsonObject());
     }
 
     private Collector<Map.Entry<String, String>, JsonObject, JsonObject> formEntriesToJson() {

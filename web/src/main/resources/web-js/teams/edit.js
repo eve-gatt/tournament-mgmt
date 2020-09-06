@@ -3,7 +3,7 @@
     function actions(sel) {
         if (!locked)
             sel.append('a').attr('href', '#').text('Kick');
-        sel.append('a').attr('href', '#').text('Name in use on TD');
+        sel.append('a').attr('href', '#').text('Report name in use');
     }
 
     function renderTeamMembers(data) {

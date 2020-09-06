@@ -146,7 +146,6 @@ html
             }
 
             .header .right .top-menu {
-                margin-right: 24px;
                 align-self: end;
             }
 
@@ -192,7 +191,7 @@ html
                 border-radius: 6px;
             }
 
-            .header .top-menu > * {
+            .header .top-menu > a + a {
                 margin-left: 12px;
             }
 
@@ -264,6 +263,9 @@ html
                         .top-menu
                             a(href="/") Home
                             a(href="/auth/referee") Referee
+                            if tournaments
+                                each t in tournaments
+                                    a(href="/auth/tournament/" + t.getString("uuid") + "/home")= t.getString("name")
                             if character
                                 if character.getBoolean("isSuperuser")
                                     a(href="/auth/superuser/home") Superuser

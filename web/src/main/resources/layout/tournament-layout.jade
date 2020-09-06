@@ -3,7 +3,7 @@ extends ./default-layout
 mixin subtitle(name)
     - var uuid = tournament.getString("uuid")
     h2
-        a(href="/auth/tournament/" + uuid + "/teams")= tournament.getString("name")
+        a(href="/auth/tournament/" + uuid + "/home")= tournament.getString("name")
         | &nbsp;
         span.accent= name
     if team
