@@ -263,13 +263,11 @@ public class TournamentRouter {
                 return Future.succeededFuture(new JsonObject().put("errors", error));
             }
         }).onSuccess(errors -> {
-            addRolesToContext(tournamentUuid, ctx.data(), ar -> {
-                render.renderPage(ctx, "/role/edit", errors);
-            });
+            doRedirect(ctx.response(), tournamentUrl(ctx, "/roles"));
         }).onFailure(t -> {
-            addRolesToContext(tournamentUuid, ctx.data(), ar -> {
-                render.renderPage(ctx, "/role/edit", new JsonObject().put("errors", t.getMessage()));
-            });
+            addRolesToContext(tournamentUuid,
+                    ctx.data(),
+                    ar -> render.renderPage(ctx, "/role/edit", new JsonObject().put("errors", t.getMessage())));
         });
     }
 

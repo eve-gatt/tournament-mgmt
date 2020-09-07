@@ -363,30 +363,29 @@ public class DbVerticle extends AbstractVerticle {
                                 if (ar2.failed()) {
                                     rollback(conn);
                                     msg.fail(1, "2. " + ar2.cause().getMessage());
+                                }
+                            })
+                            .batchWithParams("insert into tournament_role(tournament_uuid, type, name) " +
+                                            "values ('" + tournamentUuid + "', ?::role_type, ?)",
+                                    names.stream()
+                                            .map(o -> (JsonArray) o)
+                                            .map(name -> new JsonArray()
+                                                    .add(type)
+                                                    .add(name.getString(0)))
+                                            .collect(Collectors.toList()),
+                                    ar3 -> {
+                                        if (ar3.failed()) {
+                                            rollback(conn);
+                                            msg.fail(1, "3. " + ar3.cause().getMessage());
+                                        } else {
+                                        }
+                                    })
+                            .commit(ar4 -> {
+                                if (ar4.failed()) {
+                                    rollback(conn);
+                                    msg.fail(1, "4. " + ar4.cause().getMessage());
                                 } else {
-                                    conn.batchWithParams("insert into tournament_role(tournament_uuid, type, name) " +
-                                                    "values ('" + tournamentUuid + "', ?::role_type, ?)",
-                                            names.stream()
-                                                    .map(o -> (JsonArray) o)
-                                                    .map(name -> new JsonArray()
-                                                            .add(type)
-                                                            .add(name.getString(0)))
-                                                    .collect(Collectors.toList()),
-                                            ar3 -> {
-                                                if (ar3.failed()) {
-                                                    rollback(conn);
-                                                    msg.fail(1, "3. " + ar3.cause().getMessage());
-                                                } else {
-                                                    conn.commit(ar4 -> {
-                                                        if (ar4.failed()) {
-                                                            rollback(conn);
-                                                            msg.fail(1, "4. " + ar4.cause().getMessage());
-                                                        } else {
-                                                            msg.reply(new JsonObject());
-                                                        }
-                                                    });
-                                                }
-                                            });
+                                    msg.reply(new JsonObject());
                                 }
                             });
                 }
