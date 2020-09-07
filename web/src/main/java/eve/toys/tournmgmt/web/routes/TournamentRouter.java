@@ -34,6 +34,7 @@ import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import static eve.toys.tournmgmt.web.authn.AppRBAC.hasTournamentRole;
 import static toys.eve.tournmgmt.common.util.RenderHelper.doRedirect;
 import static toys.eve.tournmgmt.common.util.RenderHelper.tournamentUrl;
 
@@ -71,13 +72,19 @@ public class TournamentRouter {
                 .handler(this::handleCreate)
                 .failureHandler(this::handleCreateFailure);
         router.get("/:tournamentUuid/home").handler(this::home);
-        router.get("/:tournamentUuid/edit").handler(this::edit);
+        router.get("/:tournamentUuid/edit")
+                .handler(ctx -> hasTournamentRole(ctx, "organiser"))
+                .handler(this::edit);
         router.post("/:tournamentUuid/edit")
+                .handler(ctx -> hasTournamentRole(ctx, "organiser"))
                 .handler(tournamentValidator)
                 .handler(this::handleEdit)
                 .failureHandler(this::handleEditFailure);
-        router.get("/:tournamentUuid/roles").handler(this::roles);
+        router.get("/:tournamentUuid/roles")
+                .handler(ctx -> hasTournamentRole(ctx, "organiser"))
+                .handler(this::roles);
         router.post("/:tournamentUuid/roles")
+                .handler(ctx -> hasTournamentRole(ctx, "organiser"))
                 .handler(rolesValidator)
                 .handler(this::handleRoles)
                 .failureHandler(this::handleRolesFailure);

@@ -59,6 +59,10 @@ public class WebVerticle extends AbstractVerticle {
 
         router.route().handler(FaviconHandler.create("assets/favicon/android-chrome-512x512.png", 60L));
         router.get().failureHandler(ctx -> {
+            if (ctx.statusCode() == 403) {
+                ctx.response().setStatusCode(403).end("Forbidden");
+                return;
+            }
             ctx.failure().printStackTrace();
             ctx.response().end("failure");
         });

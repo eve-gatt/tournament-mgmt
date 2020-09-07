@@ -9,6 +9,7 @@ import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.oauth2.AccessToken;
 import io.vertx.ext.auth.oauth2.KeycloakHelper;
 import io.vertx.ext.auth.oauth2.OAuth2RBAC;
+import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.db.DbClient;
 
 import java.util.EnumSet;
@@ -34,17 +35,39 @@ public class AppRBAC implements OAuth2RBAC {
     }
 
     public static Future<JsonObject> futureForTournamentPriv(User user, String authority, JsonObject tournament) {
-        return Future.future(promise -> {
-            user.isAuthorised(authority + ":" + tournament.getString("uuid"),
-                    ar -> {
-                        if (ar.failed()) {
-                            promise.fail(ar.cause());
-                        } else {
-                            tournament.put(authority, ar.result());
-                            promise.complete(tournament);
-                        }
-                    });
+        return Future.future(promise ->
+                user.isAuthorised(authority + ":" + tournament.getString("uuid"),
+                        ar -> {
+                            if (ar.failed()) {
+                                promise.fail(ar.cause());
+                            } else {
+                                tournament.put(authority, ar.result());
+                                promise.complete(tournament);
+                            }
+                        }));
+    }
+
+    public static void hasTournamentRole(RoutingContext ctx, String role) {
+        String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
+        ctx.user().isAuthorised(role + ":" + ctx.request().getParam("tournamentUuid"), ar -> {
+            if (ar.failed()) {
+                ar.cause().printStackTrace();
+                ctx.fail(ar.cause());
+            } else {
+                JsonObject tournament = (JsonObject) ctx.data().get("tournament");
+                if (ar.result()
+                        || isSuperuser(characterName)
+                        || characterName.equals(tournament.getString("created_by"))) {
+                    ctx.next();
+                } else {
+                    ctx.fail(403);
+                }
+            }
         });
+    }
+
+    public static boolean isSuperuser(String characterName) {
+        return characterName.equals(System.getenv("SUPERUSER"));
     }
 
     @Override
@@ -72,10 +95,6 @@ public class AppRBAC implements OAuth2RBAC {
                         }
                     });
         }
-    }
-
-    public static boolean isSuperuser(String characterName) {
-        return characterName.equals(System.getenv("SUPERUSER"));
     }
 
     public enum Perm {

@@ -1,16 +1,19 @@
 package eve.toys.tournmgmt.web.routes;
 
 import eve.toys.tournmgmt.web.authn.AppRBAC;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class ProfileRouter {
 
@@ -33,17 +36,28 @@ public class ProfileRouter {
     private void tournamentsJson(RoutingContext ctx) {
         String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
 
-        Future<Message<Object>> f1 = Future.future(promise -> eventBus.request(DbClient.DB_FETCH_TOURNAMENTS,
+        eventBus.request(DbClient.DB_FETCH_TOURNAMENTS,
                 new JsonObject(),
-                promise));
-
-        f1.onSuccess(msg -> ctx.response().end(((JsonArray) msg.body()).stream()
-                .map(o -> (JsonObject) o)
-                .filter(t -> AppRBAC.isSuperuser(characterName) || characterName.equals(t.getString("created_by")))
-                .peek(AppRBAC::addPermissionsToTournament)
-                .collect(JsonArray::new, JsonArray::add, JsonArray::addAll)
-                .encode())
-        ).onFailure(Throwable::printStackTrace);
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        ctx.fail(ar.cause());
+                    } else {
+                        List<Future> checks = ((JsonArray) ar.result().body()).stream()
+                                .map(o -> (JsonObject) o)
+                                .map(t -> AppRBAC.futureForTournamentPriv(ctx.user(), "organiser", t))
+                                .collect(Collectors.toList());
+                        CompositeFuture.all(checks)
+                                .onFailure(Throwable::printStackTrace)
+                                .onSuccess(f -> ctx.response().end(new JsonArray(f.list().stream()
+                                        .map(o -> (JsonObject) o)
+                                        .filter(t -> t.getBoolean("organiser")
+                                                || AppRBAC.isSuperuser(characterName)
+                                                || characterName.equals(t.getString("created_by")))
+                                        .peek(AppRBAC::addPermissionsToTournament)
+                                        .collect(Collectors.toList())).encode()));
+                    }
+                });
     }
 
     public static Router routes(Vertx vertx, RenderHelper render) {
