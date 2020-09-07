@@ -1,6 +1,7 @@
 package toys.eve.tournmgmt.db;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonArray;
@@ -9,6 +10,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLClient;
+import io.vertx.ext.sql.SQLConnection;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
 
@@ -30,14 +32,15 @@ public class DbVerticle extends AbstractVerticle {
 
         try {
             Flyway flyway = Flyway.configure()
-                    .baselineVersion("002")
-                    .dataSource(URL, USER, PASSWORD).load();
+//                    .baselineVersion("002")
+                    .dataSource(URL, USER, PASSWORD)
+                    .load();
             if (Boolean.parseBoolean(System.getProperty("db_do_clean", "false"))) {
                 LOGGER.info("Flyway cleaning");
                 flyway.clean();
             }
             LOGGER.info("Flyway migration");
-            flyway.baseline();
+//            flyway.baseline();
             flyway.migrate();
         } catch (FlywayException e) {
             startPromise.fail(e);
@@ -66,6 +69,8 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_MEMBERS_BY_TEAM, this::membersByTeam);
         vertx.eventBus().consumer(DbClient.DB_ALL_TEAMS, this::allTeams);
         vertx.eventBus().consumer(DbClient.DB_UPDATE_TEAM_MESSAGE, this::updateTeamMessage);
+        vertx.eventBus().consumer(DbClient.DB_ROLES_BY_TOURNAMENT, this::rolesByTournament);
+        vertx.eventBus().consumer(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT, this::replaceRolesByTypeAndTournament);
 
         startPromise.complete();
     }
@@ -322,7 +327,82 @@ public class DbVerticle extends AbstractVerticle {
                 });
     }
 
+    private void rolesByTournament(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.query("select * from tournament_role where tournament_uuid = '" + uuid + "'",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    msg.reply(ar.result().getRows().stream()
+                            .collect(toJsonArray()));
+
+                });
+    }
+
+    private void replaceRolesByTypeAndTournament(Message<JsonObject> msg) {
+        String type = msg.body().getString("type");
+        String tournamentUuid = msg.body().getString("tournamentUuid");
+        JsonArray names = msg.body().getJsonArray("names");
+
+        Future<SQLConnection> getConnection = Future.future(promise -> sqlClient.getConnection(promise));
+
+        getConnection.onSuccess(conn -> {
+            conn.setAutoCommit(false, ar -> {
+                if (ar.failed()) {
+                    ar.cause().printStackTrace();
+                    msg.fail(1, "1. " + ar.cause().getMessage());
+                } else {
+                    conn.updateWithParams("delete from tournament_role " +
+                                    "where tournament_uuid = '" + tournamentUuid + "' " +
+                                    "and type::text = ?",
+                            new JsonArray().add(type),
+                            ar2 -> {
+                                if (ar2.failed()) {
+                                    rollback(conn);
+                                    msg.fail(1, "2. " + ar2.cause().getMessage());
+                                } else {
+                                    conn.batchWithParams("insert into tournament_role(tournament_uuid, type, name) " +
+                                                    "values ('" + tournamentUuid + "', ?::role_type, ?)",
+                                            names.stream()
+                                                    .map(o -> (JsonArray) o)
+                                                    .map(name -> new JsonArray()
+                                                            .add(type)
+                                                            .add(name.getString(0)))
+                                                    .collect(Collectors.toList()),
+                                            ar3 -> {
+                                                if (ar3.failed()) {
+                                                    rollback(conn);
+                                                    msg.fail(1, "3. " + ar3.cause().getMessage());
+                                                } else {
+                                                    conn.commit(ar4 -> {
+                                                        if (ar4.failed()) {
+                                                            rollback(conn);
+                                                            msg.fail(1, "4. " + ar4.cause().getMessage());
+                                                        } else {
+                                                            msg.reply(new JsonObject());
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                }
+                            });
+                }
+            });
+        });
+    }
+
     private Collector<JsonObject, JsonArray, JsonArray> toJsonArray() {
         return Collector.of(JsonArray::new, JsonArray::add, JsonArray::addAll);
+    }
+
+    private void rollback(SQLConnection conn) {
+        conn.rollback(ar -> {
+            if (ar.failed()) {
+                ar.cause().printStackTrace();
+            }
+        });
     }
 }

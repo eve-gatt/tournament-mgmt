@@ -64,6 +64,11 @@ public class WebVerticle extends AbstractVerticle {
 
         router.route("/auth/*").handler(redirectAuthHandler);
 
+        router.route()
+                .handler(BodyHandler.create())
+                .pathRegex("^(?!/js/|/css/|/assets/).+")
+                .handler(this::preRouting);
+
         router.get("/js/*").handler(StaticHandler.create("web-js").setCachingEnabled(pseudoStaticCaching));
         router.get("/css/*").handler(StaticHandler.create("web-css").setCachingEnabled(pseudoStaticCaching));
         router.get("/assets/*").handler(StaticHandler.create("assets").setCachingEnabled(pseudoStaticCaching));
@@ -71,13 +76,9 @@ public class WebVerticle extends AbstractVerticle {
         JadeTemplateEngine engine = JadeTemplateEngine.create(vertx);
         RenderHelper render = new RenderHelper(engine, "web-templates");
 
-        router.route()
-                .handler(BodyHandler.create())
-                .handler(this::preRouting);
-
         router.mountSubRouter("/", HomeRouter.routes(vertx, render));
         router.mountSubRouter("/login", LoginRouter.routes(vertx, render, oauth2));
-        router.mountSubRouter("/auth/tournament", TournamentRouter.routes(vertx, render));
+        router.mountSubRouter("/auth/tournament", TournamentRouter.routes(vertx, render, webClient));
         router.mountSubRouter("/auth/profile", ProfileRouter.routes(vertx, render));
         router.mountSubRouter("/auth/tournament", TeamsRouter.routes(vertx, render, webClient));
         router.mountSubRouter("/auth/referee", RefereeRouter.routes(vertx, render));

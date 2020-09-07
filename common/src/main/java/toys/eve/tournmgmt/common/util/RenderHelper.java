@@ -55,4 +55,15 @@ public class RenderHelper {
         combined.putAll(ctx.data());
         handle(ctx, Future.future(promise -> engine.render(combined, pathPrefix + path, promise)));
     }
+
+    public static String teamUrl(RoutingContext ctx, String suffix) {
+        return tournamentUrl(ctx, "/teams/" + ctx.request().getParam("teamUuid") + suffix);
+    }
+
+    public static String tournamentUrl(RoutingContext ctx, String suffix) {
+        return "/auth/tournament/"
+                + ctx.request().getParam("tournamentUuid")
+                + suffix;
+    }
+
 }

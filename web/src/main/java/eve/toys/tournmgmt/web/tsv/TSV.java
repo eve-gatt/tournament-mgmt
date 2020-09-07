@@ -2,6 +2,8 @@ package eve.toys.tournmgmt.web.tsv;
 
 import io.vertx.core.impl.StringEscapeUtils;
 import io.vertx.core.json.JsonArray;
+import io.vertx.ext.web.api.validation.HTTPRequestValidationHandler;
+import io.vertx.ext.web.api.validation.ParameterTypeValidator;
 
 import java.util.Arrays;
 import java.util.List;
@@ -10,6 +12,12 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class TSV {
+    public static final HTTPRequestValidationHandler VALIDATOR = HTTPRequestValidationHandler.create()
+            .addFormParamWithCustomTypeValidator("tsv",
+                    ParameterTypeValidator.createStringTypeValidator(null, 7, null, null),
+                    true,
+                    false);
+
     private static final String LINE_SPLIT = "[\\r\\n]+";
     private static final String COLUMN_SPLIT = "[\\t,]";
 
@@ -58,7 +66,7 @@ public class TSV {
 
         public String getCol(int columnIndex) {
             try {
-                return StringEscapeUtils.escapeJavaScript(columns().get(columnIndex));
+                return StringEscapeUtils.escapeJava(columns().get(columnIndex));
             } catch (Exception e) {
                 e.printStackTrace();
                 return null;

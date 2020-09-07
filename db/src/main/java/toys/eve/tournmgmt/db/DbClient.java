@@ -15,4 +15,6 @@ public final class DbClient {
     public static final String DB_LOCK_TEAM_BY_UUID = "DB_LOCK_TEAM_BY_UUID";
     public static final String DB_ALL_TEAMS = "DB_ALL_TEAMS";
     public static final String DB_UPDATE_TEAM_MESSAGE = "DB_UPDATE_TEAM_MESSAGE";
+    public static final String DB_ROLES_BY_TOURNAMENT = "DB_ROLES_BY_TOURNAMENT";
+    public static final String DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT = "DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT";
 }

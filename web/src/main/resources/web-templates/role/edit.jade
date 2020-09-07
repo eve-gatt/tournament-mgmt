@@ -1,15 +1,18 @@
 extends ../../layout/tournament-layout
 
-mixin import
-    form.pure-form.pure-form-aligned(method="POST")
+mixin import(type)
+    form.pure-form.pure-form-aligned(method="POST",
+        action="/auth/tournament/" + uuid + "/roles")
+
+        input(type="hidden" name="type", value=type)
         fieldset
             .pure-controls
                 .errors= errors
 
             .pure-control-group
                 label(for="tsv") Data
-                textarea(name="tsv", placeholder=placeholder)#tsv= tsv
-
+                textarea(name="tsv",
+                    placeholder="Paste values straight from spreadsheet as a single column of pilot names, e.g.\n\nJack Spratt\nJohn Pilot\nJosie Tackle")#tsv= roles.getString(type)
             .pure-controls
                 button.pure-button.pure-button-primary(type="submit") Update
 
@@ -32,15 +35,15 @@ block content
 
     h3 Organisers
     p Organisers have full permissions to carry out all admin for a tournament, manage teams, referee, etc.
-    mixin import
+    mixin import("organiser")
 
     h3 Referees
     p Referees can validate custom tournament rules and view team rosters
-    mixin import
+    mixin import("referee")
 
     h3 Other staff
     p All other staff will can be issued Thunderdome accounts and read-only access to team rosters but have no other special priveleges.
-    mixin import
+    mixin import("staff")
 
     h3
 

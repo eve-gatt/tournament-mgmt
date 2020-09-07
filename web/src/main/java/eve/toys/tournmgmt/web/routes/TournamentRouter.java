@@ -3,17 +3,26 @@ package eve.toys.tournmgmt.web.routes;
 
 import eve.toys.tournmgmt.web.Branding;
 import eve.toys.tournmgmt.web.authn.AppRBAC;
+import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
+import eve.toys.tournmgmt.web.tsv.TSV;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.api.RequestParameter;
 import io.vertx.ext.web.api.RequestParameters;
 import io.vertx.ext.web.api.validation.HTTPRequestValidationHandler;
 import io.vertx.ext.web.api.validation.ParameterType;
 import io.vertx.ext.web.api.validation.ParameterTypeValidator;
 import io.vertx.ext.web.api.validation.ValidationException;
+import io.vertx.ext.web.client.WebClient;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
@@ -21,7 +30,12 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import static toys.eve.tournmgmt.common.util.RenderHelper.doRedirect;
+import static toys.eve.tournmgmt.common.util.RenderHelper.tournamentUrl;
 
 public class TournamentRouter {
 
@@ -29,11 +43,13 @@ public class TournamentRouter {
     private final Router router;
     private final EventBus eventBus;
     private final RenderHelper render;
+    private final WebClient webClient;
 
-    public TournamentRouter(Vertx vertx, RenderHelper render) {
+    public TournamentRouter(Vertx vertx, RenderHelper render, WebClient webClient) {
         router = Router.router(vertx);
         eventBus = vertx.eventBus();
         this.render = render;
+        this.webClient = webClient;
 
         HTTPRequestValidationHandler tournamentValidator = HTTPRequestValidationHandler.create()
                 .addFormParamWithCustomTypeValidator("name",
@@ -43,6 +59,13 @@ public class TournamentRouter {
                 .addFormParam("startDate", ParameterType.DATE, true)
                 .addFormParamWithCustomTypeValidator("practiceOnTd", new CheckboxValidator(false), false, true)
                 .addFormParamWithCustomTypeValidator("playOnTd", new CheckboxValidator(false), false, true);
+
+        HTTPRequestValidationHandler rolesValidator = HTTPRequestValidationHandler.create()
+                .addFormParamWithCustomTypeValidator("tsv",
+                        ParameterTypeValidator.createStringTypeValidator(null, 7, null, null),
+                        true,
+                        false)
+                .addFormParam("type", ParameterType.GENERIC_STRING, true);
 
         router.route("/:tournamentUuid/*").handler(this::loadTournament);
         router.get("/create").handler(this::create);
@@ -57,6 +80,10 @@ public class TournamentRouter {
                 .handler(this::handleEdit)
                 .failureHandler(this::handleEditFailure);
         router.get("/:tournamentUuid/roles").handler(this::roles);
+        router.post("/:tournamentUuid/roles")
+                .handler(rolesValidator)
+                .handler(this::handleRoles)
+                .failureHandler(this::handleRolesFailure);
     }
 
     private void loadTournament(RoutingContext ctx) {
@@ -195,7 +222,70 @@ public class TournamentRouter {
     }
 
     private void roles(RoutingContext ctx) {
-        render.renderPage(ctx, "/role/edit", new JsonObject());
+        addRolesToContext(ctx.request().getParam("tournamentUuid"),
+                ctx.data(),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        RenderHelper.doRedirect(ctx.response(), RenderHelper.tournamentUrl(ctx, "/roles"));
+                        return;
+                    }
+                    render.renderPage(ctx, "/role/edit", new JsonObject());
+                });
+    }
+
+    private void handleRoles(RoutingContext ctx) {
+        RequestParameters params = ctx.get("parsedParameters");
+        TSV tsv = new TSV(params.formParameter("tsv").getString(), 1);
+        RequestParameter type = params.formParameter("type");
+        String tournamentUuid = ctx.request().getParam("tournamentUuid");
+
+        Future<String> validate = Future.future(promise -> new ValidatePilotNames(webClient).validate(tsv, promise));
+        Future<JsonObject> writeToDB = Future.future(promise -> {
+            eventBus.request(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT,
+                    new JsonObject()
+                            .put("type", type.getString())
+                            .put("tournamentUuid", tournamentUuid)
+                            .put("names", tsv.json()),
+                    ar -> {
+                        if (ar.failed()) {
+                            promise.fail(ar.cause());
+                        } else {
+                            promise.complete((JsonObject) ar.result().body());
+                        }
+                    });
+        });
+
+        validate.compose(error -> {
+            if (error.isEmpty()) {
+                return writeToDB;
+            } else {
+                return Future.succeededFuture(new JsonObject().put("errors", error));
+            }
+        }).onSuccess(errors -> {
+            addRolesToContext(tournamentUuid, ctx.data(), ar -> {
+                render.renderPage(ctx, "/role/edit", errors);
+            });
+        }).onFailure(t -> {
+            addRolesToContext(tournamentUuid, ctx.data(), ar -> {
+                render.renderPage(ctx, "/role/edit", new JsonObject().put("errors", t.getMessage()));
+            });
+        });
+    }
+
+    private void handleRolesFailure(RoutingContext ctx) {
+        Throwable failure = ctx.failure();
+        addRolesToContext(ctx.request().getParam("tournamentUuid"),
+                ctx.data(),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        doRedirect(ctx.response(), tournamentUrl(ctx, "/roles"));
+                        return;
+                    }
+                    JsonObject errors = new JsonObject().put("errors", failure.getMessage());
+                    render.renderPage(ctx, "/role/edit", errors);
+                });
     }
 
     private Collector<Map.Entry<String, String>, JsonObject, JsonObject> formEntriesToJson() {
@@ -205,8 +295,31 @@ public class TournamentRouter {
                 JsonObject::mergeIn);
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render) {
-        return new TournamentRouter(vertx, render).router();
+    private void addRolesToContext(String tournamentUuid, Map<String, Object> data, Handler<AsyncResult<Message<Object>>> handler) {
+        eventBus.request(DbClient.DB_ROLES_BY_TOURNAMENT,
+                tournamentUuid,
+                ar -> {
+                    if (ar.failed()) {
+                        handler.handle(ar);
+                        return;
+                    }
+                    JsonArray roles = (JsonArray) ar.result().body();
+                    Function<String, String> byType = type -> roles.stream()
+                            .map(o -> (JsonObject) o)
+                            .filter(role -> role.getString("type").equals(type))
+                            .map(role -> role.getString("name"))
+                            .collect(Collectors.joining("\n"));
+                    JsonObject out = new JsonObject()
+                            .put("organiser", byType.apply("organiser"))
+                            .put("referee", byType.apply("referee"))
+                            .put("staff", byType.apply("staff"));
+                    data.put("roles", out);
+                    handler.handle(ar);
+                });
+    }
+
+    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient) {
+        return new TournamentRouter(vertx, render, webClient).router();
     }
 
     private Router router() {

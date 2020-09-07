@@ -63,4 +63,14 @@ alter table team_member
     add constraint team_member_only_once
         unique (team_uuid, name);
 
+create type role_type as enum ('organiser', 'referee', 'staff');
 
+create table tournament_role
+(
+    tournament_role_id serial    not null,
+    tournament_uuid    uuid      not null,
+    type               role_type not null,
+    name               varchar   not null,
+    constraint tournament_role_pk
+        primary key (tournament_role_id)
+);
