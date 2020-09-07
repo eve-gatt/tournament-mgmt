@@ -61,10 +61,7 @@ public class TournamentRouter {
                 .addFormParamWithCustomTypeValidator("playOnTd", new CheckboxValidator(false), false, true);
 
         HTTPRequestValidationHandler rolesValidator = HTTPRequestValidationHandler.create()
-                .addFormParamWithCustomTypeValidator("tsv",
-                        ParameterTypeValidator.createStringTypeValidator(null, 7, null, null),
-                        true,
-                        false)
+                .addFormParam("tsv", ParameterType.GENERIC_STRING, true)
                 .addFormParam("type", ParameterType.GENERIC_STRING, true);
 
         router.route("/:tournamentUuid/*").handler(this::loadTournament);
@@ -96,12 +93,21 @@ public class TournamentRouter {
                     }
                     JsonObject tournament = (JsonObject) ar.result().body();
                     String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
-                    if (AppRBAC.isSuperuser(characterName) || characterName.equals(tournament.getString("created_by"))) {
-                        AppRBAC.addPermissionsToTournament(tournament);
-                    }
-                    ctx.data().put("tournament", tournament);
-                    ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
-                    ctx.next();
+                    ctx.user().isAuthorised("organiser:" + tournament.getString("uuid"), ar2 -> {
+                        if (ar2.failed()) {
+                            ar2.cause().printStackTrace();
+                            ctx.fail(ar2.cause());
+                        } else {
+                            if (ar2.result()
+                                    || AppRBAC.isSuperuser(characterName)
+                                    || characterName.equals(tournament.getString("created_by"))) {
+                                AppRBAC.addPermissionsToTournament(tournament);
+                            }
+                            ctx.data().put("tournament", tournament);
+                            ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
+                            ctx.next();
+                        }
+                    });
                 });
     }
 
@@ -263,6 +269,7 @@ public class TournamentRouter {
                 return Future.succeededFuture(new JsonObject().put("errors", error));
             }
         }).onSuccess(errors -> {
+            ctx.user().clearCache();
             doRedirect(ctx.response(), tournamentUrl(ctx, "/roles"));
         }).onFailure(t -> {
             addRolesToContext(tournamentUuid,

@@ -17,4 +17,5 @@ public final class DbClient {
     public static final String DB_UPDATE_TEAM_MESSAGE = "DB_UPDATE_TEAM_MESSAGE";
     public static final String DB_ROLES_BY_TOURNAMENT = "DB_ROLES_BY_TOURNAMENT";
     public static final String DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT = "DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT";
+    public static final String DB_HAS_ROLE = "DB_HAS_ROLE";
 }

@@ -3,6 +3,7 @@ package eve.toys.tournmgmt.web;
 import eve.toys.tournmgmt.web.authn.AppRBAC;
 import eve.toys.tournmgmt.web.routes.*;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
@@ -25,6 +26,9 @@ import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class WebVerticle extends AbstractVerticle {
 
     private static final boolean pseudoStaticCaching = false;
@@ -46,7 +50,7 @@ public class WebVerticle extends AbstractVerticle {
                 .setTokenPath("/token")
                 .setAuthorizationPath("/authorize")
                 .setUserAgent(System.getProperty("http.agent")))
-                .rbacHandler(new AppRBAC());
+                .rbacHandler(new AppRBAC(vertx.eventBus()));
 
         SessionHandler sessionHandler = SessionHandler.create(sessionStore)
                 .setAuthProvider(oauth2);
@@ -136,12 +140,24 @@ public class WebVerticle extends AbstractVerticle {
                                 ar.cause().printStackTrace();
                                 promise.fail(ar.cause());
                             } else {
-                                JsonArray tournaments = ((JsonArray) ar.result().body()).stream()
+                                List<Future> checks = ((JsonArray) ar.result().body()).stream()
                                         .map(o -> (JsonObject) o)
-                                        .filter(t -> AppRBAC.isSuperuser(characterName) || characterName.equals(t.getString("created_by")))
-                                        .collect(JsonArray::new, JsonArray::add, JsonArray::addAll);
-                                ctx.data().put("tournaments", tournaments);
-                                promise.complete();
+                                        .map(t -> AppRBAC.futureForTournamentPriv(ctx.user(),
+                                                "organiser",
+                                                t))
+                                        .collect(Collectors.toList());
+                                CompositeFuture.all(checks)
+                                        .onFailure(Throwable::printStackTrace)
+                                        .onSuccess(f -> {
+                                            JsonArray tournaments = new JsonArray(f.list().stream()
+                                                    .map(o -> (JsonObject) o)
+                                                    .filter(t -> t.getBoolean("organiser")
+                                                            || AppRBAC.isSuperuser(characterName)
+                                                            || characterName.equals(t.getString("created_by")))
+                                                    .collect(Collectors.toList()));
+                                            ctx.data().put("tournaments", tournaments);
+                                            promise.complete();
+                                        });
                             }
                         });
             } else {

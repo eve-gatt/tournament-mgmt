@@ -71,6 +71,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_UPDATE_TEAM_MESSAGE, this::updateTeamMessage);
         vertx.eventBus().consumer(DbClient.DB_ROLES_BY_TOURNAMENT, this::rolesByTournament);
         vertx.eventBus().consumer(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT, this::replaceRolesByTypeAndTournament);
+        vertx.eventBus().consumer(DbClient.DB_HAS_ROLE, this::hasRole);
 
         startPromise.complete();
     }
@@ -391,6 +392,25 @@ public class DbVerticle extends AbstractVerticle {
                 }
             });
         });
+    }
+
+    private void hasRole(Message<JsonObject> msg) {
+        String name = msg.body().getString("name");
+        String uuid = msg.body().getString("uuid");
+        String type = msg.body().getString("type");
+        sqlClient.queryWithParams("select * from tournament_role " +
+                        "where tournament_uuid = '" + uuid + "' " +
+                        "and name = ? " +
+                        "and type = ?::role_type",
+                new JsonArray().add(name).add(type),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(ar.result().getNumRows() > 0);
+                    }
+                });
     }
 
     private Collector<JsonObject, JsonArray, JsonArray> toJsonArray() {
