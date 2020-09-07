@@ -1,8 +1,10 @@
 extends ../../layout/tournament-layout
 
-mixin import(type)
+mixin import(type, legend)
     form.pure-form.pure-form-aligned(method="POST",
         action="/auth/tournament/" + uuid + "/roles")
+
+        p= legend
 
         input(type="hidden" name="type", value=type)
         fieldset
@@ -19,7 +21,7 @@ mixin import(type)
 block append styles
     style.
         textarea {
-            width: 50%;
+            width: 400px;
             height: 200px;
         }
 
@@ -28,22 +30,27 @@ block append styles
             white-space: pre;
         }
 
+        .pure-form-aligned .pure-controls {
+            margin: 0 0 0 11em;
+        }
+
+        form p {
+            font-size: 1em;
+        }
+
 block content
     - var uuid = tournament.getString("uuid")
 
     mixin subtitle("Roles")
 
     h3 Organisers
-    p Organisers have full permissions to carry out all admin for a tournament, manage teams, referee, etc.
-    mixin import("organiser")
+    mixin import("organiser", "Organisers have full permissions to carry out all admin for a tournament, manage teams, referee, etc.")
 
     h3 Referees
-    p Referees can validate custom tournament rules and view team rosters
-    mixin import("referee")
+    mixin import("referee", "Referees can validate custom tournament rules and view team rosters")
 
     h3 Other staff
-    p All other staff will can be issued Thunderdome accounts and read-only access to team rosters but have no other special priveleges.
-    mixin import("staff")
+    mixin import("staff", "All other staff will can be issued Thunderdome accounts and read-only access to team rosters but have no other special priveleges.")
 
     h3
 
