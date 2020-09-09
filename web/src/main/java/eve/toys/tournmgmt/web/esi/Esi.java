@@ -2,6 +2,7 @@ package eve.toys.tournmgmt.web.esi;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.oauth2.AccessToken;
 import io.vertx.ext.web.client.WebClient;
@@ -79,20 +80,37 @@ public class Esi {
 
     public Future<JsonObject> getSkills(AccessToken user, int characterId) {
         return Future.future(promise -> {
-            String url = "/characters/" + characterId + "/skills/";
-            user.fetch(ESI_BASE + url, ar -> {
-                if (ar.failed()) {
-                    promise.fail(ar.cause());
-                    return;
-                }
-                if (ar.result().statusCode() != 200) {
-                    promise.fail(ar.result().statusCode()
-                            + "\n" + url);
-                    return;
-                }
-                promise.complete(ar.result().jsonObject());
+            refreshIfNeeded(user, validUser -> {
+                String url = "/characters/" + characterId + "/skills/";
+                validUser.fetch(ESI_BASE + url, ar -> {
+                    if (ar.failed()) {
+                        promise.fail(ar.cause());
+                        return;
+                    }
+                    if (ar.result().statusCode() != 200) {
+                        promise.fail(ar.result().statusCode()
+                                + "\n" + url);
+                        return;
+                    }
+                    promise.complete(ar.result().jsonObject());
+                });
+
             });
         });
+    }
+
+    private void refreshIfNeeded(AccessToken user, Handler<AccessToken> handler) {
+        if (user.expired()) {
+            user.refresh(ar -> {
+                if (ar.failed()) {
+                    ar.cause().printStackTrace();
+                } else {
+                    handler.handle(user);
+                }
+            });
+        } else {
+            handler.handle(user);
+        }
     }
 
     public Future<JsonObject> checkMembership(WebClient webClient,
