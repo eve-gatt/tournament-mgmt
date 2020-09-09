@@ -5,6 +5,8 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.oauth2.AccessToken;
 import io.vertx.ext.auth.oauth2.KeycloakHelper;
@@ -15,6 +17,8 @@ import toys.eve.tournmgmt.db.DbClient;
 import java.util.EnumSet;
 
 public class AppRBAC implements OAuth2RBAC {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AppRBAC.class.getName());
 
     public static final EnumSet<Perm> ORGANISER_PERMS = EnumSet.of(
             Perm.canEdit,
@@ -70,17 +74,18 @@ public class AppRBAC implements OAuth2RBAC {
         return characterName.equals(System.getenv("SUPERUSER"));
     }
 
-    public static void refreshIfNeeded(AccessToken user, Handler<AccessToken> handler) {
+    public static void refreshIfNeeded(AccessToken user, Handler<Void> handler) {
         if (user.expired()) {
+            LOGGER.info("Refreshing token");
             user.refresh(ar -> {
                 if (ar.failed()) {
                     ar.cause().printStackTrace();
                 } else {
-                    handler.handle(user);
+                    handler.handle(null);
                 }
             });
         } else {
-            handler.handle(user);
+            handler.handle(null);
         }
     }
 

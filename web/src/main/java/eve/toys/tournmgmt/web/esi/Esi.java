@@ -80,9 +80,9 @@ public class Esi {
 
     public Future<JsonObject> getSkills(AccessToken user, int characterId) {
         return Future.future(promise -> {
-            AppRBAC.refreshIfNeeded(user, validUser -> {
+            AppRBAC.refreshIfNeeded(user, v -> {
                 String url = "/characters/" + characterId + "/skills/";
-                validUser.fetch(ESI_BASE + url, ar -> {
+                user.fetch(ESI_BASE + url, ar -> {
                     if (ar.failed()) {
                         promise.fail(ar.cause());
                         return;

@@ -9,7 +9,8 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.User;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.auth.oauth2.*;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.Router;
@@ -32,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class WebVerticle extends AbstractVerticle {
+    private static final Logger LOGGER = LoggerFactory.getLogger(WebVerticle.class.getName());
 
     private static final boolean pseudoStaticCaching = false;
     private static final String ESI_CLIENT = System.getenv("ESI_CLIENT");
@@ -115,18 +117,34 @@ public class WebVerticle extends AbstractVerticle {
     }
 
     private void preRouting(RoutingContext ctx) {
-        User user = ctx.user();
-        Future<?> characterInfo = Future.future(promise -> {
-            if (user != null) {
-                AccessToken token = (AccessToken) ctx.user();
-                AppRBAC.refreshIfNeeded(token, validToken -> {
-                    JsonObject parsed = KeycloakHelper.parseToken(token.opaqueAccessToken());
+
+        addCharacterInfoToContext(ctx).compose(v -> addTournamentInfoToContext(ctx))
+                .onSuccess(f -> ctx.next())
+                .onFailure(throwable -> {
+                    throwable.printStackTrace();
+                    ctx.clearUser();
+                    ctx.session().destroy();
+                });
+    }
+
+    private void handleEvent(BridgeEvent be) {
+//        if (be.type() == BridgeEventType.REGISTER) {
+//            LOGGER.info("ws client registered");
+//        }
+        be.complete(true);
+    }
+
+    private Future<Void> addCharacterInfoToContext(RoutingContext ctx) {
+        return Future.future(promise -> {
+            if (ctx.user() != null) {
+                AppRBAC.refreshIfNeeded((AccessToken) ctx.user(), v -> {
+                    JsonObject parsed = KeycloakHelper.parseToken(((AccessToken) ctx.user()).opaqueAccessToken());
                     JsonObject character = new JsonObject()
                             .put("characterName", parsed.getString("name"))
                             .put("characterId", Integer.parseInt(parsed.getString("sub").split(":")[2]));
                     ctx.data().put("character", character);
 
-                    validToken.isAuthorised("isSuperuser", ar -> {
+                    ctx.user().isAuthorised("isSuperuser", ar -> {
                         if (ar.failed()) {
                             ar.cause().printStackTrace();
                             promise.fail(ar.cause());
@@ -140,8 +158,11 @@ public class WebVerticle extends AbstractVerticle {
                 promise.complete();
             }
         });
-        Future<?> tournamentInfo = Future.future(promise -> {
-            if (ctx.user() != null) {
+    }
+
+    private Future<Void> addTournamentInfoToContext(RoutingContext ctx) {
+        return Future.future(promise -> {
+            if (ctx.data().containsKey("character")) {
                 String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
                 vertx.eventBus().request(DbClient.DB_FETCH_TOURNAMENTS,
                         new JsonObject(),
@@ -174,18 +195,6 @@ public class WebVerticle extends AbstractVerticle {
                 promise.complete();
             }
         });
-
-        characterInfo.compose(v -> tournamentInfo)
-                .onSuccess(f -> ctx.next())
-                .onFailure(Throwable::printStackTrace);
-    }
-
-
-    private void handleEvent(BridgeEvent be) {
-//        if (be.type() == BridgeEventType.REGISTER) {
-//            LOGGER.info("ws client registered");
-//        }
-        be.complete(true);
     }
 
 }
