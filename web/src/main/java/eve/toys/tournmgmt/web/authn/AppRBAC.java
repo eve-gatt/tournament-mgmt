@@ -70,6 +70,20 @@ public class AppRBAC implements OAuth2RBAC {
         return characterName.equals(System.getenv("SUPERUSER"));
     }
 
+    public static void refreshIfNeeded(AccessToken user, Handler<AccessToken> handler) {
+        if (user.expired()) {
+            user.refresh(ar -> {
+                if (ar.failed()) {
+                    ar.cause().printStackTrace();
+                } else {
+                    handler.handle(user);
+                }
+            });
+        } else {
+            handler.handle(user);
+        }
+    }
+
     @Override
     public void isAuthorized(AccessToken user, String authority, Handler<AsyncResult<Boolean>> handler) {
         // TODO: remember to user.clearCache() to have this re-evaluated if persisted perms changes

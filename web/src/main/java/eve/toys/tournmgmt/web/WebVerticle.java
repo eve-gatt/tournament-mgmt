@@ -28,6 +28,7 @@ import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class WebVerticle extends AbstractVerticle {
@@ -55,6 +56,7 @@ public class WebVerticle extends AbstractVerticle {
                 .rbacHandler(new AppRBAC(vertx.eventBus()));
 
         SessionHandler sessionHandler = SessionHandler.create(sessionStore)
+                .setSessionTimeout(TimeUnit.HOURS.toMillis(1L))
                 .setAuthProvider(oauth2);
 
         Router router = Router.router(vertx);
@@ -117,20 +119,22 @@ public class WebVerticle extends AbstractVerticle {
         Future<?> characterInfo = Future.future(promise -> {
             if (user != null) {
                 AccessToken token = (AccessToken) ctx.user();
-                JsonObject parsed = KeycloakHelper.parseToken(token.opaqueAccessToken());
-                JsonObject character = new JsonObject()
-                        .put("characterName", parsed.getString("name"))
-                        .put("characterId", Integer.parseInt(parsed.getString("sub").split(":")[2]));
-                ctx.data().put("character", character);
+                AppRBAC.refreshIfNeeded(token, validToken -> {
+                    JsonObject parsed = KeycloakHelper.parseToken(token.opaqueAccessToken());
+                    JsonObject character = new JsonObject()
+                            .put("characterName", parsed.getString("name"))
+                            .put("characterId", Integer.parseInt(parsed.getString("sub").split(":")[2]));
+                    ctx.data().put("character", character);
 
-                user.isAuthorised("isSuperuser", ar -> {
-                    if (ar.failed()) {
-                        ar.cause().printStackTrace();
-                        promise.fail(ar.cause());
-                    } else {
-                        character.put("isSuperuser", ar.result());
-                        promise.complete();
-                    }
+                    user.isAuthorised("isSuperuser", ar -> {
+                        if (ar.failed()) {
+                            ar.cause().printStackTrace();
+                            promise.fail(ar.cause());
+                        } else {
+                            character.put("isSuperuser", ar.result());
+                            promise.complete();
+                        }
+                    });
                 });
             } else {
                 promise.complete();
