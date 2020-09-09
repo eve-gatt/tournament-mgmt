@@ -3,6 +3,7 @@ package eve.toys.tournmgmt.web.esi;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.auth.oauth2.AccessToken;
 import io.vertx.ext.web.client.WebClient;
 
 import java.io.UnsupportedEncodingException;
@@ -12,49 +13,92 @@ public class Esi {
 
     public static final String ESI_BASE = "https://esi.evetech.net/latest";
 
-    public static Future<JsonObject> lookupAlliance(WebClient webClient, String alliance) {
-        return Future.future(promise ->
-                webClient.getAbs(ESI_BASE + "/search/?categories=alliance&strict=true&search=" + encode(alliance))
-                        .send(ar -> {
-                            if (ar.failed()) {
-                                promise.fail(ar.cause());
-                                return;
-                            }
-                            promise.complete(new JsonObject()
-                                    .put("category", "alliance")
-                                    .put("name", alliance)
-                                    .put("result", ar.result().body().toJsonObject().getJsonArray("alliance")));
-                        }));
+    private Esi() {
     }
 
-    private static String encode(String alliance) {
+    public static Esi create() {
+        return new Esi();
+    }
+
+    public Future<JsonObject> lookupShip(WebClient webClient, String shipName) {
+        return lookupByType(webClient, shipName, "inventory_type");
+    }
+
+    private static Future<JsonObject> lookupByType(WebClient webClient, String name, String category) {
+        return Future.future(promise -> {
+            String url = "/search/?categories=" + category + "&strict=true&search=" + encode(name);
+            webClient.getAbs(ESI_BASE + url)
+                    .send(ar -> {
+                        if (ar.failed()) {
+                            promise.fail(ar.cause());
+                            return;
+                        }
+                        if (ar.result().statusCode() != 200) {
+                            promise.fail(ar.result().statusCode() + ": " + ar.result().statusMessage()
+                                    + "\n" + url);
+                            return;
+                        }
+                        JsonObject json = ar.result().body().toJsonObject();
+                        promise.complete(new JsonObject()
+                                .put("category", category)
+                                .put(category, name)
+                                .put("result", json.getJsonArray(category)));
+                    });
+        });
+    }
+
+    private static String encode(String string) {
         try {
-            return URLEncoder.encode(alliance, "UTF-8");
+            return URLEncoder.encode(string, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
-            return alliance;
+            return string;
         }
     }
 
-    public static Future<JsonObject> checkCharacter(WebClient webClient, String character) {
-        return Future.future(promise ->
-                webClient.getAbs(ESI_BASE + "/search/?categories=character&strict=true&search=" + encode(character))
-                        .send(ar -> {
-                            if (ar.failed()) {
-                                promise.fail(ar.cause());
-                                return;
-                            }
-                            promise.complete(new JsonObject()
-                                    .put("category", "character")
-                                    .put("name", character)
-                                    .put("result", ar.result().body().toJsonObject().getJsonArray("character")));
-                        }));
+    public Future<JsonObject> fetchType(WebClient webClient, Integer typeId) {
+        return Future.future(promise -> {
+            String url = "/universe/types/" + typeId;
+            webClient.getAbs(ESI_BASE + url)
+                    .send(ar -> {
+                        if (ar.failed()) {
+                            promise.fail(ar.cause());
+                            return;
+                        }
+                        if (ar.result().statusCode() != 200) {
+                            promise.fail(ar.result().statusCode() + ": " + ar.result().statusMessage()
+                                    + "\n" + url);
+                            return;
+                        }
+                        JsonObject json = ar.result().body().toJsonObject();
+                        promise.complete(new JsonObject()
+                                .put("result", json));
+                    });
+        });
     }
 
-    public static Future<JsonObject> checkMembership(WebClient webClient,
-                                                     String uuid,
-                                                     Future<JsonObject> checkAlliance,
-                                                     Future<JsonObject> checkCharacter) {
+    public Future<JsonObject> getSkills(AccessToken user, int characterId) {
+        return Future.future(promise -> {
+            String url = "/characters/" + characterId + "/skills/";
+            user.fetch(ESI_BASE + url, ar -> {
+                if (ar.failed()) {
+                    promise.fail(ar.cause());
+                    return;
+                }
+                if (ar.result().statusCode() != 200) {
+                    promise.fail(ar.result().statusCode()
+                            + "\n" + url);
+                    return;
+                }
+                promise.complete(ar.result().jsonObject());
+            });
+        });
+    }
+
+    public Future<JsonObject> checkMembership(WebClient webClient,
+                                              String uuid,
+                                              Future<JsonObject> checkAlliance,
+                                              Future<JsonObject> checkCharacter) {
         return Future.future(promise ->
                 CompositeFuture.all(checkAlliance, checkCharacter)
                         .onSuccess(f -> {
@@ -66,10 +110,16 @@ public class Esi {
                                     .put("expectedAlliance", alliance)
                                     .put("character", character);
                             if (alliance.getJsonArray("result") != null && character.getJsonArray("result") != null) {
-                                webClient.getAbs(ESI_BASE + "/characters/" + character.getJsonArray("result").getInteger(0))
+                                String url = "/characters/" + character.getJsonArray("result").getInteger(0);
+                                webClient.getAbs(ESI_BASE + url)
                                         .send(ar -> {
                                             if (ar.failed()) {
                                                 promise.fail(ar.cause());
+                                                return;
+                                            }
+                                            if (ar.result().statusCode() != 200) {
+                                                promise.fail(ar.result().statusCode() + ": " + ar.result().statusMessage()
+                                                        + "\n" + url);
                                                 return;
                                             }
                                             Integer allianceId = ar.result().body().toJsonObject().getInteger("alliance_id");
@@ -83,4 +133,13 @@ public class Esi {
                         .onFailure(Throwable::printStackTrace)
         );
     }
+
+    public Future<JsonObject> lookupCharacter(WebClient webClient, String character) {
+        return lookupByType(webClient, character, "character");
+    }
+
+    public Future<JsonObject> lookupAlliance(WebClient webClient, String alliance) {
+        return lookupByType(webClient, alliance, "alliance");
+    }
+
 }

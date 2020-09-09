@@ -1,6 +1,7 @@
 package eve.toys.tournmgmt.web;
 
 import eve.toys.tournmgmt.web.authn.AppRBAC;
+import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.routes.*;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.CompositeFuture;
@@ -40,6 +41,7 @@ public class WebVerticle extends AbstractVerticle {
     public void start(Promise<Void> startPromise) throws Exception {
 
         this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
+        Esi esi = Esi.create();
 
         SessionStore sessionStore = LocalSessionStore.create(vertx);
 
@@ -86,9 +88,9 @@ public class WebVerticle extends AbstractVerticle {
 
         router.mountSubRouter("/", HomeRouter.routes(vertx, render));
         router.mountSubRouter("/login", LoginRouter.routes(vertx, render, oauth2));
-        router.mountSubRouter("/auth/tournament", TournamentRouter.routes(vertx, render, webClient));
-        router.mountSubRouter("/auth/profile", ProfileRouter.routes(vertx, render));
-        router.mountSubRouter("/auth/tournament", TeamsRouter.routes(vertx, render, webClient));
+        router.mountSubRouter("/auth/tournament", TournamentRouter.routes(vertx, render, webClient, esi));
+        router.mountSubRouter("/auth/profile", ProfileRouter.routes(vertx, render, webClient, esi));
+        router.mountSubRouter("/auth/tournament", TeamsRouter.routes(vertx, render, webClient, esi));
         router.mountSubRouter("/auth/referee", RefereeRouter.routes(vertx, render));
         router.route("/auth/superuser/*")
                 .handler(RedirectAuthHandler.create(oauth2, "/login/start")

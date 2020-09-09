@@ -29,12 +29,14 @@ public class TeamsRouter {
     private final RenderHelper render;
     private final Router router;
     private final WebClient webClient;
+    private final Esi esi;
 
-    public TeamsRouter(Vertx vertx, RenderHelper render, WebClient webClient) {
+    public TeamsRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi) {
         router = Router.router(vertx);
         this.render = render;
         this.eventBus = vertx.eventBus();
         this.webClient = webClient;
+        this.esi = esi;
 
         router.route("/:tournamentUuid/teams/:teamUuid/*").handler(this::loadTeam);
         router.get("/:tournamentUuid/teams").handler(this::manage);
@@ -127,8 +129,8 @@ public class TeamsRouter {
 
         List<Future> searches = tsv.stream()
                 .flatMap(row -> Stream.of(
-                        Esi.lookupAlliance(webClient, row.getCol(0)),
-                        Esi.checkCharacter(webClient, row.getCol(1))))
+                        esi.lookupAlliance(webClient, row.getCol(0)),
+                        esi.lookupCharacter(webClient, row.getCol(1))))
                 .collect(Collectors.toList());
 
         CompositeFuture.all(searches).onSuccess(f -> {
@@ -141,12 +143,12 @@ public class TeamsRouter {
                         } else {
                             if ("alliance".equals(r.getString("category"))) {
                                 if (r.getJsonArray("result") == null) {
-                                    result += r.getString("name") + " is not a valid alliance\n";
+                                    result += r.getString("alliance") + " is not a valid alliance\n";
                                 }
                             }
                             if ("character".equals(r.getString("category"))) {
                                 if (r.getJsonArray("result") == null) {
-                                    result += r.getString("name") + " is not a valid character name\n";
+                                    result += r.getString("character") + " is not a valid character name\n";
                                 }
                             }
                         }
@@ -216,7 +218,7 @@ public class TeamsRouter {
         RequestParameters params = ctx.get("parsedParameters");
         TSV tsv = new TSV(params.formParameter("tsv").getString(), 1);
 
-        new ValidatePilotNames(webClient).validate(tsv, ar -> {
+        new ValidatePilotNames(webClient, esi).validate(tsv, ar -> {
             if (ar.failed()) {
                 ar.cause().printStackTrace();
                 doRedirect(ctx.response(), teamUrl(ctx, "/add-members"));
@@ -289,8 +291,8 @@ public class TeamsRouter {
                 });
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient) {
-        return new TeamsRouter(vertx, render, webClient).router();
+    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi) {
+        return new TeamsRouter(vertx, render, webClient, esi).router();
     }
 
     private Router router() {

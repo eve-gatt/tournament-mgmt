@@ -3,6 +3,7 @@ package eve.toys.tournmgmt.web.routes;
 
 import eve.toys.tournmgmt.web.Branding;
 import eve.toys.tournmgmt.web.authn.AppRBAC;
+import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
 import eve.toys.tournmgmt.web.tsv.TSV;
 import io.vertx.core.AsyncResult;
@@ -45,12 +46,14 @@ public class TournamentRouter {
     private final EventBus eventBus;
     private final RenderHelper render;
     private final WebClient webClient;
+    private Esi esi;
 
-    public TournamentRouter(Vertx vertx, RenderHelper render, WebClient webClient) {
+    public TournamentRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi) {
         router = Router.router(vertx);
         eventBus = vertx.eventBus();
         this.render = render;
         this.webClient = webClient;
+        this.esi = esi;
 
         HTTPRequestValidationHandler tournamentValidator = HTTPRequestValidationHandler.create()
                 .addFormParamWithCustomTypeValidator("name",
@@ -253,7 +256,7 @@ public class TournamentRouter {
         RequestParameter type = params.formParameter("type");
         String tournamentUuid = ctx.request().getParam("tournamentUuid");
 
-        Future<String> validate = Future.future(promise -> new ValidatePilotNames(webClient).validate(tsv, promise));
+        Future<String> validate = Future.future(promise -> new ValidatePilotNames(webClient, esi).validate(tsv, promise));
         Future<JsonObject> writeToDB = Future.future(promise -> {
             eventBus.request(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT,
                     new JsonObject()
@@ -330,8 +333,8 @@ public class TournamentRouter {
                 });
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient) {
-        return new TournamentRouter(vertx, render, webClient).router();
+    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi) {
+        return new TournamentRouter(vertx, render, webClient, esi).router();
     }
 
     private Router router() {

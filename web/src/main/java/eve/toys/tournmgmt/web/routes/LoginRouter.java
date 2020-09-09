@@ -5,7 +5,6 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.oauth2.AccessToken;
-import io.vertx.ext.auth.oauth2.KeycloakHelper;
 import io.vertx.ext.auth.oauth2.OAuth2Auth;
 import io.vertx.ext.auth.oauth2.impl.OAuth2TokenImpl;
 import io.vertx.ext.web.Router;
@@ -71,24 +70,9 @@ public class LoginRouter {
 
             User user = res.result();
             AccessToken token = (AccessToken) user;
-            fetchSkills(token);
             ctx.addCookie(Cookie.cookie(COOKIE_NAME, token.opaqueRefreshToken()).setHttpOnly(true));
             doSuccess(ctx, user);
         });
-    }
-
-    private void fetchSkills(AccessToken token) {
-        JsonObject parsed = KeycloakHelper.parseToken(token.opaqueAccessToken());
-        String characterName = parsed.getString("name");
-        int characterId = Integer.parseInt(parsed.getString("sub").split(":")[2]);
-        token.fetch("https://esi.evetech.net/latest/characters/" + characterId + "/skills/",
-                ar -> {
-                    if (ar.failed()) {
-                        ar.cause().printStackTrace();
-                        return;
-                    }
-                    System.out.println("Succesfully fetched skills for " + characterName);
-                });
     }
 
     private void doSuccess(RoutingContext ctx, User user) {

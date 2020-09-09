@@ -15,14 +15,16 @@ import java.util.stream.Stream;
 public class ValidatePilotNames {
 
     private final WebClient webClient;
+    private final Esi esi;
 
-    public ValidatePilotNames(WebClient webClient) {
+    public ValidatePilotNames(WebClient webClient, Esi esi) {
         this.webClient = webClient;
+        this.esi = esi;
     }
 
     public void validate(TSV tsv, Handler<AsyncResult<String>> replyHandler) {
         List<Future> searches = tsv.stream()
-                .map(row -> Esi.checkCharacter(webClient, row.getCol(0)))
+                .map(row -> esi.lookupCharacter(webClient, row.getCol(0)))
                 .collect(Collectors.toList());
         CompositeFuture.all(searches)
                 .onSuccess(f -> {
@@ -31,7 +33,7 @@ public class ValidatePilotNames {
                             .flatMap(r -> {
                                 String result = "";
                                 if (r.getJsonArray("result") == null) {
-                                    result += r.getString("name") + " is not a valid character name";
+                                    result += r.getString("character") + " is not a valid character name";
                                 }
                                 return result.isEmpty() ? Stream.empty() : Stream.of(result);
                             })

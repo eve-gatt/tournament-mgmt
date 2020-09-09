@@ -20,10 +20,13 @@ import java.util.stream.Collectors;
 public class JobVerticle extends AbstractVerticle {
     private static final Logger LOGGER = LoggerFactory.getLogger(JobVerticle.class.getName());
     private WebClient webClient;
+    private Esi esi;
 
     public void start(Promise<Void> startPromise) throws Exception {
         LOGGER.info("Initialising jobs");
-        this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
+        this.webClient = WebClient.create(vertx, new WebClientOptions()
+                .setUserAgent(System.getProperty("http.agent")));
+        this.esi = Esi.create();
         vertx.eventBus().consumer(JobClient.JOB_CHECK_ALLIANCE_MEMBERSHIP, this::checkAllianceMembership);
         startPromise.complete();
     }
@@ -40,10 +43,10 @@ public class JobVerticle extends AbstractVerticle {
             JsonArray body = (JsonArray) ar.result().body();
             List<Future> checks = body.stream()
                     .map(o -> (JsonObject) o)
-                    .map(row -> Esi.checkMembership(webClient,
+                    .map(row -> esi.checkMembership(webClient,
                             row.getString("uuid"),
-                            Esi.lookupAlliance(webClient, row.getString("name")),
-                            Esi.checkCharacter(webClient, row.getString("captain"))))
+                            esi.lookupAlliance(webClient, row.getString("name")),
+                            esi.lookupCharacter(webClient, row.getString("captain"))))
                     .collect(Collectors.toList());
             CompositeFuture.all(checks).onFailure(Throwable::printStackTrace)
                     .onSuccess(f -> {
@@ -63,7 +66,7 @@ public class JobVerticle extends AbstractVerticle {
                                                     .put("message", error)
                                                     .put("uuid", uuid));
                                 });
-
+                        LOGGER.info("Checking alliance memberships completed");
                     });
         });
 

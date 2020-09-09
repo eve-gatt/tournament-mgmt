@@ -2,7 +2,6 @@ extends ../../layout/default-layout
 
 block styles
     style.
-
         .tournaments table {
             margin-bottom: 12px;
         }
@@ -11,8 +10,22 @@ block styles
             display: inline-block;
         }
 
-        .tournaments table tbody td:nth-child(4) a+a {
+        .tournaments table tbody td:nth-child(4) a + a {
             margin-left: 12px;
+        }
+
+        .shipcheck {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            grid-gap: 40px;
+        }
+
+        .shipcheck .reqs {
+            display: grid;
+            grid-template-columns: auto auto 1fr;
+            align-content: start;
+            row-gap: 12px;
+            column-gap: 24px;
         }
 
 block content
@@ -33,18 +46,30 @@ block content
 
     p Type a ship name to verify that your character has the skills to fly it.
 
-    form.pure-form.pure-form-aligned(action="/auth/profile/shipcheck", method="POST")
-        fieldset
-            .pure-control-group
-                label(for="ship-name") Ship name
-                input(type="text", name="name", placeholder="")#ship-name
+    .shipcheck
+        form.pure-form.pure-form-aligned(action="/auth/profile/shipcheck", method="POST")
+            fieldset
+                .pure-control-group
+                    label(for="ship-name") Ship name
+                    input(type="text", name="name", placeholder="", value=shipname)#ship-name
 
-            .pure-controls
-                button.pure-button.pure-button-primary(type="submit") Check
+                .pure-controls
+                    button.pure-button.pure-button-primary(type="submit") Check
 
-
-
-
+        if shipcheck
+            .reqs
+                table.pure-table
+                    thead
+                        th Skill
+                        th Required
+                        th You
+                    tbody
+                        each req in shipcheck
+                            tr
+                                td= req.getString("skill")
+                                td= req.getInteger("level")
+                                - var clazz = req.getInteger("toonLevel") < req.getInteger("level") ? "error" : ""
+                                td(class=clazz)= req.getInteger("toonLevel")
 
 block scripts
     script(type="module", src='/js/profile/me.js')
