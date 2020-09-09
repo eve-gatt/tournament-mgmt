@@ -126,7 +126,7 @@ public class WebVerticle extends AbstractVerticle {
                             .put("characterId", Integer.parseInt(parsed.getString("sub").split(":")[2]));
                     ctx.data().put("character", character);
 
-                    user.isAuthorised("isSuperuser", ar -> {
+                    validToken.isAuthorised("isSuperuser", ar -> {
                         if (ar.failed()) {
                             ar.cause().printStackTrace();
                             promise.fail(ar.cause());
