@@ -57,9 +57,9 @@ public class JobVerticle extends AbstractVerticle {
                                     JsonArray expected = result.getJsonObject("expectedAlliance").getJsonArray("result");
                                     String error = "";
                                     if (expected != null && !expected.getInteger(0).equals(result.getInteger("actualAlliance"))) {
-                                        error = result.getJsonObject("character").getString("name")
+                                        error = result.getJsonObject("character").getString("character")
                                                 + " is not in "
-                                                + result.getJsonObject("expectedAlliance").getString("name");
+                                                + result.getJsonObject("expectedAlliance").getString("alliance");
                                     }
                                     vertx.eventBus().send(DbClient.DB_UPDATE_TEAM_MESSAGE,
                                             new JsonObject()

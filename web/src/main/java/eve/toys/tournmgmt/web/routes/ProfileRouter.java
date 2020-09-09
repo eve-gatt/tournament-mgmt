@@ -12,6 +12,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.oauth2.AccessToken;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -93,22 +94,8 @@ public class ProfileRouter {
         esi.lookupShip(webClient, shipName)
                 .compose(this::fetchShipDetails)
                 .compose(this::fetchSkillRequirements)
-                .compose(tuple -> {
-                    List<Integer> skillIds = tuple._1().stream().map(skill -> skill.getInteger("value")).collect(Collectors.toList());
-                    return esi.getSkills((AccessToken) ctx.user(), characterId)
-                            .compose(json -> {
-                                Map<Integer, Integer> relevantSkillIds = json.getJsonArray("skills").stream()
-                                        .map(o -> (JsonObject) o)
-                                        .filter(skill -> skillIds.contains(skill.getInteger("skill_id")))
-                                        .collect(Collectors.toMap(
-                                                skill -> skill.getInteger("skill_id"),
-                                                skill -> skill.getInteger("trained_skill_level")
-                                        ));
-                                return Future.succeededFuture(tuple.append(relevantSkillIds));
-                            })
-                            .onFailure(t -> t.printStackTrace());
-                })
-                .compose(this::resolveSkillnamesAndScores)
+                .compose(tuple -> fetchUsersSkills(ctx.user(), characterId, tuple))
+                .compose(this::resolveSkillNames)
                 .onSuccess(json -> render.renderPage(ctx, "/profile/me",
                         new JsonObject()
                                 .put("shipname", shipName)
@@ -139,7 +126,23 @@ public class ProfileRouter {
         return Future.succeededFuture(Tuple.of(skills, levels));
     }
 
-    private Future<JsonArray> resolveSkillnamesAndScores(Tuple3<List<JsonObject>, List<JsonObject>, Map<Integer, Integer>> tuple) {
+    private Future<Tuple3<List<JsonObject>, List<JsonObject>, Map<Integer, Integer>>> fetchUsersSkills(User user, Integer characterId, Tuple2<List<JsonObject>, List<JsonObject>> tuple) {
+        List<Integer> skillIds = tuple._1().stream().map(skill -> skill.getInteger("value")).collect(Collectors.toList());
+        return esi.getSkills((AccessToken) user, characterId)
+                .compose(json -> {
+                    Map<Integer, Integer> relevantSkillIds = json.getJsonArray("skills").stream()
+                            .map(o -> (JsonObject) o)
+                            .filter(skill -> skillIds.contains(skill.getInteger("skill_id")))
+                            .collect(Collectors.toMap(
+                                    skill -> skill.getInteger("skill_id"),
+                                    skill -> skill.getInteger("trained_skill_level")
+                            ));
+                    return Future.succeededFuture(tuple.append(relevantSkillIds));
+                })
+                .onFailure(Throwable::printStackTrace);
+    }
+
+    private Future<JsonArray> resolveSkillNames(Tuple3<List<JsonObject>, List<JsonObject>, Map<Integer, Integer>> tuple) {
         return CompositeFuture.all(tuple._1().stream()
                 .map(skillId -> esi.fetchType(webClient, skillId.getInteger("value")))
                 .collect(Collectors.toList()))
