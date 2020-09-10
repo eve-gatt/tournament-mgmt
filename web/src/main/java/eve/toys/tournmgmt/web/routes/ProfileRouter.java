@@ -16,8 +16,6 @@ import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.oauth2.AccessToken;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.api.validation.HTTPRequestValidationHandler;
-import io.vertx.ext.web.api.validation.ParameterType;
 import io.vertx.ext.web.client.WebClient;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
@@ -38,17 +36,16 @@ public class ProfileRouter {
     private final WebClient webClient;
     private final RenderHelper render;
     private final Router router;
+    private final DbClient dbClient;
     private Esi esi;
 
-    public ProfileRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi) {
+    public ProfileRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
         router = Router.router(vertx);
         this.render = render;
         this.eventBus = vertx.eventBus();
         this.webClient = webClient;
         this.esi = esi;
-
-        HTTPRequestValidationHandler shipCheckValidator = HTTPRequestValidationHandler.create()
-                .addFormParam("name", ParameterType.GENERIC_STRING, true);
+        this.dbClient = dbClient;
 
         router.get("/me").handler(this::me);
         router.get("/tournaments").handler(this::tournamentsJson);
@@ -62,29 +59,20 @@ public class ProfileRouter {
 
     private void tournamentsJson(RoutingContext ctx) {
         String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
-
-        eventBus.request(DbClient.DB_FETCH_TOURNAMENTS,
-                new JsonObject(),
-                ar -> {
-                    if (ar.failed()) {
-                        ar.cause().printStackTrace();
-                        ctx.fail(ar.cause());
-                    } else {
-                        List<Future> checks = ((JsonArray) ar.result().body()).stream()
+        dbClient.callDb(DbClient.DB_FETCH_TOURNAMENTS, new JsonObject())
+                .onFailure(ctx::fail)
+                .onSuccess(result -> CompositeFuture.all(((JsonArray) result.body()).stream()
+                        .map(o1 -> (JsonObject) o1)
+                        .map(t1 -> AppRBAC.futureForTournamentPriv(ctx.user(), "organiser", t1))
+                        .collect(Collectors.toList()))
+                        .onFailure(Throwable::printStackTrace)
+                        .onSuccess(f -> ctx.response().end(new JsonArray(f.list().stream()
                                 .map(o -> (JsonObject) o)
-                                .map(t -> AppRBAC.futureForTournamentPriv(ctx.user(), "organiser", t))
-                                .collect(Collectors.toList());
-                        CompositeFuture.all(checks)
-                                .onFailure(Throwable::printStackTrace)
-                                .onSuccess(f -> ctx.response().end(new JsonArray(f.list().stream()
-                                        .map(o -> (JsonObject) o)
-                                        .filter(t -> t.getBoolean("organiser")
-                                                || AppRBAC.isSuperuser(characterName)
-                                                || characterName.equals(t.getString("created_by")))
-                                        .peek(AppRBAC::addPermissionsToTournament)
-                                        .collect(Collectors.toList())).encode()));
-                    }
-                });
+                                .filter(t -> t.getBoolean("organiser")
+                                        || AppRBAC.isSuperuser(characterName)
+                                        || characterName.equals(t.getString("created_by")))
+                                .peek(AppRBAC::addPermissionsToTournament)
+                                .collect(Collectors.toList())).encode())));
     }
 
     private void shipCheck(RoutingContext ctx) {
@@ -157,8 +145,8 @@ public class ProfileRouter {
                         .collect(Collectors.toList()))));
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi) {
-        return new ProfileRouter(vertx, render, webClient, esi).router();
+    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
+        return new ProfileRouter(vertx, render, webClient, esi, dbClient).router();
     }
 
     private Router router() {
