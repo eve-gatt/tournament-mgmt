@@ -9,7 +9,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -42,7 +41,6 @@ public class TournamentRouter {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneId.of("UTC"));
     private final Router router;
-    private final EventBus eventBus;
     private final RenderHelper render;
     private final WebClient webClient;
     private final DbClient dbClient;
@@ -50,7 +48,6 @@ public class TournamentRouter {
 
     public TournamentRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
         router = Router.router(vertx);
-        eventBus = vertx.eventBus();
         this.render = render;
         this.webClient = webClient;
         this.esi = esi;
@@ -95,8 +92,7 @@ public class TournamentRouter {
     }
 
     private void loadTournament(RoutingContext ctx) {
-        dbClient.callDb(DbClient.DB_TOURNAMENT_BY_UUID,
-                ctx.request().getParam("tournamentUuid"))
+        dbClient.callDb(DbClient.DB_TOURNAMENT_BY_UUID, ctx.request().getParam("tournamentUuid"))
                 .onFailure(ctx::fail)
                 .onSuccess(results -> {
                     JsonObject tournament = (JsonObject) results.body();
