@@ -81,7 +81,14 @@ public class WebVerticle extends AbstractVerticle {
         router.route()
                 .handler(BodyHandler.create())
                 .pathRegex("^(?!/js/|/css/|/assets/).+")
-                .handler(this::preRouting);
+                .handler(ctx -> addCharacterInfoToContext(ctx)
+                        .compose(v -> addTournamentInfoToContext(ctx))
+                        .onSuccess(f -> ctx.next())
+                        .onFailure(throwable -> {
+                            throwable.printStackTrace();
+                            ctx.clearUser();
+                            ctx.session().destroy();
+                        }));
 
         router.get("/js/*").handler(StaticHandler.create("web-js").setCachingEnabled(pseudoStaticCaching));
         router.get("/css/*").handler(StaticHandler.create("web-css").setCachingEnabled(pseudoStaticCaching));
@@ -114,24 +121,6 @@ public class WebVerticle extends AbstractVerticle {
                 .requestHandler(router)
                 .listen(6070);
         startPromise.complete();
-    }
-
-    private void preRouting(RoutingContext ctx) {
-
-        addCharacterInfoToContext(ctx).compose(v -> addTournamentInfoToContext(ctx))
-                .onSuccess(f -> ctx.next())
-                .onFailure(throwable -> {
-                    throwable.printStackTrace();
-                    ctx.clearUser();
-                    ctx.session().destroy();
-                });
-    }
-
-    private void handleEvent(BridgeEvent be) {
-//        if (be.type() == BridgeEventType.REGISTER) {
-//            LOGGER.info("ws client registered");
-//        }
-        be.complete(true);
     }
 
     private Future<Void> addCharacterInfoToContext(RoutingContext ctx) {
@@ -195,6 +184,13 @@ public class WebVerticle extends AbstractVerticle {
                 promise.complete();
             }
         });
+    }
+
+    private void handleEvent(BridgeEvent be) {
+//        if (be.type() == BridgeEventType.REGISTER) {
+//            LOGGER.info("ws client registered");
+//        }
+        be.complete(true);
     }
 
 }
