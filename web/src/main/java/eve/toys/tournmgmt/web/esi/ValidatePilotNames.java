@@ -1,5 +1,6 @@
 package eve.toys.tournmgmt.web.esi;
 
+import eve.toys.tournmgmt.web.AppStreamHelpers;
 import eve.toys.tournmgmt.web.tsv.TSV;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
@@ -25,7 +26,7 @@ public class ValidatePilotNames {
         CompositeFuture.all(tsv.stream()
                 .map(this::lookupCharacter)
                 .collect(Collectors.toList()))
-                .map(this::toJsonObjects)
+                .map(AppStreamHelpers::toJsonObjects)
                 .map(this::filterForInvalidNames)
                 .map(this::joinErrors)
                 .onSuccess(msg -> replyHandler.handle(Future.succeededFuture(msg)))
@@ -34,10 +35,6 @@ public class ValidatePilotNames {
 
     private Future<JsonObject> lookupCharacter(TSV.Row row) {
         return esi.lookupCharacter(webClient, row.getCol(0));
-    }
-
-    private Stream<JsonObject> toJsonObjects(CompositeFuture f) {
-        return f.list().stream().map(o -> (JsonObject) o);
     }
 
     private Stream<String> filterForInvalidNames(Stream<JsonObject> results) {

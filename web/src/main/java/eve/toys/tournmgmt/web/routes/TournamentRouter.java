@@ -1,6 +1,5 @@
 package eve.toys.tournmgmt.web.routes;
 
-
 import eve.toys.tournmgmt.web.Branding;
 import eve.toys.tournmgmt.web.authn.AppRBAC;
 import eve.toys.tournmgmt.web.esi.Esi;
@@ -46,14 +45,16 @@ public class TournamentRouter {
     private final EventBus eventBus;
     private final RenderHelper render;
     private final WebClient webClient;
+    private final DbClient dbClient;
     private Esi esi;
 
-    public TournamentRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi) {
+    public TournamentRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
         router = Router.router(vertx);
         eventBus = vertx.eventBus();
         this.render = render;
         this.webClient = webClient;
         this.esi = esi;
+        this.dbClient = dbClient;
 
         HTTPRequestValidationHandler tournamentValidator = HTTPRequestValidationHandler.create()
                 .addFormParamWithCustomTypeValidator("name",
@@ -94,30 +95,22 @@ public class TournamentRouter {
     }
 
     private void loadTournament(RoutingContext ctx) {
-        eventBus.request(DbClient.DB_TOURNAMENT_BY_UUID,
-                ctx.request().getParam("tournamentUuid"),
-                ar -> {
-                    if (ar.failed()) {
-                        ctx.fail(ar.cause());
-                        return;
-                    }
-                    JsonObject tournament = (JsonObject) ar.result().body();
+        dbClient.callDb(DbClient.DB_TOURNAMENT_BY_UUID,
+                ctx.request().getParam("tournamentUuid"))
+                .onFailure(ctx::fail)
+                .onSuccess(results -> {
+                    JsonObject tournament = (JsonObject) results.body();
                     String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
-                    ctx.user().isAuthorised("organiser:" + tournament.getString("uuid"), ar2 -> {
-                        if (ar2.failed()) {
-                            ar2.cause().printStackTrace();
-                            ctx.fail(ar2.cause());
-                        } else {
-                            if (ar2.result()
-                                    || AppRBAC.isSuperuser(characterName)
-                                    || characterName.equals(tournament.getString("created_by"))) {
-                                AppRBAC.addPermissionsToTournament(tournament);
-                            }
-                            ctx.data().put("tournament", tournament);
-                            ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
-                            ctx.next();
-                        }
-                    });
+                    AppRBAC.futureForTournamentPriv(ctx.user(), "organiser", tournament)
+                            .onFailure(ctx::fail)
+                            .onSuccess(t -> {
+                                if (t.getBoolean("organiser") || AppRBAC.isSuperuser(characterName) || characterName.equals(tournament.getString("created_by"))) {
+                                    AppRBAC.addPermissionsToTournament(tournament);
+                                }
+                                ctx.data().put("tournament", tournament);
+                                ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
+                                ctx.next();
+                            });
                 });
     }
 
@@ -139,22 +132,19 @@ public class TournamentRouter {
         JsonObject form = params.toJson().getJsonObject("form");
         form.put("createdBy", ((JsonObject) ctx.data().get("character")).getString("characterName"));
         form.put("parsedStartDate", LocalDate.parse(form.getString("startDate"), DATE_FORMAT).atStartOfDay(ZoneId.of("UTC")).toInstant());
-        eventBus.request(DbClient.DB_CREATE_TOURNAMENT,
-                form,
-                msg -> {
-                    if (msg.failed()) {
-                        form.put("practiceOnTd", form.getBoolean("practiceOnTd"));
-                        form.put("playOnTd", form.getBoolean("playOnTd"));
-                        ctx.put("form", form)
-                                .put("errorField", "general")
-                                .put("errorMessage",
-                                        msg.cause().getMessage().contains("tournament_name_uindex")
-                                                ? "This tournament name has already been used"
-                                                : msg.cause().getMessage());
-                        ctx.reroute(HttpMethod.GET, "/auth/tournament/create");
-                    } else {
-                        RenderHelper.doRedirect(ctx.response(), "/auth/profile/me");
-                    }
+        dbClient.callDb(DbClient.DB_CREATE_TOURNAMENT, form)
+                .onFailure(t -> {
+                    form.put("practiceOnTd", form.getBoolean("practiceOnTd"));
+                    form.put("playOnTd", form.getBoolean("playOnTd"));
+                    ctx.put("form", form)
+                            .put("errorField", "general")
+                            .put("errorMessage", t.getMessage().contains("tournament_name_uindex")
+                                    ? "This tournament name has already been used"
+                                    : t.getMessage());
+                    ctx.reroute(HttpMethod.GET, "/auth/tournament/create");
+                })
+                .onSuccess(result -> {
+                    RenderHelper.doRedirect(ctx.response(), "/auth/profile/me");
                 });
     }
 
@@ -202,22 +192,20 @@ public class TournamentRouter {
         form.put("uuid", ctx.request().getParam("tournamentUuid"));
         form.put("parsedStartDate", LocalDate.parse(form.getString("startDate"), DATE_FORMAT).atStartOfDay(ZoneId.of("UTC")).toInstant());
         form.put("editedBy", ((JsonObject) ctx.data().get("character")).getString("characterName"));
-        eventBus.request(DbClient.DB_EDIT_TOURNAMENT,
-                form,
-                msg -> {
-                    if (msg.failed()) {
-                        form.put("practiceOnTd", form.getBoolean("practiceOnTd"));
-                        form.put("playOnTd", form.getBoolean("playOnTd"));
-                        ctx.put("form", form)
-                                .put("errorField", "general")
-                                .put("errorMessage",
-                                        msg.cause().getMessage().contains("tournament_name_uindex")
-                                                ? "This tournament name has already been used"
-                                                : msg.cause().getMessage());
-                        ctx.reroute(HttpMethod.GET, "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/edit");
-                    } else {
-                        RenderHelper.doRedirect(ctx.response(), "/auth/profile/me");
-                    }
+        dbClient.callDb(DbClient.DB_EDIT_TOURNAMENT, form)
+                .onFailure(t -> {
+                    form.put("practiceOnTd", form.getBoolean("practiceOnTd"));
+                    form.put("playOnTd", form.getBoolean("playOnTd"));
+                    ctx.put("form", form)
+                            .put("errorField", "general")
+                            .put("errorMessage",
+                                    t.getMessage().contains("tournament_name_uindex")
+                                            ? "This tournament name has already been used"
+                                            : t.getMessage());
+                    ctx.reroute(HttpMethod.GET, "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/edit");
+                })
+                .onSuccess(result -> {
+                    RenderHelper.doRedirect(ctx.response(), "/auth/profile/me");
                 });
     }
 
@@ -256,36 +244,27 @@ public class TournamentRouter {
         RequestParameter type = params.formParameter("type");
         String tournamentUuid = ctx.request().getParam("tournamentUuid");
 
-        Future<String> validate = Future.future(promise -> new ValidatePilotNames(webClient, esi).validate(tsv, promise));
-        Future<JsonObject> writeToDB = Future.future(promise -> {
-            eventBus.request(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT,
-                    new JsonObject()
-                            .put("type", type.getString())
-                            .put("tournamentUuid", tournamentUuid)
-                            .put("names", tsv.json()),
-                    ar -> {
-                        if (ar.failed()) {
-                            promise.fail(ar.cause());
-                        } else {
-                            promise.complete((JsonObject) ar.result().body());
-                        }
-                    });
-        });
-
-        validate.compose(error -> {
-            if (error.isEmpty()) {
-                return writeToDB;
-            } else {
-                return Future.succeededFuture(new JsonObject().put("errors", error));
-            }
-        }).onSuccess(errors -> {
-            ctx.user().clearCache();
-            doRedirect(ctx.response(), tournamentUrl(ctx, "/roles"));
-        }).onFailure(t -> {
-            addRolesToContext(tournamentUuid,
-                    ctx.data(),
-                    ar -> render.renderPage(ctx, "/role/edit", new JsonObject().put("errors", t.getMessage())));
-        });
+        Future.<String>future(promise -> new ValidatePilotNames(webClient, esi).validate(tsv, promise))
+                .onSuccess(validationMsg -> {
+                    if (validationMsg.isEmpty()) {
+                        dbClient.callDb(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT, new JsonObject()
+                                .put("type", type.getString())
+                                .put("tournamentUuid", tournamentUuid)
+                                .put("names", tsv.json())
+                        ).onFailure(t -> {
+                            addRolesToContext(tournamentUuid,
+                                    ctx.data(),
+                                    ar -> render.renderPage(ctx, "/role/edit", new JsonObject().put("errors", t.getMessage())));
+                        }).onSuccess(results -> {
+                            ctx.user().clearCache();
+                            doRedirect(ctx.response(), tournamentUrl(ctx, "/roles"));
+                        });
+                    } else {
+                        addRolesToContext(tournamentUuid,
+                                ctx.data(),
+                                ar -> render.renderPage(ctx, "/role/edit", new JsonObject().put("errors", validationMsg)));
+                    }
+                }).onFailure(ctx::fail);
     }
 
     private void handleRolesFailure(RoutingContext ctx) {
@@ -311,14 +290,10 @@ public class TournamentRouter {
     }
 
     private void addRolesToContext(String tournamentUuid, Map<String, Object> data, Handler<AsyncResult<Message<Object>>> handler) {
-        eventBus.request(DbClient.DB_ROLES_BY_TOURNAMENT,
-                tournamentUuid,
-                ar -> {
-                    if (ar.failed()) {
-                        handler.handle(ar);
-                        return;
-                    }
-                    JsonArray roles = (JsonArray) ar.result().body();
+        dbClient.callDb(DbClient.DB_ROLES_BY_TOURNAMENT, tournamentUuid)
+                .onFailure(t -> handler.handle(Future.failedFuture(t)))
+                .onSuccess(result -> {
+                    JsonArray roles = (JsonArray) result.body();
                     Function<String, String> byType = type -> roles.stream()
                             .map(o -> (JsonObject) o)
                             .filter(role -> role.getString("type").equals(type))
@@ -329,12 +304,12 @@ public class TournamentRouter {
                             .put("referee", byType.apply("referee"))
                             .put("staff", byType.apply("staff"));
                     data.put("roles", out);
-                    handler.handle(ar);
+                    handler.handle(Future.succeededFuture(result));
                 });
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi) {
-        return new TournamentRouter(vertx, render, webClient, esi).router();
+    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
+        return new TournamentRouter(vertx, render, webClient, esi, dbClient).router();
     }
 
     private Router router() {

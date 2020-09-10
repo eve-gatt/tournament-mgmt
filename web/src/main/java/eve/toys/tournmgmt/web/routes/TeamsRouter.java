@@ -1,11 +1,11 @@
 package eve.toys.tournmgmt.web.routes;
 
+import eve.toys.tournmgmt.web.AppStreamHelpers;
 import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
 import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.tsv.TSV;
 import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonArray;
@@ -17,7 +17,6 @@ import io.vertx.ext.web.client.WebClient;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
-import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -30,13 +29,15 @@ public class TeamsRouter {
     private final Router router;
     private final WebClient webClient;
     private final Esi esi;
+    private final DbClient dbClient;
 
-    public TeamsRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi) {
+    public TeamsRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
         router = Router.router(vertx);
         this.render = render;
         this.eventBus = vertx.eventBus();
         this.webClient = webClient;
         this.esi = esi;
+        this.dbClient = dbClient;
 
         router.route("/:tournamentUuid/teams/:teamUuid/*").handler(this::loadTeam);
         router.get("/:tournamentUuid/teams").handler(this::manage);
@@ -60,14 +61,10 @@ public class TeamsRouter {
     }
 
     private void loadTeam(RoutingContext ctx) {
-        eventBus.request(DbClient.DB_TEAM_BY_UUID,
-                ctx.request().getParam("teamUuid"),
-                ar -> {
-                    if (ar.failed()) {
-                        ctx.fail(ar.cause());
-                        return;
-                    }
-                    ctx.data().put("team", ar.result().body());
+        dbClient.callDb(DbClient.DB_TEAM_BY_UUID, ctx.request().getParam("teamUuid"))
+                .onFailure(ctx::fail)
+                .onSuccess(result -> {
+                    ctx.data().put("team", result.body());
                     ctx.next();
                 });
     }
@@ -77,15 +74,10 @@ public class TeamsRouter {
     }
 
     private void teamsData(RoutingContext ctx) {
-        eventBus.request(DbClient.DB_TEAMS_BY_TOURNAMENT,
-                new JsonObject().put("uuid", ctx.request().getParam("tournamentUuid")),
-                ar -> {
-                    if (ar.failed()) {
-                        ctx.fail(ar.cause());
-                        return;
-                    }
-                    ctx.response().end(((JsonArray) ar.result().body()).encode());
-                });
+        dbClient.callDb(DbClient.DB_TEAMS_BY_TOURNAMENT,
+                new JsonObject().put("uuid", ctx.request().getParam("tournamentUuid")))
+                .onFailure(ctx::fail)
+                .onSuccess(result -> ctx.response().end(((JsonArray) result.body()).encode()));
     }
 
     private void editTeam(RoutingContext ctx) {
@@ -97,16 +89,10 @@ public class TeamsRouter {
     }
 
     private void removeTeamConfirm(RoutingContext ctx) {
-        eventBus.request(DbClient.DB_DELETE_TEAM_BY_UUID,
-                ctx.request().getParam("teamUuid"),
-                ar -> {
-                    if (ar.failed()) {
-                        ar.cause().printStackTrace();
-                        doRedirect(ctx.response(), teamUrl(ctx, "/remove"));
-                        return;
-                    }
-                    doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
-                });
+        dbClient.callDb(DbClient.DB_DELETE_TEAM_BY_UUID,
+                ctx.request().getParam("teamUuid"))
+                .onFailure(ctx::fail)
+                .onSuccess(result -> doRedirect(ctx.response(), tournamentUrl(ctx, "/teams")));
     }
 
     private void importTeams(RoutingContext ctx) {
@@ -127,73 +113,53 @@ public class TeamsRouter {
         RequestParameters params = ctx.get("parsedParameters");
         TSV tsv = new TSV(params.formParameter("tsv").getString(), 2);
 
-        List<Future> searches = tsv.stream()
+        CompositeFuture.all(tsv.stream()
                 .flatMap(row -> Stream.of(
                         esi.lookupAlliance(webClient, row.getCol(0)),
                         esi.lookupCharacter(webClient, row.getCol(1))))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()))
+                .map(AppStreamHelpers::toJsonObjects)
+                .map(this::checkForTeamImportErrors)
+                .onSuccess(msg -> {
+                    if (msg.isEmpty()) {
+                        dbClient.callDb(DbClient.DB_WRITE_TEAM_TSV,
+                                new JsonObject()
+                                        .put("tsv", tsv.json())
+                                        .put("createdBy",
+                                                ((JsonObject) ctx.data().get("character")).getString("characterName"))
+                                        .put("uuid", ctx.request().getParam("tournamentUuid")))
+                                .onFailure(t -> {
+                                    String error = t.getMessage();
+                                    if (error.contains("duplicate key value")) {
+                                        error = "Team already found in tournament.";
+                                    } else {
+                                        t.printStackTrace();
+                                    }
+                                    render.renderPage(ctx,
+                                            "/teams/import",
+                                            new JsonObject()
+                                                    .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                                    .put("tsv", tsv.text())
+                                                    .put("errors", error));
 
-        CompositeFuture.all(searches).onSuccess(f -> {
-            String msg = f.list().stream()
-                    .map(o -> (JsonObject) o)
-                    .flatMap(r -> {
-                        String result = "";
-                        if (r.containsKey("error")) {
-                            result += r.getString("error") + "\n";
-                        } else {
-                            if ("alliance".equals(r.getString("category"))) {
-                                if (r.getJsonArray("result") == null) {
-                                    result += r.getString("alliance") + " is not a valid alliance\n";
-                                }
-                            }
-                            if ("character".equals(r.getString("category"))) {
-                                if (r.getJsonArray("result") == null) {
-                                    result += r.getString("character") + " is not a valid character name\n";
-                                }
-                            }
-                        }
-                        return result.isEmpty() ? Stream.empty() : Stream.of(result);
-                    })
-                    .collect(Collectors.joining());
-
-            if (msg.isEmpty()) {
-                eventBus.request(DbClient.DB_WRITE_TEAM_TSV,
-                        new JsonObject()
-                                .put("tsv", tsv.json())
-                                .put("createdBy",
-                                        ((JsonObject) ctx.data().get("character")).getString("characterName"))
-                                .put("uuid", ctx.request().getParam("tournamentUuid")),
-                        ar -> {
-                            if (ar.failed()) {
-                                String error = ar.cause().getMessage();
-                                if (error.contains("duplicate key value")) {
-                                    error = "This data contains a team that is already in this tournament.";
-                                } else {
-                                    ar.cause().printStackTrace();
-                                }
-                                render.renderPage(ctx,
-                                        "/teams/import",
-                                        new JsonObject()
-                                                .put("placeholder", "Please fix the errors and paste in the revised data.")
-                                                .put("tsv", tsv.text())
-                                                .put("errors", error));
-                                return;
-                            }
-                            eventBus.publish(JobClient.JOB_CHECK_ALLIANCE_MEMBERSHIP, new JsonObject());
-                            doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
-                        });
-            } else {
-                render.renderPage(ctx,
-                        "/teams/import",
-                        new JsonObject()
-                                .put("placeholder", "Please fix the errors and paste in the revised data.")
-                                .put("tsv", tsv.text())
-                                .put("errors", msg));
-            }
-        }).onFailure(throwable -> {
-            throwable.printStackTrace();
-            doRedirect(ctx.response(), tournamentUrl(ctx, "/teams/import"));
-        });
+                                })
+                                .onSuccess(result -> {
+                                    eventBus.publish(JobClient.JOB_CHECK_ALLIANCE_MEMBERSHIP, new JsonObject());
+                                    doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
+                                });
+                    } else {
+                        render.renderPage(ctx,
+                                "/teams/import",
+                                new JsonObject()
+                                        .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                        .put("tsv", tsv.text())
+                                        .put("errors", msg));
+                    }
+                })
+                .onFailure(throwable -> {
+                    throwable.printStackTrace();
+                    doRedirect(ctx.response(), tournamentUrl(ctx, "/teams/import"));
+                });
     }
 
     private void handleImportFail(RoutingContext ctx) {
@@ -227,24 +193,21 @@ public class TeamsRouter {
             if (ar.result().isEmpty()) {
                 // TODO: check if too many members after import
                 // TODO: check members aren't in other teams
-                eventBus.request(DbClient.DB_WRITE_TEAM_MEMBERS_TSV,
+                dbClient.callDb(DbClient.DB_WRITE_TEAM_MEMBERS_TSV,
                         new JsonObject()
                                 .put("tsv", tsv.json())
                                 .put("addedBy", ((JsonObject) ctx.data().get("character")).getString("characterName"))
-                                .put("uuid", ctx.request().getParam("teamUuid")),
-                        ar2 -> {
-                            if (ar2.failed()) {
-                                ar2.cause().printStackTrace();
-                                render.renderPage(ctx,
-                                        "/teams/addmembers",
-                                        new JsonObject()
-                                                .put("placeholder", "Please fix the errors and paste in the revised data.")
-                                                .put("tsv", tsv.text())
-                                                .put("errors", ar2.cause().getMessage()));
-                                return;
-                            }
-                            doRedirect(ctx.response(), teamUrl(ctx, "/edit"));
-                        });
+                                .put("uuid", ctx.request().getParam("teamUuid")))
+                        .onFailure(t -> {
+                            t.printStackTrace();
+                            render.renderPage(ctx,
+                                    "/teams/addmembers",
+                                    new JsonObject()
+                                            .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                            .put("tsv", tsv.text())
+                                            .put("errors", t.getMessage()));
+                        })
+                        .onSuccess(results -> doRedirect(ctx.response(), teamUrl(ctx, "/edit")));
             } else {
                 render.renderPage(ctx,
                         "/teams/addmembers",
@@ -263,15 +226,10 @@ public class TeamsRouter {
     }
 
     private void membersData(RoutingContext ctx) {
-        eventBus.request(DbClient.DB_MEMBERS_BY_TEAM,
-                ctx.request().getParam("teamUuid"),
-                ar -> {
-                    if (ar.failed()) {
-                        ctx.fail(ar.cause());
-                        return;
-                    }
-                    ctx.response().end(((JsonArray) ar.result().body()).encode());
-                });
+        dbClient.callDb(DbClient.DB_MEMBERS_BY_TEAM,
+                ctx.request().getParam("teamUuid"))
+                .onFailure(ctx::fail)
+                .onSuccess(result -> ctx.response().end(((JsonArray) result.body()).encode()));
     }
 
     private void lockTeam(RoutingContext ctx) {
@@ -279,20 +237,35 @@ public class TeamsRouter {
     }
 
     private void lockTeamConfirm(RoutingContext ctx) {
-        eventBus.request(DbClient.DB_LOCK_TEAM_BY_UUID,
-                ctx.request().getParam("teamUuid"),
-                ar -> {
-                    if (ar.failed()) {
-                        ar.cause().printStackTrace();
-                        doRedirect(ctx.response(), teamUrl(ctx, "/lock-team"));
-                        return;
-                    }
-                    doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
-                });
+        dbClient.callDb(DbClient.DB_LOCK_TEAM_BY_UUID,
+                ctx.request().getParam("teamUuid"))
+                .onFailure(ctx::fail)
+                .onSuccess(result -> doRedirect(ctx.response(), tournamentUrl(ctx, "/teams")));
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi) {
-        return new TeamsRouter(vertx, render, webClient, esi).router();
+    private String checkForTeamImportErrors(Stream<JsonObject> results) {
+        return results.flatMap(r -> {
+            String result = "";
+            if (r.containsKey("error")) {
+                result += r.getString("error") + "\n";
+            } else {
+                if ("alliance".equals(r.getString("category"))) {
+                    if (r.getJsonArray("result") == null) {
+                        result += r.getString("alliance") + " is not a valid alliance\n";
+                    }
+                }
+                if ("character".equals(r.getString("category"))) {
+                    if (r.getJsonArray("result") == null) {
+                        result += r.getString("character") + " is not a valid character name\n";
+                    }
+                }
+            }
+            return result.isEmpty() ? Stream.empty() : Stream.of(result);
+        }).collect(Collectors.joining());
+    }
+
+    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
+        return new TeamsRouter(vertx, render, webClient, esi, dbClient).router();
     }
 
     private Router router() {
