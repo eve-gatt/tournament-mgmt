@@ -7,25 +7,25 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 
-public class RefereeRouter {
+public class ThunderdomeRouter {
 
     private final EventBus eventBus;
     private final RenderHelper render;
     private final Router router;
 
-    public RefereeRouter(Vertx vertx, RenderHelper render) {
+    public ThunderdomeRouter(Vertx vertx, RenderHelper render) {
         router = Router.router(vertx);
         this.render = render;
         this.eventBus = vertx.eventBus();
-        router.get("/:tournamentUuid/referee").handler(this::home);
+        router.get("/:tournamentUuid/thunderdome").handler(this::home);
     }
 
     private void home(RoutingContext ctx) {
-        render.renderPage(ctx, "/referee/home", new JsonObject());
+        render.renderPage(ctx, "/thunderdome/home", new JsonObject());
     }
 
     public static Router routes(Vertx vertx, RenderHelper render) {
-        return new RefereeRouter(vertx, render).router();
+        return new ThunderdomeRouter(vertx, render).router();
     }
 
     private Router router() {

@@ -98,6 +98,14 @@ html
                 font-size: 0.4em;
             }
 
+            h2 .accent {
+                color: #f99e00
+            }
+
+            a + a {
+                margin-left: 12px;
+            }
+
             body {
             }
 
@@ -262,7 +270,6 @@ html
                     .right
                         .top-menu
                             a(href="/") Home
-                            a(href="/auth/referee") Referee
                             if tournaments
                                 each t in tournaments
                                     a(href="/auth/tournament/" + t.getString("uuid") + "/home")= t.getString("name")

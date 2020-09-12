@@ -18,9 +18,11 @@ block content
         if tournament.getBoolean("canManageTeams")
             a(href="/auth/tournament/" + uuid + "/teams") Manage teams
         if tournament.getBoolean("canManageTD")
-            a(href="#") Manage Thunderdome
+            a(href="/auth/tournament/" + uuid + "/thunderdome") Manage Thunderdome
         if tournament.getBoolean("canManageRoles")
             a(href="/auth/tournament/" + uuid + "/roles") Manage roles
+        if tournament.getBoolean("canReferee")
+            a(href="/auth/tournament/" + uuid + "/referee") Referee
 
     .tournament-info
         p

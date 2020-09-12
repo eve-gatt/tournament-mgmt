@@ -24,7 +24,12 @@ public class AppRBAC implements OAuth2RBAC {
             Perm.canEdit,
             Perm.canSearchPilot,
             Perm.canManageTeams,
-            Perm.canManageRoles
+            Perm.canManageRoles,
+            Perm.canReferee
+    );
+    public static final EnumSet<Perm> REFEREE_PERMS = EnumSet.of(
+            Perm.canSearchPilot,
+            Perm.canReferee
     );
     private final EventBus eventBus;
 
@@ -120,6 +125,7 @@ public class AppRBAC implements OAuth2RBAC {
         canSearchPilot,
         canManageTeams,
         canManageTD,
-        canManageRoles
+        canManageRoles,
+        canReferee
     }
 }
