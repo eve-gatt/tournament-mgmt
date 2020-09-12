@@ -10,9 +10,29 @@ mixin subtitle(name)
         h2
             a(href="/auth/tournament/" + uuid + "/teams/" + team.getString("uuid") + "/edit")= team.getString("name")
 
+    .menu
+        a(href="/auth/tournament/" + uuid + "/home") Home
+        if tournament.getBoolean("canEdit")
+            a(href="/auth/tournament/" + uuid + "/edit") Edit details
+        if tournament.getBoolean("canDelete")
+            a(href="/auth/tournament/" + uuid + "/delete") Delete
+        if tournament.getBoolean("canSearchPilot")
+            a(href="#") Search for pilot
+        if tournament.getBoolean("canManageTeams")
+            a(href="/auth/tournament/" + uuid + "/teams") Manage teams
+        if tournament.getBoolean("canManageTD")
+            a(href="/auth/tournament/" + uuid + "/thunderdome") Manage Thunderdome
+        if tournament.getBoolean("canManageRoles")
+            a(href="/auth/tournament/" + uuid + "/roles") Manage roles
+        if tournament.getBoolean("canReferee")
+            a(href="/auth/tournament/" + uuid + "/referee") Referee
+
 block styles
     style.
         !{tournament_styles}
+        .menu {
+            margin-bottom: 18px;
+        }
 
 block scripts
 

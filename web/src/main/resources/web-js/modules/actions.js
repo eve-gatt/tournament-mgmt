@@ -1,4 +1,6 @@
 export function tournamentActions(sel) {
+    sel.append('a')
+        .attr('href', d => '/auth/tournament/' + d.uuid + '/home').text('Home');
     sel.filter(d => d.canEdit).append('a')
         .attr('href', d => '/auth/tournament/' + d.uuid + '/edit').text('Edit details');
     sel.filter(d => d.canDelete).append('a')
