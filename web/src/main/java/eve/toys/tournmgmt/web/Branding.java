@@ -1,7 +1,9 @@
 package eve.toys.tournmgmt.web;
 
 public class Branding {
-    public static final String EVE_NT_STYLES = "@font-face {\n" +
+    public static final String EVE_NT_STYLES =
+/*
+            "@font-face {\n" +
             "  font-family: \"Shentox\";\n" +
             "  src: url(\"/assets/fonts/Shentox-Regular2.woff\") format('woff');\n" +
             "}\n" +
@@ -15,6 +17,7 @@ public class Branding {
             "  font-size: 1.2em;\n" +
             "}\n" +
             "\n" +
+*/
             ".header .left h1 {\n" +
             "  display: none;\n" +
             "}\n" +

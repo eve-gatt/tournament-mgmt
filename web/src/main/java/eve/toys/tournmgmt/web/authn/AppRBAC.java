@@ -24,8 +24,7 @@ public class AppRBAC implements OAuth2RBAC {
             Perm.canEdit,
             Perm.canSearchPilot,
             Perm.canManageTeams,
-            Perm.canManageRoles,
-            Perm.canManageBranding
+            Perm.canManageRoles
     );
     private final EventBus eventBus;
 
@@ -121,7 +120,6 @@ public class AppRBAC implements OAuth2RBAC {
         canSearchPilot,
         canManageTeams,
         canManageTD,
-        canManageRoles,
-        canManageBranding
+        canManageRoles
     }
 }

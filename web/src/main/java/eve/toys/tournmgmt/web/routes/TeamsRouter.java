@@ -17,12 +17,16 @@ import io.vertx.ext.web.client.WebClient;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static toys.eve.tournmgmt.common.util.RenderHelper.*;
 
 public class TeamsRouter {
+
+    private static final Pattern DUPE_REGEX = Pattern.compile(".*Detail: Key \\([^=]+=\\(([^,]+), ([^\\)]+)\\) already exists\\.");
 
     private final EventBus eventBus;
     private final RenderHelper render;
@@ -130,8 +134,9 @@ public class TeamsRouter {
                                         .put("uuid", ctx.request().getParam("tournamentUuid")))
                                 .onFailure(t -> {
                                     String error = t.getMessage();
-                                    if (error.contains("duplicate key value")) {
-                                        error = "Team already found in tournament.";
+                                    Matcher matcher = DUPE_REGEX.matcher(error);
+                                    if (matcher.find()) {
+                                        error = matcher.group(2) + " is already in this tournament.";
                                     } else {
                                         t.printStackTrace();
                                     }

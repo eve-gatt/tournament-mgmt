@@ -5,10 +5,7 @@ import eve.toys.tournmgmt.web.authn.AppRBAC;
 import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
 import eve.toys.tournmgmt.web.tsv.TSV;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
+import io.vertx.core.*;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -92,10 +89,13 @@ public class TournamentRouter {
     }
 
     private void loadTournament(RoutingContext ctx) {
-        dbClient.callDb(DbClient.DB_TOURNAMENT_BY_UUID, ctx.request().getParam("tournamentUuid"))
+        CompositeFuture.all(
+                dbClient.callDb(DbClient.DB_TOURNAMENT_BY_UUID, ctx.request().getParam("tournamentUuid")),
+                dbClient.callDb(DbClient.DB_PROBLEMS_BY_TOURNAMENT, ctx.request().getParam("tournamentUuid")))
                 .onFailure(ctx::fail)
-                .onSuccess(results -> {
-                    JsonObject tournament = (JsonObject) results.body();
+                .onSuccess(f -> {
+                    JsonObject tournament = ((Message<JsonObject>) f.resultAt(0)).body();
+                    JsonArray problems = ((Message<JsonArray>) f.resultAt(1)).body();
                     String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
                     AppRBAC.futureForTournamentPriv(ctx.user(), "organiser", tournament)
                             .onFailure(ctx::fail)
@@ -104,6 +104,7 @@ public class TournamentRouter {
                                     AppRBAC.addPermissionsToTournament(tournament);
                                 }
                                 ctx.data().put("tournament", tournament);
+                                ctx.data().put("problems", problems);
                                 ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
                                 ctx.next();
                             });

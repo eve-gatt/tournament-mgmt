@@ -21,5 +21,13 @@ block content
             a(href="#") Manage Thunderdome
         if tournament.getBoolean("canManageRoles")
             a(href="/auth/tournament/" + uuid + "/roles") Manage roles
-        if tournament.getBoolean("canManageBranding")
-            a(href="#") Manage branding
+
+    .tournament-info
+        p
+            span= tournament.getInteger("team_count")
+            span &nbsp;teams registered
+        if problems.size() > 0
+            h3 Problems
+            .problems
+                each problem in problems
+                    div= problem.getString("msg")

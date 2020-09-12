@@ -15,7 +15,6 @@ import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
 
 import java.util.UUID;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 public class DbVerticle extends AbstractVerticle {
@@ -72,6 +71,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_ROLES_BY_TOURNAMENT, this::rolesByTournament);
         vertx.eventBus().consumer(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT, this::replaceRolesByTypeAndTournament);
         vertx.eventBus().consumer(DbClient.DB_HAS_ROLE, this::hasRole);
+        vertx.eventBus().consumer(DbClient.DB_PROBLEMS_BY_TOURNAMENT, this::problemsByTournament);
 
         startPromise.complete();
     }
@@ -130,15 +130,15 @@ public class DbVerticle extends AbstractVerticle {
                         msg.fail(1, ar.cause().getMessage());
                         return;
                     }
-                    msg.reply(ar.result().getRows().stream()
-                            .collect(toJsonArray()));
+                    msg.reply(new JsonArray(ar.result().getRows()));
                 }
         );
     }
 
     private void tournamentByUuid(Message<String> msg) {
         String uuid = msg.body();
-        sqlClient.query("select name, uuid, start_date, practice_on_td, play_on_td " +
+        sqlClient.query("select name, uuid, start_date, practice_on_td, play_on_td," +
+                        "(select count(*) from team where tournament_uuid = '26dd342d-74ef-4aa5-8d15-75bacc9bf007') as team_count " +
                         "from tournament " +
                         "where uuid = '" + uuid + "'",
                 ar -> {
@@ -206,7 +206,8 @@ public class DbVerticle extends AbstractVerticle {
                         "values " + values,
                 ar -> {
                     if (ar.failed()) {
-                        ar.cause().printStackTrace();
+                        if (!ar.cause().getMessage().contains("duplicate key value violates unique constraint"))
+                            ar.cause().printStackTrace();
                         msg.fail(1, ar.cause().getMessage());
                         return;
                     }
@@ -337,9 +338,7 @@ public class DbVerticle extends AbstractVerticle {
                         msg.fail(1, ar.cause().getMessage());
                         return;
                     }
-                    msg.reply(ar.result().getRows().stream()
-                            .collect(toJsonArray()));
-
+                    msg.reply(new JsonArray(ar.result().getRows()));
                 });
     }
 
@@ -413,8 +412,20 @@ public class DbVerticle extends AbstractVerticle {
                 });
     }
 
-    private Collector<JsonObject, JsonArray, JsonArray> toJsonArray() {
-        return Collector.of(JsonArray::new, JsonArray::add, JsonArray::addAll);
+    private void problemsByTournament(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.query("select msg " +
+                        "from team " +
+                        "where tournament_uuid = '" + uuid + "' " +
+                        "and (msg = '') is not true",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    msg.reply(new JsonArray(ar.result().getRows()));
+                });
     }
 
     private void rollback(SQLConnection conn) {
