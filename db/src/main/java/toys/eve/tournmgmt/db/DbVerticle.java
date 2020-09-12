@@ -138,7 +138,7 @@ public class DbVerticle extends AbstractVerticle {
     private void tournamentByUuid(Message<String> msg) {
         String uuid = msg.body();
         sqlClient.query("select name, uuid, start_date, practice_on_td, play_on_td," +
-                        "(select count(*) from team where tournament_uuid = '26dd342d-74ef-4aa5-8d15-75bacc9bf007') as team_count " +
+                        "(select count(*) from team where tournament_uuid = '" + uuid + "') as team_count " +
                         "from tournament " +
                         "where uuid = '" + uuid + "'",
                 ar -> {
