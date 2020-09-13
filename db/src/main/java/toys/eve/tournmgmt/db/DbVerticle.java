@@ -60,6 +60,8 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_FETCH_TOURNAMENTS, this::fetchOrganisedTournaments);
         vertx.eventBus().consumer(DbClient.DB_TOURNAMENT_BY_UUID, this::tournamentByUuid);
         vertx.eventBus().consumer(DbClient.DB_TEAM_BY_UUID, this::teamByUuid);
+        vertx.eventBus().consumer(DbClient.DB_PILOT_BY_UUID, this::pilotByUuid);
+        vertx.eventBus().consumer(DbClient.DB_KICK_PILOT_BY_UUID, this::kickPilotByUuid);
         vertx.eventBus().consumer(DbClient.DB_WRITE_TEAM_TSV, this::writeTeamTsv);
         vertx.eventBus().consumer(DbClient.DB_TEAMS_BY_TOURNAMENT, this::teamsByTournament);
         vertx.eventBus().consumer(DbClient.DB_DELETE_TEAM_BY_UUID, this::deleteTeamByUuid);
@@ -138,7 +140,8 @@ public class DbVerticle extends AbstractVerticle {
     private void tournamentByUuid(Message<String> msg) {
         String uuid = msg.body();
         sqlClient.query("select name, uuid, start_date, practice_on_td, play_on_td," +
-                        "(select count(*) from team where tournament_uuid = '" + uuid + "') as team_count " +
+                        "(select count(*) from team where tournament_uuid = '" + uuid + "') as team_count, " +
+                        "(select count(*) from team_member inner join team on team_member.team_uuid = team.uuid where team.tournament_uuid = '" + uuid + "') as pilot_count " +
                         "from tournament " +
                         "where uuid = '" + uuid + "'",
                 ar -> {
@@ -171,6 +174,39 @@ public class DbVerticle extends AbstractVerticle {
                         return;
                     }
                     msg.reply(ar.result().getRows().get(0));
+                });
+    }
+
+    private void pilotByUuid(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.query("select uuid, name " +
+                        "from team_member " +
+                        "where uuid = '" + uuid + "'",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    if (ar.result().getRows().size() != 1) {
+                        msg.fail(2, "No pilot found for uuid: " + uuid);
+                        return;
+                    }
+                    msg.reply(ar.result().getRows().get(0));
+                });
+    }
+
+    private void kickPilotByUuid(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.update("delete from team_member " +
+                        "where uuid = '" + uuid + "'",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    msg.reply(null);
                 });
     }
 

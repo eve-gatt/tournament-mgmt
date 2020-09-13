@@ -1,0 +1,14 @@
+extends ../../layout/tournament-layout
+
+block content
+    - var uuid = tournament.getString("uuid")
+    - var teamUuid = team.getString("uuid")
+
+    mixin subtitle("Kick team member")
+
+    p Are you sure you wish to kick #{pilot.getString("name")} from the team?
+    a(href="/auth/tournament/" + uuid + "/teams/" + teamUuid + "/kick/" + pilot.getString("uuid") + "/confirm") Confirm
+    a(href="/auth/tournament/" + uuid + "/teams/" + teamUuid + "/edit") Cancel
+
+block scripts
+

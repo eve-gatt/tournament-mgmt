@@ -100,9 +100,11 @@ public class TournamentRouter {
                     AppRBAC.futureForTournamentPriv(ctx.user(), "organiser", tournament)
                             .onFailure(ctx::fail)
                             .onSuccess(t -> {
-                                if (t.getBoolean("organiser") || AppRBAC.isSuperuser(characterName) || characterName.equals(tournament.getString("created_by"))) {
+                                Boolean isOrganiser = t.getBoolean("organiser");
+                                if (isOrganiser || AppRBAC.isSuperuser(characterName) || characterName.equals(tournament.getString("created_by"))) {
                                     AppRBAC.addPermissionsToTournament(tournament);
                                 }
+                                ((JsonObject) ctx.data().get("character")).put("isOrganiser", isOrganiser);
                                 ctx.data().put("tournament", tournament);
                                 ctx.data().put("problems", problems);
                                 ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);

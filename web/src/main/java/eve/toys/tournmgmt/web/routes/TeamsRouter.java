@@ -62,6 +62,9 @@ public class TeamsRouter {
         router.get("/:tournamentUuid/teams/:teamUuid/members/data").handler(this::membersData);
         router.get("/:tournamentUuid/teams/:teamUuid/lock-team").handler(this::lockTeam);
         router.get("/:tournamentUuid/teams/:teamUuid/lock-team/confirm").handler(this::lockTeamConfirm);
+        router.route("/:tournamentUuid/teams/:teamUuid/kick/:pilotUuid").handler(this::loadPilot);
+        router.get("/:tournamentUuid/teams/:teamUuid/kick/:pilotUuid").handler(this::kickMember);
+        router.get("/:tournamentUuid/teams/:teamUuid/kick/:pilotUuid/confirm").handler(this::confirmKickMember);
     }
 
     private void loadTeam(RoutingContext ctx) {
@@ -246,6 +249,27 @@ public class TeamsRouter {
                 ctx.request().getParam("teamUuid"))
                 .onFailure(ctx::fail)
                 .onSuccess(result -> doRedirect(ctx.response(), tournamentUrl(ctx, "/teams")));
+    }
+
+    private void loadPilot(RoutingContext ctx) {
+        dbClient.callDb(DbClient.DB_PILOT_BY_UUID, ctx.request().getParam("pilotUuid"))
+                .onFailure(ctx::fail)
+                .onSuccess(result -> {
+                    ctx.data().put("pilot", result.body());
+                    ctx.next();
+                });
+    }
+
+    private void kickMember(RoutingContext ctx) {
+        render.renderPage(ctx, "/teams/confirm-kick", new JsonObject());
+    }
+
+    private void confirmKickMember(RoutingContext ctx) {
+        dbClient.callDb(DbClient.DB_KICK_PILOT_BY_UUID, ctx.request().getParam("pilotUuid"))
+                .onFailure(ctx::fail)
+                .onSuccess(result -> {
+                    doRedirect(ctx.response(), teamUrl(ctx, "/edit"));
+                });
     }
 
     private String checkForTeamImportErrors(Stream<JsonObject> results) {

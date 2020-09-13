@@ -1,8 +1,10 @@
 (function () {
 
     function actions(sel) {
-        if (!locked)
-            sel.append('a').attr('href', '#').text('Kick');
+        if (!locked || isSuperuser || isOrganiser)
+            sel.append('a')
+                .attr('href', d => '/auth/tournament/' + tournamentUuid + '/teams/' + teamUuid + '/kick/' + d.uuid)
+                .text('Kick');
         sel.append('a').attr('href', '#').text('Report name in use');
     }
 
