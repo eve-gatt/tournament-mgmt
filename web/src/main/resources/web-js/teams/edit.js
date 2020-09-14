@@ -1,8 +1,8 @@
 (function () {
 
     function actions(sel) {
-        if ((locked && (isSuperuser || isOrganiser))
-            || (!locked && (isSuperuser || isOrganiser || isTeamCaptain)))
+        if ((locked && (isSuperuser || isOrganiser || isCreator))
+            || (!locked && (isSuperuser || isOrganiser || isCreator || isTeamCaptain)))
             sel.append('a')
                 .attr('href', d => '/auth/tournament/' + tournamentUuid + '/teams/' + teamUuid + '/kick/' + d.uuid)
                 .text('Kick');

@@ -207,7 +207,7 @@ public class TournamentRouter {
                     ctx.reroute(HttpMethod.GET, "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/edit");
                 })
                 .onSuccess(result -> {
-                    RenderHelper.doRedirect(ctx.response(), "/auth/profile/me");
+                    RenderHelper.doRedirect(ctx.response(), "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/home");
                 });
     }
 

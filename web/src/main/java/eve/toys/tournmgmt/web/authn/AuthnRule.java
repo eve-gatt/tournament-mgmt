@@ -56,7 +56,7 @@ public class AuthnRule {
                                 promise.fail("team is missing is_captain_field");
                             } else {
                                 boolean checkCaptain = isCaptain && team.getBoolean("is_captain");
-                                promise.complete(tournamentLevel && checkCaptain);
+                                promise.complete(tournamentLevel || checkCaptain);
                             }
                         }));
     }
@@ -72,7 +72,7 @@ public class AuthnRule {
         String roles = tournament.getString("roles") == null ? "" : tournament.getString("roles");
         boolean checkRoles = !this.roles.isEmpty()
                 && this.roles.stream().anyMatch(role -> roles.contains(role.name().toLowerCase()))
-                || this.roles.contains(Role.ORGANISER) && tournament.getString("created_by").equals(name);
+                || this.roles.contains(Role.ORGANISER) && tournament.getBoolean("is_creator");
 
         if (!tournament.containsKey("is_captain")) {
             return Future.future(promise -> promise.fail("tournament is missing is_captain field"));

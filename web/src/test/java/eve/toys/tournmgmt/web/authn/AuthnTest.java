@@ -17,25 +17,29 @@ public class AuthnTest {
             .put("created_by", "Oliver Organiser")
             .put("roles", "organiser")  // current user is an organiser
             .put("is_captain", false)
-            .put("is_pilot", true);
+            .put("is_pilot", true)
+            .put("is_creator", false);
     private static JsonObject TOURNAMENT2 = new JsonObject()
             .put("name", "TOURNAMENT2")
             .put("created_by", "Oliver Organiser")
             .put("roles", "")
             .put("is_captain", true) // current user is a captain
-            .put("is_pilot", false);
+            .put("is_pilot", false)
+            .put("is_creator", false);
     private static JsonObject TOURNAMENT3 = new JsonObject()
             .put("name", "TOURNAMENT3")
             .put("created_by", "Oliver Organiser")
             .put("roles", "referee")
             .put("is_captain", false)
-            .put("is_pilot", false);
+            .put("is_pilot", false)
+            .put("is_creator", false);
     private static JsonObject TOURNAMENT4 = new JsonObject()
             .put("name", "TOURNAMENT1")
             .put("created_by", "Oliver Organiser")
             .put("roles", "")  // current user is an organiser
             .put("is_captain", false)
-            .put("is_pilot", false);
+            .put("is_pilot", false)
+            .put("is_creator", true);
 
 
     @Test
@@ -69,7 +73,7 @@ public class AuthnTest {
     }
 
     @Test
-    public void tournamentCreatorIsAnOrganiser(TestContext context) {
+    public void tournamentCreatorShouldBeAnOrganiser(TestContext context) {
         AuthnRule rule = new AuthnRule().role(Role.ORGANISER);
         rule.validate(TOURNAMENT4, "Oliver Organiser")
                 .onComplete(context.asyncAssertSuccess(context::assertTrue));
@@ -146,9 +150,9 @@ public class AuthnTest {
     }
 
     @Test
-    public void usingTeamSpecificCheckWithNonTeamSpecificRuleWillAlwaysBeFalse(TestContext context) {
+    public void usingTeamSpecificCheckWithNonTeamSpecificRuleWillApplyProperly(TestContext context) {
         AuthnRule rule = new AuthnRule().role(Role.REFEREE);
-        rule.validate(TOURNAMENT3, TEAM1, "Cap'n")
+        rule.validate(TOURNAMENT2, TEAM1, "Cap'n")
                 .onComplete(context.asyncAssertSuccess(context::assertFalse));
     }
 

@@ -11,6 +11,7 @@ block content
     - var teamUuid = team.getString("uuid")
     - var roles = tournament.getString("roles") == null ? "" : tournament.getString("roles")
     - var isSuperuser = character.getBoolean("isSuperuser")
+    - var isCreator = tournament.getBoolean("is_creator")
     - var isCaptain = tournament.getBoolean("is_captain")
     - var isTeamCaptain = team.getBoolean("is_captain")
 
@@ -27,7 +28,7 @@ block content
             tbody
 
     - var adminConditions = team.getBoolean("locked") && (isSuperuser || roles.contains("organiser"))
-    - var nonAdminConditions = !team.getBoolean("locked") && (isSuperuser || roles.contains("organiser") || isTeamCaptain)
+    - var nonAdminConditions = !team.getBoolean("locked") && (isSuperuser || roles.contains("organiser") || isCreator || isTeamCaptain)
     if adminConditions || nonAdminConditions
         a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/add-members") Add team members
         a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/lock-team") Lock team
@@ -41,6 +42,7 @@ block scripts
         const locked = #{team.getBoolean("locked")};
         const isSuperuser = #{character.getBoolean("isSuperuser")};
         const isOrganiser = #{tournament.getString("roles") != null && tournament.getString("roles").contains("organiser")};
+        const isCreator = #{tournament.getBoolean("is_creator")};
         const isCaptain = #{tournament.getBoolean("is_captain")};
         const isTeamCaptain = #{team.getBoolean("is_captain")};
         const isPilot = #{tournament.getBoolean("is_pilot")};
