@@ -7,75 +7,20 @@ import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.oauth2.AccessToken;
 import io.vertx.ext.auth.oauth2.KeycloakHelper;
 import io.vertx.ext.auth.oauth2.OAuth2RBAC;
 import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.db.DbClient;
 
-import java.util.EnumSet;
-
 public class AppRBAC implements OAuth2RBAC {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AppRBAC.class.getName());
 
-    public static final EnumSet<Perm> ORGANISER_PERMS = EnumSet.of(
-            Perm.canEdit,
-            Perm.canSearchPilot,
-            Perm.canManageTeams,
-            Perm.canManageRoles,
-            Perm.canReferee
-    );
-    public static final EnumSet<Perm> REFEREE_PERMS = EnumSet.of(
-            Perm.canSearchPilot,
-            Perm.canReferee
-    );
     private final EventBus eventBus;
 
     public AppRBAC(EventBus eventBus) {
         this.eventBus = eventBus;
-    }
-
-    public static void addPermissionsToTournament(JsonObject tournament) {
-        ORGANISER_PERMS.forEach(r -> tournament.put(r.name(), true));
-        tournament.put(Perm.canManageTD.name(), tournament.getBoolean("practice_on_td") || tournament.getBoolean("play_on_td"));
-    }
-
-    public static Future<JsonObject> futureForTournamentPriv(User user, String authority, JsonObject tournament) {
-        return Future.future(promise ->
-                user.isAuthorised(authority + ":" + tournament.getString("uuid"),
-                        ar -> {
-                            if (ar.failed()) {
-                                promise.fail(ar.cause());
-                            } else {
-                                tournament.put(authority, ar.result());
-                                promise.complete(tournament);
-                            }
-                        }));
-    }
-
-    public static void hasTournamentRole(RoutingContext ctx, String role) {
-        String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
-        ctx.user().isAuthorised(role + ":" + ctx.request().getParam("tournamentUuid"), ar -> {
-            if (ar.failed()) {
-                ar.cause().printStackTrace();
-                ctx.fail(ar.cause());
-            } else {
-                JsonObject tournament = (JsonObject) ctx.data().get("tournament");
-                if (ar.result()
-                        || isSuperuser(characterName)
-                        || characterName.equals(tournament.getString("created_by"))) {
-                    ctx.next();
-                } else {
-                    ctx.fail(403);
-                }
-            }
-        });
-    }
-
-    public static boolean isSuperuser(String characterName) {
-        return characterName.equals(System.getenv("SUPERUSER"));
     }
 
     public static void refreshIfNeeded(AccessToken user, Handler<Void> handler) {
@@ -93,6 +38,18 @@ public class AppRBAC implements OAuth2RBAC {
         }
     }
 
+    public static Future<Boolean> authn(RoutingContext ctx, AuthnRule rule) {
+        return rule.validate((JsonObject) ctx.data().get("tournament"),
+                ((JsonObject) ctx.data().get("character")).getString("characterName"))
+                .onFailure(ctx::fail)
+                .onSuccess(allowed -> {
+                    if (allowed)
+                        ctx.next();
+                    else
+                        ctx.fail(403);
+                });
+    }
+
     @Override
     public void isAuthorized(AccessToken user, String authority, Handler<AsyncResult<Boolean>> handler) {
         // TODO: remember to user.clearCache() to have this re-evaluated if persisted perms changes
@@ -103,11 +60,11 @@ public class AppRBAC implements OAuth2RBAC {
         } else {
             String[] split = authority.split(":");
             String type = split[0];
-            String uuid = split[1];
+            String tournamentUuid = split[1];
             eventBus.request(DbClient.DB_HAS_ROLE,
                     new JsonObject()
                             .put("name", name)
-                            .put("uuid", uuid)
+                            .put("uuid", tournamentUuid)
                             .put("type", type)
                     , ar -> {
                         if (ar.failed()) {
@@ -120,12 +77,8 @@ public class AppRBAC implements OAuth2RBAC {
         }
     }
 
-    public enum Perm {
-        canEdit,
-        canSearchPilot,
-        canManageTeams,
-        canManageTD,
-        canManageRoles,
-        canReferee
+    public static boolean isSuperuser(String characterName) {
+        return characterName.equals(System.getenv("SUPERUSER"));
     }
+
 }

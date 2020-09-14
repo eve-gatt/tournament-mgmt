@@ -1,11 +1,11 @@
 (function () {
 
     function actions(sel) {
-        if (!locked || isSuperuser || isOrganiser)
+        if ((locked && (isSuperuser || isOrganiser))
+            || (!locked && (isSuperuser || isOrganiser || isCaptain)))
             sel.append('a')
                 .attr('href', d => '/auth/tournament/' + tournamentUuid + '/teams/' + teamUuid + '/kick/' + d.uuid)
                 .text('Kick');
-        sel.append('a').attr('href', '#').text('Report name in use');
     }
 
     function renderTeamMembers(data) {

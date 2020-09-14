@@ -2,9 +2,9 @@ package eve.toys.tournmgmt.web;
 
 import eve.toys.tournmgmt.web.authn.AppRBAC;
 import eve.toys.tournmgmt.web.esi.Esi;
+import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.routes.*;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
@@ -28,9 +28,7 @@ import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class WebVerticle extends AbstractVerticle {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebVerticle.class.getName());
@@ -46,6 +44,7 @@ public class WebVerticle extends AbstractVerticle {
         this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
         Esi esi = Esi.create();
         DbClient dbClient = new DbClient(vertx.eventBus());
+        JobClient jobClient = new JobClient(vertx.eventBus());
 
         SessionStore sessionStore = LocalSessionStore.create(vertx);
 
@@ -83,7 +82,7 @@ public class WebVerticle extends AbstractVerticle {
                 .handler(BodyHandler.create())
                 .pathRegex("^(?!/js/|/css/|/assets/).+")
                 .handler(ctx -> addCharacterInfoToContext(ctx)
-                        .compose(v -> addTournamentInfoToContext(ctx))
+                        .compose(v -> addTournamentInfoToContext(ctx, dbClient))
                         .onSuccess(f -> ctx.next())
                         .onFailure(throwable -> {
                             throwable.printStackTrace();
@@ -102,13 +101,13 @@ public class WebVerticle extends AbstractVerticle {
         router.mountSubRouter("/login", LoginRouter.routes(vertx, render, oauth2));
         router.mountSubRouter("/auth/tournament", TournamentRouter.routes(vertx, render, webClient, esi, dbClient));
         router.mountSubRouter("/auth/profile", ProfileRouter.routes(vertx, render, webClient, esi, dbClient));
-        router.mountSubRouter("/auth/tournament", TeamsRouter.routes(vertx, render, webClient, esi, dbClient));
+        router.mountSubRouter("/auth/tournament", TeamsRouter.routes(vertx, render, webClient, esi, dbClient, jobClient));
         router.mountSubRouter("/auth/tournament", RefereeRouter.routes(vertx, render));
         router.mountSubRouter("/auth/tournament", ThunderdomeRouter.routes(vertx, render));
         router.route("/auth/superuser/*")
                 .handler(RedirectAuthHandler.create(oauth2, "/login/start")
                         .addAuthority("isSuperuser"));
-        router.mountSubRouter("/auth/superuser", SuperuserRouter.routes(vertx, render));
+        router.mountSubRouter("/auth/superuser", SuperuserRouter.routes(vertx, render, jobClient));
 
         SockJSHandler sockJSHandler = SockJSHandler.create(vertx, new SockJSHandlerOptions());
         sockJSHandler.bridge(new BridgeOptions()
@@ -151,36 +150,16 @@ public class WebVerticle extends AbstractVerticle {
         });
     }
 
-    private Future<Void> addTournamentInfoToContext(RoutingContext ctx) {
+    private Future<Void> addTournamentInfoToContext(RoutingContext ctx, DbClient dbClient) {
         return Future.future(promise -> {
             if (ctx.data().containsKey("character")) {
                 String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
-                vertx.eventBus().request(DbClient.DB_FETCH_TOURNAMENTS,
-                        new JsonObject(),
-                        ar -> {
-                            if (ar.failed()) {
-                                ar.cause().printStackTrace();
-                                promise.fail(ar.cause());
-                            } else {
-                                List<Future> checks = ((JsonArray) ar.result().body()).stream()
-                                        .map(o -> (JsonObject) o)
-                                        .map(t -> AppRBAC.futureForTournamentPriv(ctx.user(),
-                                                "organiser",
-                                                t))
-                                        .collect(Collectors.toList());
-                                CompositeFuture.all(checks)
-                                        .onFailure(Throwable::printStackTrace)
-                                        .onSuccess(f -> {
-                                            JsonArray tournaments = new JsonArray(f.list().stream()
-                                                    .map(o -> (JsonObject) o)
-                                                    .filter(t -> t.getBoolean("organiser")
-                                                            || AppRBAC.isSuperuser(characterName)
-                                                            || characterName.equals(t.getString("created_by")))
-                                                    .collect(Collectors.toList()));
-                                            ctx.data().put("tournaments", tournaments);
-                                            promise.complete();
-                                        });
-                            }
+                dbClient.callDb(DbClient.DB_TOURNAMENTS_CHARACTER_CAN_VIEW, characterName)
+                        .onFailure(promise::fail)
+                        .onSuccess(results -> {
+                            JsonArray tournaments = (JsonArray) results.body();
+                            ctx.data().put("tournaments", tournaments);
+                            promise.complete();
                         });
             } else {
                 promise.complete();

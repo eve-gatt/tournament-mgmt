@@ -11,20 +11,23 @@ mixin subtitle(name)
             a(href="/auth/tournament/" + uuid + "/teams/" + team.getString("uuid") + "/edit")= team.getString("name")
 
     .menu
+        - var roles = tournament.getString("roles") == null ? "" : tournament.getString("roles")
+        - var isSuperuser = character.getBoolean("isSuperuser")
+        - var isCaptain = tournament.getBoolean("is_captain")
+        - var isPilot = tournament.getBoolean("is_pilot")
         a(href="/auth/tournament/" + uuid + "/home") Home
-        if tournament.getBoolean("canEdit")
+        if isSuperuser || roles.contains("organiser")
             a(href="/auth/tournament/" + uuid + "/edit") Edit details
-        if tournament.getBoolean("canDelete")
             a(href="/auth/tournament/" + uuid + "/delete") Delete
-        if tournament.getBoolean("canSearchPilot")
-            a(href="#") Search for pilot
-        if tournament.getBoolean("canManageTeams")
-            a(href="/auth/tournament/" + uuid + "/teams") Manage teams
-        if tournament.getBoolean("canManageTD")
-            a(href="/auth/tournament/" + uuid + "/thunderdome") Manage Thunderdome
-        if tournament.getBoolean("canManageRoles")
+
+        a(href="#") Search for pilot
+        a(href="/auth/tournament/" + uuid + "/teams") Manage teams
+        a(href="/auth/tournament/" + uuid + "/thunderdome") Manage Thunderdome
+
+        if isSuperuser || roles.contains("organiser")
             a(href="/auth/tournament/" + uuid + "/roles") Manage roles
-        if tournament.getBoolean("canReferee")
+
+        if isSuperuser || roles.contains("organiser") || roles.contains("referee")
             a(href="/auth/tournament/" + uuid + "/referee") Referee
 
 block styles

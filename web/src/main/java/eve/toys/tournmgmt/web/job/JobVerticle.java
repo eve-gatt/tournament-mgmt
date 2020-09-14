@@ -45,8 +45,8 @@ public class JobVerticle extends AbstractVerticle {
                                     esi.lookupAlliance(webClient, row.getString("name")),
                                     esi.lookupCharacter(webClient, row.getString("captain"))))
                             .collect(Collectors.toList()))
-                            .onFailure(Throwable::printStackTrace)
                             .map(AppStreamHelpers::toJsonObjects)
+                            .onFailure(Throwable::printStackTrace)
                             .onSuccess(results ->
                                     results.forEach(json -> {
                                         String uuid = json.getString("uuid");

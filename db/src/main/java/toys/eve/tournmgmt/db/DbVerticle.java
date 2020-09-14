@@ -31,7 +31,7 @@ public class DbVerticle extends AbstractVerticle {
 
         try {
             Flyway flyway = Flyway.configure()
-//                    .baselineVersion("002")
+                    .baselineVersion("002")
                     .dataSource(URL, USER, PASSWORD)
                     .load();
             if (Boolean.parseBoolean(System.getProperty("db_do_clean", "false"))) {
@@ -39,7 +39,7 @@ public class DbVerticle extends AbstractVerticle {
                 flyway.clean();
             }
             LOGGER.info("Flyway migration");
-//            flyway.baseline();
+            flyway.baseline();
             flyway.migrate();
         } catch (FlywayException e) {
             startPromise.fail(e);
@@ -57,7 +57,7 @@ public class DbVerticle extends AbstractVerticle {
 
         vertx.eventBus().consumer(DbClient.DB_CREATE_TOURNAMENT, this::createTournament);
         vertx.eventBus().consumer(DbClient.DB_EDIT_TOURNAMENT, this::editTournament);
-        vertx.eventBus().consumer(DbClient.DB_FETCH_TOURNAMENTS, this::fetchOrganisedTournaments);
+        vertx.eventBus().consumer(DbClient.DB_FETCH_TOURNAMENTS, this::fetchAllTournaments);
         vertx.eventBus().consumer(DbClient.DB_TOURNAMENT_BY_UUID, this::tournamentByUuid);
         vertx.eventBus().consumer(DbClient.DB_TEAM_BY_UUID, this::teamByUuid);
         vertx.eventBus().consumer(DbClient.DB_PILOT_BY_UUID, this::pilotByUuid);
@@ -74,6 +74,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT, this::replaceRolesByTypeAndTournament);
         vertx.eventBus().consumer(DbClient.DB_HAS_ROLE, this::hasRole);
         vertx.eventBus().consumer(DbClient.DB_PROBLEMS_BY_TOURNAMENT, this::problemsByTournament);
+        vertx.eventBus().consumer(DbClient.DB_TOURNAMENTS_CHARACTER_CAN_VIEW, this::tournamentsCharacterCanView);
 
         startPromise.complete();
     }
@@ -121,8 +122,7 @@ public class DbVerticle extends AbstractVerticle {
                 });
     }
 
-    private void fetchOrganisedTournaments(Message<JsonObject> msg) {
-        String organiser = msg.body().getString("organiser");
+    private void fetchAllTournaments(Message<JsonObject> msg) {
         sqlClient.query(
                 "select uuid, name, created_by, practice_on_td, play_on_td, teams_locked " +
                         "from tournament",
@@ -137,13 +137,21 @@ public class DbVerticle extends AbstractVerticle {
         );
     }
 
-    private void tournamentByUuid(Message<String> msg) {
-        String uuid = msg.body();
-        sqlClient.query("select name, uuid, start_date, practice_on_td, play_on_td," +
+    private void tournamentByUuid(Message<JsonObject> msg) {
+        String uuid = msg.body().getString("uuid");
+        String characterName = msg.body().getString("characterName");
+        sqlClient.queryWithParams("select name, uuid, start_date, practice_on_td, play_on_td, " +
                         "(select count(*) from team where tournament_uuid = '" + uuid + "') as team_count, " +
-                        "(select count(*) from team_member inner join team on team_member.team_uuid = team.uuid where team.tournament_uuid = '" + uuid + "') as pilot_count " +
+                        "(select count(*) from team_member inner join team on team_member.team_uuid = team.uuid where team.tournament_uuid = '" + uuid + "') as pilot_count, " +
+                        "exists(select 1 from team where team.tournament_uuid = tournament.uuid and captain = ?) as is_captain, " +
+                        "exists(select 1 from team_member inner join team on team_member.team_uuid = team.uuid where team.tournament_uuid = tournament.uuid and team_member.name = ?) as is_pilot, " +
+                        "(select string_agg(type::varchar, ',') as roles from tournament_role where tournament.uuid = tournament_role.tournament_uuid and tournament_role.name = ?) " +
                         "from tournament " +
                         "where uuid = '" + uuid + "'",
+                new JsonArray()
+                        .add(characterName)
+                        .add(characterName)
+                        .add(characterName),
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
@@ -461,6 +469,48 @@ public class DbVerticle extends AbstractVerticle {
                         return;
                     }
                     msg.reply(new JsonArray(ar.result().getRows()));
+                });
+    }
+
+    private void tournamentsCharacterCanView(Message<String> msg) {
+        String characterName = msg.body();
+        sqlClient.queryWithParams("select uuid, name, created_by, practice_on_td, play_on_td, teams_locked, " +
+                        "exists(select 1 from team where team.tournament_uuid = tournament.uuid and captain = ?) as is_captain, " +
+                        "exists(select 1 from team_member inner join team on team_member.team_uuid = team.uuid where team.tournament_uuid = tournament.uuid and team_member.name = ?) as is_pilot, " +
+                        "(select string_agg(type::varchar, ',') as roles from tournament_role where tournament.uuid = tournament_role.tournament_uuid and tournament_role.name = ?) " +
+                        "from tournament " +
+                        "where " +
+                        "   ? = ? " +
+                        "   or exists(select 1 " +
+                        "             from team " +
+                        "             where team.tournament_uuid = tournament.uuid " +
+                        "               and captain = ?) " +
+                        "   or exists(select 1 " +
+                        "             from team_member " +
+                        "                      inner join team on team_member.team_uuid = team.uuid " +
+                        "             where team.tournament_uuid = tournament.uuid " +
+                        "               and team_member.name = ?) " +
+                        "   or exists(select 1 " +
+                        "             from tournament_role " +
+                        "             where tournament_role.tournament_uuid = tournament.uuid " +
+                        "               and tournament_role.name = ? " +
+                        "               and tournament_role.type in ('organiser', 'referee', 'staff')) ",
+                new JsonArray()
+                        .add(characterName)
+                        .add(characterName)
+                        .add(characterName)
+                        .add(System.getenv("SUPERUSER"))
+                        .add(characterName)
+                        .add(characterName)
+                        .add(characterName)
+                        .add(characterName),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(new JsonArray(ar.result().getRows()));
+                    }
                 });
     }
 

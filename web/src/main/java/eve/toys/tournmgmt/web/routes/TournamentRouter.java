@@ -1,11 +1,15 @@
 package eve.toys.tournmgmt.web.routes;
 
 import eve.toys.tournmgmt.web.Branding;
-import eve.toys.tournmgmt.web.authn.AppRBAC;
+import eve.toys.tournmgmt.web.authn.AuthnRule;
+import eve.toys.tournmgmt.web.authn.Role;
 import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
 import eve.toys.tournmgmt.web.tsv.TSV;
-import io.vertx.core.*;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -30,7 +34,7 @@ import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import static eve.toys.tournmgmt.web.authn.AppRBAC.hasTournamentRole;
+import static eve.toys.tournmgmt.web.authn.AppRBAC.authn;
 import static toys.eve.tournmgmt.common.util.RenderHelper.doRedirect;
 import static toys.eve.tournmgmt.common.util.RenderHelper.tournamentUrl;
 
@@ -63,6 +67,8 @@ public class TournamentRouter {
                 .addFormParam("tsv", ParameterType.GENERIC_STRING, true)
                 .addFormParam("type", ParameterType.GENERIC_STRING, true);
 
+        AuthnRule isOrganiser = AuthnRule.create().role(Role.ORGANISER);
+
         router.route("/:tournamentUuid/*").handler(this::loadTournament);
         router.get("/create").handler(this::create);
         router.post("/create")
@@ -71,45 +77,35 @@ public class TournamentRouter {
                 .failureHandler(this::handleCreateFailure);
         router.get("/:tournamentUuid/home").handler(this::home);
         router.get("/:tournamentUuid/edit")
-                .handler(ctx -> hasTournamentRole(ctx, "organiser"))
+                .handler(ctx -> authn(ctx, isOrganiser))
                 .handler(this::edit);
         router.post("/:tournamentUuid/edit")
-                .handler(ctx -> hasTournamentRole(ctx, "organiser"))
+                .handler(ctx -> authn(ctx, isOrganiser))
                 .handler(tournamentValidator)
                 .handler(this::handleEdit)
                 .failureHandler(this::handleEditFailure);
         router.get("/:tournamentUuid/roles")
-                .handler(ctx -> hasTournamentRole(ctx, "organiser"))
+                .handler(ctx -> authn(ctx, isOrganiser))
                 .handler(this::roles);
         router.post("/:tournamentUuid/roles")
-                .handler(ctx -> hasTournamentRole(ctx, "organiser"))
+                .handler(ctx -> authn(ctx, isOrganiser))
                 .handler(rolesValidator)
                 .handler(this::handleRoles)
                 .failureHandler(this::handleRolesFailure);
     }
 
     private void loadTournament(RoutingContext ctx) {
-        CompositeFuture.all(
-                dbClient.callDb(DbClient.DB_TOURNAMENT_BY_UUID, ctx.request().getParam("tournamentUuid")),
-                dbClient.callDb(DbClient.DB_PROBLEMS_BY_TOURNAMENT, ctx.request().getParam("tournamentUuid")))
+        String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
+        dbClient.callDb(DbClient.DB_TOURNAMENT_BY_UUID,
+                new JsonObject()
+                        .put("characterName", characterName)
+                        .put("uuid", ctx.request().getParam("tournamentUuid")))
                 .onFailure(ctx::fail)
-                .onSuccess(f -> {
-                    JsonObject tournament = ((Message<JsonObject>) f.resultAt(0)).body();
-                    JsonArray problems = ((Message<JsonArray>) f.resultAt(1)).body();
-                    String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
-                    AppRBAC.futureForTournamentPriv(ctx.user(), "organiser", tournament)
-                            .onFailure(ctx::fail)
-                            .onSuccess(t -> {
-                                Boolean isOrganiser = t.getBoolean("organiser");
-                                if (isOrganiser || AppRBAC.isSuperuser(characterName) || characterName.equals(tournament.getString("created_by"))) {
-                                    AppRBAC.addPermissionsToTournament(tournament);
-                                }
-                                ((JsonObject) ctx.data().get("character")).put("isOrganiser", isOrganiser);
-                                ctx.data().put("tournament", tournament);
-                                ctx.data().put("problems", problems);
-                                ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
-                                ctx.next();
-                            });
+                .onSuccess(result -> {
+                    JsonObject tournament = (JsonObject) result.body();
+                    ctx.data().put("tournament", tournament);
+                    ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
+                    ctx.next();
                 });
     }
 
@@ -164,7 +160,14 @@ public class TournamentRouter {
     }
 
     private void home(RoutingContext ctx) {
-        render.renderPage(ctx, "/tournament/home", new JsonObject());
+        dbClient.callDb(DbClient.DB_PROBLEMS_BY_TOURNAMENT, ctx.request().getParam("tournamentUuid"))
+                .onFailure(ctx::fail)
+                .onSuccess(result -> {
+                    JsonArray problems = (JsonArray) result.body();
+                    ctx.data().put("problems", problems);
+                    render.renderPage(ctx, "/tournament/home", new JsonObject());
+                });
+
     }
 
     private void edit(RoutingContext ctx) {

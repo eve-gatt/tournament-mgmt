@@ -1,13 +1,15 @@
 package eve.toys.tournmgmt.web.routes;
 
 import eve.toys.tournmgmt.web.AppStreamHelpers;
+import eve.toys.tournmgmt.web.authn.AppRBAC;
+import eve.toys.tournmgmt.web.authn.AuthnRule;
+import eve.toys.tournmgmt.web.authn.Role;
 import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
 import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.tsv.TSV;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
@@ -28,43 +30,67 @@ public class TeamsRouter {
 
     private static final Pattern DUPE_REGEX = Pattern.compile(".*Detail: Key \\([^=]+=\\(([^,]+), ([^\\)]+)\\) already exists\\.");
 
-    private final EventBus eventBus;
     private final RenderHelper render;
     private final Router router;
     private final WebClient webClient;
     private final Esi esi;
     private final DbClient dbClient;
+    private final JobClient jobClient;
 
-    public TeamsRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
+    public TeamsRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient, JobClient jobClient) {
         router = Router.router(vertx);
         this.render = render;
-        this.eventBus = vertx.eventBus();
         this.webClient = webClient;
         this.esi = esi;
         this.dbClient = dbClient;
+        this.jobClient = jobClient;
+
+        AuthnRule isOrganiser = AuthnRule.create().role(Role.ORGANISER);
+        AuthnRule isOrganiserOrCaptain = AuthnRule.create().role(Role.ORGANISER).isCaptain();
+        AuthnRule isOrganiserOrCaptainOrPilot = AuthnRule.create().role(Role.ORGANISER).isCaptain().isPilot();
 
         router.route("/:tournamentUuid/teams/:teamUuid/*").handler(this::loadTeam);
         router.get("/:tournamentUuid/teams").handler(this::manage);
         router.get("/:tournamentUuid/teams/data").handler(this::teamsData);
-        router.get("/:tournamentUuid/teams/:teamUuid/edit").handler(this::editTeam);
-        router.get("/:tournamentUuid/teams/:teamUuid/remove").handler(this::removeTeam);
-        router.get("/:tournamentUuid/teams/:teamUuid/remove/confirm").handler(this::removeTeamConfirm);
-        router.get("/:tournamentUuid/teams/import").handler(this::importTeams);
+        router.get("/:tournamentUuid/teams/:teamUuid/edit")
+                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptainOrPilot))
+                .handler(this::editTeam);
+        router.get("/:tournamentUuid/teams/:teamUuid/remove")
+                .handler(ctx -> AppRBAC.authn(ctx, isOrganiser))
+                .handler(this::removeTeam);
+        router.get("/:tournamentUuid/teams/:teamUuid/remove/confirm")
+                .handler(ctx -> AppRBAC.authn(ctx, isOrganiser))
+                .handler(this::removeTeamConfirm);
+        router.get("/:tournamentUuid/teams/import")
+                .handler(ctx -> AppRBAC.authn(ctx, isOrganiser))
+                .handler(this::importTeams);
         router.post("/:tournamentUuid/teams/import")
+                .handler(ctx -> AppRBAC.authn(ctx, isOrganiser))
                 .handler(TSV.VALIDATOR)
                 .handler(this::handleImportTeams)
                 .failureHandler(this::handleImportFail);
-        router.get("/:tournamentUuid/teams/:teamUuid/add-members").handler(this::addMembers);
+        router.get("/:tournamentUuid/teams/:teamUuid/add-members")
+                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptain))
+                .handler(this::addMembers);
         router.post("/:tournamentUuid/teams/:teamUuid/add-members")
+                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptain))
                 .handler(TSV.VALIDATOR)
                 .handler(this::handleAddMembers)
                 .failureHandler(this::handleAddMembersFail);
         router.get("/:tournamentUuid/teams/:teamUuid/members/data").handler(this::membersData);
-        router.get("/:tournamentUuid/teams/:teamUuid/lock-team").handler(this::lockTeam);
-        router.get("/:tournamentUuid/teams/:teamUuid/lock-team/confirm").handler(this::lockTeamConfirm);
+        router.get("/:tournamentUuid/teams/:teamUuid/lock-team")
+                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptain))
+                .handler(this::lockTeam);
+        router.get("/:tournamentUuid/teams/:teamUuid/lock-team/confirm")
+                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptain))
+                .handler(this::lockTeamConfirm);
         router.route("/:tournamentUuid/teams/:teamUuid/kick/:pilotUuid").handler(this::loadPilot);
-        router.get("/:tournamentUuid/teams/:teamUuid/kick/:pilotUuid").handler(this::kickMember);
-        router.get("/:tournamentUuid/teams/:teamUuid/kick/:pilotUuid/confirm").handler(this::confirmKickMember);
+        router.get("/:tournamentUuid/teams/:teamUuid/kick/:pilotUuid")
+                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptain))
+                .handler(this::kickMember);
+        router.get("/:tournamentUuid/teams/:teamUuid/kick/:pilotUuid/confirm")
+                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptain))
+                .handler(this::confirmKickMember);
     }
 
     private void loadTeam(RoutingContext ctx) {
@@ -152,7 +178,7 @@ public class TeamsRouter {
 
                                 })
                                 .onSuccess(result -> {
-                                    eventBus.publish(JobClient.JOB_CHECK_ALLIANCE_MEMBERSHIP, new JsonObject());
+                                    jobClient.run(JobClient.JOB_CHECK_ALLIANCE_MEMBERSHIP, new JsonObject());
                                     doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
                                 });
                     } else {
@@ -293,8 +319,8 @@ public class TeamsRouter {
         }).collect(Collectors.joining());
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
-        return new TeamsRouter(vertx, render, webClient, esi, dbClient).router();
+    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient, JobClient jobClient) {
+        return new TeamsRouter(vertx, render, webClient, esi, dbClient, jobClient).router();
     }
 
     private Router router() {

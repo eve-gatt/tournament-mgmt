@@ -15,7 +15,11 @@ block content
         p
             span= tournament.getInteger("pilot_count")
             span &nbsp;pilots registered
-        if problems.size() > 0
+
+        - var roles = tournament.getString("roles") == null ? "" : tournament.getString("roles")
+        - var isSuperuser = character.getBoolean("isSuperuser")
+
+        if (isSuperuser || roles.contains("organiser")) && problems.size() > 0
             h3 Problems
             .problems
                 each problem in problems

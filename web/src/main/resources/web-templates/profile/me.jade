@@ -72,4 +72,6 @@ block content
                                 td(class=clazz)= req.getInteger("toonLevel")
 
 block scripts
+    script.
+        const isSuperuser = #{character.getBoolean("isSuperuser")};
     script(type="module", src='/js/profile/me.js')

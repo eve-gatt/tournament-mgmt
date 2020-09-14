@@ -54,16 +54,12 @@ create table team_member
         primary key (team_member_id),
     constraint team_member_uuid_key
         unique (uuid),
+    constraint team_member_only_once
+        unique (team_uuid, name),
     constraint team_member_team_uuid_fk
         foreign key (team_uuid) references team (uuid)
             on update cascade on delete cascade
 );
-
-alter table team_member
-    add constraint team_member_only_once
-        unique (team_uuid, name);
-
-create type role_type as enum ('organiser', 'referee', 'staff');
 
 create table tournament_role
 (
@@ -72,5 +68,8 @@ create table tournament_role
     type               role_type not null,
     name               varchar   not null,
     constraint tournament_role_pk
-        primary key (tournament_role_id)
+        primary key (tournament_role_id),
+    constraint tournament_role_tournament_uuid_fk
+        foreign key (tournament_uuid) references tournament (uuid)
 );
+

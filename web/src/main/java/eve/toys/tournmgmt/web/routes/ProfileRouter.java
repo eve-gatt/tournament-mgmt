@@ -1,6 +1,5 @@
 package eve.toys.tournmgmt.web.routes;
 
-import eve.toys.tournmgmt.web.authn.AppRBAC;
 import eve.toys.tournmgmt.web.esi.Esi;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
@@ -9,7 +8,6 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
@@ -32,7 +30,6 @@ public class ProfileRouter {
 
     private static final List<Integer> SKILL_IDS = Arrays.asList(182, 183, 184, 1285, 1289, 1290);
     private static final List<Integer> SKILL_LEVELS = Arrays.asList(277, 278, 279, 1286, 1287, 1288);
-    private final EventBus eventBus;
     private final WebClient webClient;
     private final RenderHelper render;
     private final Router router;
@@ -42,7 +39,6 @@ public class ProfileRouter {
     public ProfileRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
         router = Router.router(vertx);
         this.render = render;
-        this.eventBus = vertx.eventBus();
         this.webClient = webClient;
         this.esi = esi;
         this.dbClient = dbClient;
@@ -59,20 +55,9 @@ public class ProfileRouter {
 
     private void tournamentsJson(RoutingContext ctx) {
         String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
-        dbClient.callDb(DbClient.DB_FETCH_TOURNAMENTS, new JsonObject())
-                .onFailure(ctx::fail)
-                .onSuccess(result -> CompositeFuture.all(((JsonArray) result.body()).stream()
-                        .map(o1 -> (JsonObject) o1)
-                        .map(t1 -> AppRBAC.futureForTournamentPriv(ctx.user(), "organiser", t1))
-                        .collect(Collectors.toList()))
-                        .onFailure(Throwable::printStackTrace)
-                        .onSuccess(f -> ctx.response().end(new JsonArray(f.list().stream()
-                                .map(o -> (JsonObject) o)
-                                .filter(t -> t.getBoolean("organiser")
-                                        || AppRBAC.isSuperuser(characterName)
-                                        || characterName.equals(t.getString("created_by")))
-                                .peek(AppRBAC::addPermissionsToTournament)
-                                .collect(Collectors.toList())).encode())));
+        dbClient.callDb(DbClient.DB_TOURNAMENTS_CHARACTER_CAN_VIEW, characterName)
+                .onFailure(Throwable::printStackTrace)
+                .onSuccess(result -> ctx.response().end(((JsonArray) result.body()).encode()));
     }
 
     private void shipCheck(RoutingContext ctx) {
