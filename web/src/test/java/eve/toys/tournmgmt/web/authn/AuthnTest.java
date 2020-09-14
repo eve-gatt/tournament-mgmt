@@ -9,6 +9,9 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class AuthnTest {
 
+    private static final JsonObject TEAM1 = new JsonObject()
+            .put("name", "TEAM1")
+            .put("is_captain", true);
     private static JsonObject TOURNAMENT1 = new JsonObject()
             .put("name", "TOURNAMENT1")
             .put("created_by", "Oliver Organiser")
@@ -126,6 +129,13 @@ public class AuthnTest {
                 .onComplete(context.asyncAssertSuccess(context::assertFalse));
         organiserRole.validate(TOURNAMENT3, "Rich Referee")
                 .onComplete(context.asyncAssertSuccess(context::assertFalse));
+    }
+
+    @Test
+    public void currentUserIsSpecificTeamCaptain(TestContext context) {
+        AuthnRule rule = new AuthnRule().isCaptain();
+        rule.validate(TOURNAMENT2, TEAM1, "Cap'n")
+                .onComplete(context.asyncAssertSuccess(context::assertTrue));
     }
 
 }

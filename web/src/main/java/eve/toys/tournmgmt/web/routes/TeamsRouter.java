@@ -53,48 +53,53 @@ public class TeamsRouter {
         router.get("/:tournamentUuid/teams").handler(this::manage);
         router.get("/:tournamentUuid/teams/data").handler(this::teamsData);
         router.get("/:tournamentUuid/teams/:teamUuid/edit")
-                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptainOrPilotOrReferee))
+                .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiserOrCaptainOrPilotOrReferee))
                 .handler(this::editTeam);
         router.get("/:tournamentUuid/teams/:teamUuid/remove")
-                .handler(ctx -> AppRBAC.authn(ctx, isOrganiser))
+                .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiser))
                 .handler(this::removeTeam);
         router.get("/:tournamentUuid/teams/:teamUuid/remove/confirm")
-                .handler(ctx -> AppRBAC.authn(ctx, isOrganiser))
+                .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiser))
                 .handler(this::removeTeamConfirm);
         router.get("/:tournamentUuid/teams/import")
-                .handler(ctx -> AppRBAC.authn(ctx, isOrganiser))
+                .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiser))
                 .handler(this::importTeams);
         router.post("/:tournamentUuid/teams/import")
-                .handler(ctx -> AppRBAC.authn(ctx, isOrganiser))
+                .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiser))
                 .handler(TSV.VALIDATOR)
                 .handler(this::handleImportTeams)
                 .failureHandler(this::handleImportFail);
         router.get("/:tournamentUuid/teams/:teamUuid/add-members")
-                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptain))
+                .handler(ctx -> AppRBAC.teamAuthn(ctx, isOrganiserOrCaptain))
                 .handler(this::addMembers);
         router.post("/:tournamentUuid/teams/:teamUuid/add-members")
-                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptain))
+                .handler(ctx -> AppRBAC.teamAuthn(ctx, isOrganiserOrCaptain))
                 .handler(TSV.VALIDATOR)
                 .handler(this::handleAddMembers)
                 .failureHandler(this::handleAddMembersFail);
         router.get("/:tournamentUuid/teams/:teamUuid/members/data").handler(this::membersData);
         router.get("/:tournamentUuid/teams/:teamUuid/lock-team")
-                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptain))
+                .handler(ctx -> AppRBAC.teamAuthn(ctx, isOrganiserOrCaptain))
                 .handler(this::lockTeam);
         router.get("/:tournamentUuid/teams/:teamUuid/lock-team/confirm")
-                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptain))
+                .handler(ctx -> AppRBAC.teamAuthn(ctx, isOrganiserOrCaptain))
                 .handler(this::lockTeamConfirm);
         router.route("/:tournamentUuid/teams/:teamUuid/kick/:pilotUuid").handler(this::loadPilot);
         router.get("/:tournamentUuid/teams/:teamUuid/kick/:pilotUuid")
-                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptain))
+                .handler(ctx -> AppRBAC.teamAuthn(ctx, isOrganiserOrCaptain))
                 .handler(this::kickMember);
         router.get("/:tournamentUuid/teams/:teamUuid/kick/:pilotUuid/confirm")
-                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptain))
+                .handler(ctx -> AppRBAC.teamAuthn(ctx, isOrganiserOrCaptain))
                 .handler(this::confirmKickMember);
     }
 
     private void loadTeam(RoutingContext ctx) {
-        dbClient.callDb(DbClient.DB_TEAM_BY_UUID, ctx.request().getParam("teamUuid"))
+        String uuid = ctx.request().getParam("teamUuid");
+        String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
+        dbClient.callDb(DbClient.DB_TEAM_BY_UUID,
+                new JsonObject()
+                        .put("uuid", uuid)
+                        .put("characterName", characterName))
                 .onFailure(ctx::fail)
                 .onSuccess(result -> {
                     ctx.data().put("team", result.body());

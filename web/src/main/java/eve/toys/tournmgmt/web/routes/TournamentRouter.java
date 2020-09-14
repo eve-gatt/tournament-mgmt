@@ -34,7 +34,7 @@ import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import static eve.toys.tournmgmt.web.authn.AppRBAC.authn;
+import static eve.toys.tournmgmt.web.authn.AppRBAC.tournamentAuthn;
 import static toys.eve.tournmgmt.common.util.RenderHelper.doRedirect;
 import static toys.eve.tournmgmt.common.util.RenderHelper.tournamentUrl;
 
@@ -77,18 +77,18 @@ public class TournamentRouter {
                 .failureHandler(this::handleCreateFailure);
         router.get("/:tournamentUuid/home").handler(this::home);
         router.get("/:tournamentUuid/edit")
-                .handler(ctx -> authn(ctx, isOrganiser))
+                .handler(ctx -> tournamentAuthn(ctx, isOrganiser))
                 .handler(this::edit);
         router.post("/:tournamentUuid/edit")
-                .handler(ctx -> authn(ctx, isOrganiser))
+                .handler(ctx -> tournamentAuthn(ctx, isOrganiser))
                 .handler(tournamentValidator)
                 .handler(this::handleEdit)
                 .failureHandler(this::handleEditFailure);
         router.get("/:tournamentUuid/roles")
-                .handler(ctx -> authn(ctx, isOrganiser))
+                .handler(ctx -> tournamentAuthn(ctx, isOrganiser))
                 .handler(this::roles);
         router.post("/:tournamentUuid/roles")
-                .handler(ctx -> authn(ctx, isOrganiser))
+                .handler(ctx -> tournamentAuthn(ctx, isOrganiser))
                 .handler(rolesValidator)
                 .handler(this::handleRoles)
                 .failureHandler(this::handleRolesFailure);

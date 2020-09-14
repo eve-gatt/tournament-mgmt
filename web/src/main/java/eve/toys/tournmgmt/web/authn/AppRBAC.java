@@ -38,9 +38,24 @@ public class AppRBAC implements OAuth2RBAC {
         }
     }
 
-    public static Future<Boolean> authn(RoutingContext ctx, AuthnRule rule) {
-        return rule.validate((JsonObject) ctx.data().get("tournament"),
-                ((JsonObject) ctx.data().get("character")).getString("characterName"))
+    public static Future<Boolean> tournamentAuthn(RoutingContext ctx, AuthnRule rule) {
+        JsonObject tournament = (JsonObject) ctx.data().get("tournament");
+        String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
+        return rule.validate(tournament, characterName)
+                .onFailure(ctx::fail)
+                .onSuccess(allowed -> {
+                    if (allowed)
+                        ctx.next();
+                    else
+                        ctx.fail(403);
+                });
+    }
+
+    public static Future<Boolean> teamAuthn(RoutingContext ctx, AuthnRule rule) {
+        JsonObject tournament = (JsonObject) ctx.data().get("tournament");
+        JsonObject team = (JsonObject) ctx.data().get("team");
+        String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
+        return rule.validate(tournament, team, characterName)
                 .onFailure(ctx::fail)
                 .onSuccess(allowed -> {
                     if (allowed)

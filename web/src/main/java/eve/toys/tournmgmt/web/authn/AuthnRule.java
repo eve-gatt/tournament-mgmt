@@ -47,6 +47,20 @@ public class AuthnRule {
         return this;
     }
 
+    public Future<Boolean> validate(JsonObject tournament, JsonObject team, String name) {
+        return Future.future(promise ->
+                validate(tournament, name)
+                        .onFailure(promise::fail)
+                        .onSuccess(tournamentLevel -> {
+                            if (!team.containsKey("is_captain")) {
+                                promise.fail("team is missing is_captain_field");
+                            } else {
+                                boolean checkCaptain = isCaptain && team.getBoolean("is_captain");
+                                promise.complete(checkCaptain);
+                            }
+                        }));
+    }
+
     public Future<Boolean> validate(JsonObject tournament, String name) {
         if (superuser.equals(name)) {
             return Future.future(promise -> promise.complete(true));
@@ -61,7 +75,7 @@ public class AuthnRule {
                 || this.roles.contains(Role.ORGANISER) && tournament.getString("created_by").equals(name);
 
         if (!tournament.containsKey("is_captain")) {
-            return Future.future(promise -> promise.fail("missing is_captain field"));
+            return Future.future(promise -> promise.fail("tournament is missing is_captain field"));
         }
         boolean checkCaptain = isCaptain && tournament.getBoolean("is_captain");
 

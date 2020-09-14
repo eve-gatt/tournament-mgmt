@@ -168,11 +168,15 @@ public class DbVerticle extends AbstractVerticle {
                 });
     }
 
-    private void teamByUuid(Message<String> msg) {
-        String uuid = msg.body();
-        sqlClient.query("select name, captain, uuid, locked " +
+    private void teamByUuid(Message<JsonObject> msg) {
+        String uuid = msg.body().getString("uuid");
+        String characterName = msg.body().getString("characterName");
+        sqlClient.queryWithParams("select name, captain, uuid, locked, " +
+                        "(captain = ?) as is_captain " +
                         "from team " +
                         "where uuid = '" + uuid + "'",
+                new JsonArray()
+                        .add(characterName),
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
