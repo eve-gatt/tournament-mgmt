@@ -56,7 +56,7 @@ public class AuthnRule {
                                 promise.fail("team is missing is_captain_field");
                             } else {
                                 boolean checkCaptain = isCaptain && team.getBoolean("is_captain");
-                                promise.complete(checkCaptain);
+                                promise.complete(tournamentLevel && checkCaptain);
                             }
                         }));
     }

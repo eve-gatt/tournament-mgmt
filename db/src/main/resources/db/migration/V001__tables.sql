@@ -71,5 +71,6 @@ create table tournament_role
         primary key (tournament_role_id),
     constraint tournament_role_tournament_uuid_fk
         foreign key (tournament_uuid) references tournament (uuid)
+            on update cascade on delete cascade
 );
 

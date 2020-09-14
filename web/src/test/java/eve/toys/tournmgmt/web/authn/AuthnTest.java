@@ -138,4 +138,18 @@ public class AuthnTest {
                 .onComplete(context.asyncAssertSuccess(context::assertTrue));
     }
 
+    @Test
+    public void superuserIsAllowedOnTeamSpecific(TestContext context) {
+        AuthnRule rule = new AuthnRule("superman").role(Role.ORGANISER).isCaptain();
+        rule.validate(TOURNAMENT2, TEAM1, "superman")
+                .onComplete(context.asyncAssertSuccess(context::assertTrue));
+    }
+
+    @Test
+    public void usingTeamSpecificCheckWithNonTeamSpecificRuleWillAlwaysBeFalse(TestContext context) {
+        AuthnRule rule = new AuthnRule().role(Role.REFEREE);
+        rule.validate(TOURNAMENT3, TEAM1, "Cap'n")
+                .onComplete(context.asyncAssertSuccess(context::assertFalse));
+    }
+
 }
