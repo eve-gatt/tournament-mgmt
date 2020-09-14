@@ -13,10 +13,11 @@ mixin subtitle(name)
     .menu
         - var roles = tournament.getString("roles") == null ? "" : tournament.getString("roles")
         - var isSuperuser = character.getBoolean("isSuperuser")
+        - var isCreator = tournament.getBoolean("is_creator")
         - var isCaptain = tournament.getBoolean("is_captain")
         - var isPilot = tournament.getBoolean("is_pilot")
         a(href="/auth/tournament/" + uuid + "/home") Home
-        if isSuperuser || roles.contains("organiser")
+        if isSuperuser || isCreator || roles.contains("organiser")
             a(href="/auth/tournament/" + uuid + "/edit") Edit details
             a(href="/auth/tournament/" + uuid + "/delete") Delete
 
@@ -24,10 +25,10 @@ mixin subtitle(name)
         a(href="/auth/tournament/" + uuid + "/teams") Manage teams
         a(href="/auth/tournament/" + uuid + "/thunderdome") Manage Thunderdome
 
-        if isSuperuser || roles.contains("organiser")
+        if isSuperuser || isCreator || roles.contains("organiser")
             a(href="/auth/tournament/" + uuid + "/roles") Manage roles
 
-        if isSuperuser || roles.contains("organiser") || roles.contains("referee")
+        if isSuperuser || isCreator || roles.contains("organiser") || roles.contains("referee")
             a(href="/auth/tournament/" + uuid + "/referee") Referee
 
 block styles

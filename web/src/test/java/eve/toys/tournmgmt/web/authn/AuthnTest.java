@@ -15,12 +15,23 @@ public class AuthnTest {
             .put("roles", "organiser")  // current user is an organiser
             .put("is_captain", false)
             .put("is_pilot", true);
-
     private static JsonObject TOURNAMENT2 = new JsonObject()
-            .put("name", "TOURNAMENT1")
+            .put("name", "TOURNAMENT2")
             .put("created_by", "Oliver Organiser")
             .put("roles", "")
             .put("is_captain", true) // current user is a captain
+            .put("is_pilot", false);
+    private static JsonObject TOURNAMENT3 = new JsonObject()
+            .put("name", "TOURNAMENT3")
+            .put("created_by", "Oliver Organiser")
+            .put("roles", "referee")
+            .put("is_captain", false)
+            .put("is_pilot", false);
+    private static JsonObject TOURNAMENT4 = new JsonObject()
+            .put("name", "TOURNAMENT1")
+            .put("created_by", "Oliver Organiser")
+            .put("roles", "")  // current user is an organiser
+            .put("is_captain", false)
             .put("is_pilot", false);
 
 
@@ -57,13 +68,22 @@ public class AuthnTest {
     @Test
     public void tournamentCreatorIsAnOrganiser(TestContext context) {
         AuthnRule rule = new AuthnRule().role(Role.ORGANISER);
-        rule.validate(TOURNAMENT1, "Oliver Organiser")
+        rule.validate(TOURNAMENT4, "Oliver Organiser")
                 .onComplete(context.asyncAssertSuccess(context::assertTrue));
     }
 
     @Test
     public void currentUserIsAnOrganiser(TestContext context) {
         AuthnRule rule = new AuthnRule().role(Role.ORGANISER);
+        rule.validate(TOURNAMENT1, "Liam Loggedin")
+                .onComplete(context.asyncAssertSuccess(context::assertTrue));
+        rule.validate(TOURNAMENT2, "Liam Loggedin")
+                .onComplete(context.asyncAssertSuccess(context::assertFalse));
+    }
+
+    @Test
+    public void currentUserIsAnOrganiserOrReferee(TestContext context) {
+        AuthnRule rule = new AuthnRule().role(Role.ORGANISER, Role.REFEREE);
         rule.validate(TOURNAMENT1, "Liam Loggedin")
                 .onComplete(context.asyncAssertSuccess(context::assertTrue));
         rule.validate(TOURNAMENT2, "Liam Loggedin")
@@ -92,6 +112,19 @@ public class AuthnTest {
         rule.validate(TOURNAMENT1, "Peter Pilot")
                 .onComplete(context.asyncAssertSuccess(context::assertTrue));
         rule.validate(TOURNAMENT2, "Richard Reserve")
+                .onComplete(context.asyncAssertSuccess(context::assertFalse));
+    }
+
+    @Test
+    public void currentUserOnlyAReferee(TestContext context) {
+        AuthnRule refereeRole = new AuthnRule().role(Role.REFEREE);
+        AuthnRule captainRole = new AuthnRule().isCaptain();
+        AuthnRule organiserRole = new AuthnRule().role(Role.ORGANISER);
+        refereeRole.validate(TOURNAMENT3, "Rich Referee")
+                .onComplete(context.asyncAssertSuccess(context::assertTrue));
+        captainRole.validate(TOURNAMENT3, "Rich Referee")
+                .onComplete(context.asyncAssertSuccess(context::assertFalse));
+        organiserRole.validate(TOURNAMENT3, "Rich Referee")
                 .onComplete(context.asyncAssertSuccess(context::assertFalse));
     }
 

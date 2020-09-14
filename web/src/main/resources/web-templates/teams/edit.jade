@@ -9,6 +9,9 @@ block append styles
 block content
     - var tournamentUuid = tournament.getString("uuid")
     - var teamUuid = team.getString("uuid")
+    - var roles = tournament.getString("roles") == null ? "" : tournament.getString("roles")
+    - var isSuperuser = character.getBoolean("isSuperuser")
+    - var isCaptain = tournament.getBoolean("is_captain")
 
     mixin subtitle("Edit team")
 
@@ -22,7 +25,7 @@ block content
                 th Actions
             tbody
 
-    if !team.getBoolean("locked")
+    if (team.getBoolean("locked") && (isSuperuser || roles.contains("organiser"))) || (!team.getBoolean("locked") && (isSuperuser || roles.contains("organiser") || isCaptain))
         a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/add-members") Add team members
         a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/lock-team") Lock team
     if team.getBoolean("locked")

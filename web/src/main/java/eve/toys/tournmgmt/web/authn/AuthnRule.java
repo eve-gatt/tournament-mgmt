@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class AuthnRule {
@@ -26,8 +27,8 @@ public class AuthnRule {
         return new AuthnRule(System.getenv("SUPERUSER"));
     }
 
-    public AuthnRule role(Role role) {
-        roles.add(role);
+    public AuthnRule role(Role... roles) {
+        this.roles.addAll(Arrays.asList(roles));
         return this;
     }
 
@@ -56,7 +57,8 @@ public class AuthnRule {
         }
         String roles = tournament.getString("roles") == null ? "" : tournament.getString("roles");
         boolean checkRoles = !this.roles.isEmpty()
-                && this.roles.stream().allMatch(role -> roles.contains(role.name().toLowerCase()));
+                && this.roles.stream().anyMatch(role -> roles.contains(role.name().toLowerCase()))
+                || this.roles.contains(Role.ORGANISER) && tournament.getString("created_by").equals(name);
 
         if (!tournament.containsKey("is_captain")) {
             return Future.future(promise -> promise.fail("missing is_captain field"));

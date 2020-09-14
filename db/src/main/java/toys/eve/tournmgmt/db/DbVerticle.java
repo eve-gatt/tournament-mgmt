@@ -140,7 +140,8 @@ public class DbVerticle extends AbstractVerticle {
     private void tournamentByUuid(Message<JsonObject> msg) {
         String uuid = msg.body().getString("uuid");
         String characterName = msg.body().getString("characterName");
-        sqlClient.queryWithParams("select name, uuid, start_date, practice_on_td, play_on_td, " +
+        sqlClient.queryWithParams("select uuid, name, start_date, created_by, practice_on_td, play_on_td, teams_locked, " +
+                        "(created_by = ?) as is_creator, " +
                         "(select count(*) from team where tournament_uuid = '" + uuid + "') as team_count, " +
                         "(select count(*) from team_member inner join team on team_member.team_uuid = team.uuid where team.tournament_uuid = '" + uuid + "') as pilot_count, " +
                         "exists(select 1 from team where team.tournament_uuid = tournament.uuid and captain = ?) as is_captain, " +
@@ -149,6 +150,7 @@ public class DbVerticle extends AbstractVerticle {
                         "from tournament " +
                         "where uuid = '" + uuid + "'",
                 new JsonArray()
+                        .add(characterName)
                         .add(characterName)
                         .add(characterName)
                         .add(characterName),
@@ -474,13 +476,15 @@ public class DbVerticle extends AbstractVerticle {
 
     private void tournamentsCharacterCanView(Message<String> msg) {
         String characterName = msg.body();
-        sqlClient.queryWithParams("select uuid, name, created_by, practice_on_td, play_on_td, teams_locked, " +
+        sqlClient.queryWithParams("select uuid, name, start_date, created_by, practice_on_td, play_on_td, teams_locked, " +
+                        "(created_by = ?) as is_creator, " +
                         "exists(select 1 from team where team.tournament_uuid = tournament.uuid and captain = ?) as is_captain, " +
                         "exists(select 1 from team_member inner join team on team_member.team_uuid = team.uuid where team.tournament_uuid = tournament.uuid and team_member.name = ?) as is_pilot, " +
                         "(select string_agg(type::varchar, ',') as roles from tournament_role where tournament.uuid = tournament_role.tournament_uuid and tournament_role.name = ?) " +
                         "from tournament " +
                         "where " +
                         "   ? = ? " +
+                        "   or created_by = ? " +
                         "   or exists(select 1 " +
                         "             from team " +
                         "             where team.tournament_uuid = tournament.uuid " +
@@ -499,7 +503,9 @@ public class DbVerticle extends AbstractVerticle {
                         .add(characterName)
                         .add(characterName)
                         .add(characterName)
+                        .add(characterName)
                         .add(System.getenv("SUPERUSER"))
+                        .add(characterName)
                         .add(characterName)
                         .add(characterName)
                         .add(characterName)

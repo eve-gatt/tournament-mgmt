@@ -47,13 +47,13 @@ public class TeamsRouter {
 
         AuthnRule isOrganiser = AuthnRule.create().role(Role.ORGANISER);
         AuthnRule isOrganiserOrCaptain = AuthnRule.create().role(Role.ORGANISER).isCaptain();
-        AuthnRule isOrganiserOrCaptainOrPilot = AuthnRule.create().role(Role.ORGANISER).isCaptain().isPilot();
+        AuthnRule isOrganiserOrCaptainOrPilotOrReferee = AuthnRule.create().role(Role.ORGANISER, Role.REFEREE).isCaptain().isPilot();
 
         router.route("/:tournamentUuid/teams/:teamUuid/*").handler(this::loadTeam);
         router.get("/:tournamentUuid/teams").handler(this::manage);
         router.get("/:tournamentUuid/teams/data").handler(this::teamsData);
         router.get("/:tournamentUuid/teams/:teamUuid/edit")
-                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptainOrPilot))
+                .handler(ctx -> AppRBAC.authn(ctx, isOrganiserOrCaptainOrPilotOrReferee))
                 .handler(this::editTeam);
         router.get("/:tournamentUuid/teams/:teamUuid/remove")
                 .handler(ctx -> AppRBAC.authn(ctx, isOrganiser))

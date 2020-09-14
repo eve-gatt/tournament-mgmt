@@ -1,6 +1,7 @@
 function hasRole(d, role) {
-    return isSuperuser ||
-        (d.roles && d.roles.includes(role));
+    return isSuperuser
+        || (role === 'organiser' && d.is_creator)
+        || (d.roles && d.roles.includes(role));
 }
 
 export function tournamentActions(sel) {
@@ -21,7 +22,7 @@ export function tournamentActions(sel) {
         .append('a')
         .attr('href', d => '/auth/tournament/' + d.uuid + '/roles').text('Manage roles')
 
-    sel.filter(d => hasRole(d, 'organiser') || hasRole(d.role, 'referee'))
+    sel.filter(d => hasRole(d, 'organiser') || hasRole(d, 'referee'))
         .append('a')
         .attr('href', d => '/auth/tournament/' + d.uuid + '/referee').text('Referee')
 }
