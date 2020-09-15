@@ -15,10 +15,15 @@ public class HomeRouter {
         router = Router.router(vertx);
         this.render = render;
         router.get("/").handler(this::home);
+        router.get("/wip").handler(this::wip);
     }
 
     private void home(RoutingContext ctx) {
         render.renderPage(ctx, "/home", new JsonObject());
+    }
+
+    private void wip(RoutingContext ctx) {
+        render.renderPage(ctx, "/wip", new JsonObject());
     }
 
     public static Router routes(Vertx vertx, RenderHelper render) {

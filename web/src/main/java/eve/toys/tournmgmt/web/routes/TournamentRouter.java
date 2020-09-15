@@ -76,6 +76,7 @@ public class TournamentRouter {
                 .handler(this::handleCreate)
                 .failureHandler(this::handleCreateFailure);
         router.get("/:tournamentUuid/home").handler(this::home);
+        router.get("/:tournamentUuid/delete").handler(this::delete);
         router.get("/:tournamentUuid/edit")
                 .handler(ctx -> tournamentAuthn(ctx, isOrganiser))
                 .handler(this::edit);
@@ -168,6 +169,10 @@ public class TournamentRouter {
                     render.renderPage(ctx, "/tournament/home", new JsonObject());
                 });
 
+    }
+
+    private void delete(RoutingContext ctx) {
+        render.renderPage(ctx, "/wip", new JsonObject());
     }
 
     private void edit(RoutingContext ctx) {

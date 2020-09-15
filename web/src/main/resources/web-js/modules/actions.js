@@ -14,7 +14,7 @@ export function tournamentActions(sel) {
         .append('a')
         .attr('href', d => '/auth/tournament/' + d.uuid + '/delete').text('Delete');
 
-    sel.append('a').attr('href', '#').text('Search for pilot');
+    sel.append('a').attr('href', '/wip').text('Search for pilot');
     sel.append('a').attr('href', d => '/auth/tournament/' + d.uuid + '/teams').text('Manage teams');
     sel.append('a').attr('href', d => '/auth/tournament/' + d.uuid + '/thunderdome').text('Manage Thunderdome');
 
