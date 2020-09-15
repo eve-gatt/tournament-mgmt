@@ -175,8 +175,7 @@ public class DbVerticle extends AbstractVerticle {
                         "(captain = ?) as is_captain " +
                         "from team " +
                         "where uuid = '" + uuid + "'",
-                new JsonArray()
-                        .add(characterName),
+                new JsonArray().add(characterName),
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();

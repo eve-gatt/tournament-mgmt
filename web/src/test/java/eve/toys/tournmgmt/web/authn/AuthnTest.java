@@ -29,17 +29,17 @@ public class AuthnTest {
     private static JsonObject TOURNAMENT3 = new JsonObject()
             .put("name", "TOURNAMENT3")
             .put("created_by", "Oliver Organiser")
-            .put("roles", "referee")
+            .put("roles", "referee") // current user is a referee
             .put("is_captain", false)
             .put("is_pilot", false)
             .put("is_creator", false);
     private static JsonObject TOURNAMENT4 = new JsonObject()
             .put("name", "TOURNAMENT1")
             .put("created_by", "Oliver Organiser")
-            .put("roles", "")  // current user is an organiser
+            .put("roles", "")
             .put("is_captain", false)
             .put("is_pilot", false)
-            .put("is_creator", true);
+            .put("is_creator", true); // current user is the creator
 
 
     @Test
