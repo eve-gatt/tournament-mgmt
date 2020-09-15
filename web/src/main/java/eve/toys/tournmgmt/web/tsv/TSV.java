@@ -82,6 +82,9 @@ public class TSV {
             if (columns.size() != columnCount) {
                 throw new TSVException("Expected " + columnCount + " columns in: " + row);
             }
+            if (columns.stream().anyMatch(String::isEmpty)) {
+                throw new TSVException("Missing value in: " + row);
+            }
             return columns;
         }
     }
