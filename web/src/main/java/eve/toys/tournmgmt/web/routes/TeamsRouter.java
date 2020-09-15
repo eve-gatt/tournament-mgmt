@@ -9,12 +9,14 @@ import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
 import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.tsv.TSV;
 import io.vertx.core.CompositeFuture;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.api.RequestParameters;
+import io.vertx.ext.web.api.validation.ValidationException;
 import io.vertx.ext.web.client.WebClient;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
@@ -259,9 +261,19 @@ public class TeamsRouter {
     }
 
     private void handleAddMembersFail(RoutingContext ctx) {
+
         Throwable failure = ctx.failure();
-        failure.printStackTrace();
-        doRedirect(ctx.response(), teamUrl(ctx, "/add-members"));
+        if (!(failure instanceof ValidationException)) {
+            failure.printStackTrace();
+        }
+        MultiMap form = ctx.request().formAttributes();
+        render.renderPage(ctx,
+                "/teams/addmembers",
+                new JsonObject()
+                        .put("placeholder", "Please fix the errors and paste in the revised data.")
+                        .put("tsv", form.get("tsv"))
+                        .put("errors", failure.getMessage()));
+
     }
 
     private void membersData(RoutingContext ctx) {
