@@ -1,6 +1,7 @@
 package eve.toys.tournmgmt.web.esi;
 
 import eve.toys.tournmgmt.web.authn.AppRBAC;
+import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
@@ -13,33 +14,27 @@ import java.net.URLEncoder;
 public class Esi {
 
     public static final String ESI_BASE = "https://esi.evetech.net/latest";
+    private final ETagCache etagCache;
 
-    private Esi() {
+    private Esi(WebClient webClient, CircuitBreaker circuitBreaker) {
+        this.etagCache = new ETagCache(webClient, circuitBreaker);
     }
 
-    public static Esi create() {
-        return new Esi();
+    public static Esi create(WebClient webClient, CircuitBreaker circuitBreaker) {
+        return new Esi(webClient, circuitBreaker);
     }
 
-    public Future<JsonObject> lookupShip(WebClient webClient, String shipName) {
-        return lookupByType(webClient, shipName, "inventory_type");
+    public Future<JsonObject> lookupShip(String shipName) {
+        return lookupByType(shipName, "inventory_type");
     }
 
-    private static Future<JsonObject> lookupByType(WebClient webClient, String name, String category) {
+    private Future<JsonObject> lookupByType(String name, String category) {
         return Future.future(promise -> {
             String url = "/search/?categories=" + category + "&strict=true&search=" + encode(name);
-            webClient.getAbs(ESI_BASE + url)
-                    .send(ar -> {
-                        if (ar.failed()) {
-                            promise.fail(ar.cause());
-                            return;
-                        }
-                        if (ar.result().statusCode() != 200) {
-                            promise.fail(ar.result().statusCode() + ": " + ar.result().statusMessage()
-                                    + "\n" + url);
-                            return;
-                        }
-                        JsonObject json = ar.result().body().toJsonObject();
+            etagCache.callApi(ESI_BASE + url)
+                    .onFailure(promise::fail)
+                    .onSuccess(result -> {
+                        JsonObject json = result.body().toJsonObject();
                         promise.complete(new JsonObject()
                                 .put("category", category)
                                 .put(category, name)
@@ -57,23 +52,14 @@ public class Esi {
         }
     }
 
-    public Future<JsonObject> fetchType(WebClient webClient, Integer typeId) {
+    public Future<JsonObject> fetchType(Integer typeId) {
         return Future.future(promise -> {
             String url = "/universe/types/" + typeId;
-            webClient.getAbs(ESI_BASE + url)
-                    .send(ar -> {
-                        if (ar.failed()) {
-                            promise.fail(ar.cause());
-                            return;
-                        }
-                        if (ar.result().statusCode() != 200) {
-                            promise.fail(ar.result().statusCode() + ": " + ar.result().statusMessage()
-                                    + "\n" + url);
-                            return;
-                        }
-                        JsonObject json = ar.result().body().toJsonObject();
-                        promise.complete(new JsonObject()
-                                .put("result", json));
+            etagCache.callApi(ESI_BASE + url)
+                    .onFailure(promise::fail)
+                    .onSuccess(result -> {
+                        JsonObject json = result.body().toJsonObject();
+                        promise.complete(new JsonObject().put("result", json));
                     });
         });
     }
@@ -99,8 +85,7 @@ public class Esi {
         });
     }
 
-    public Future<JsonObject> checkMembership(WebClient webClient,
-                                              String uuid,
+    public Future<JsonObject> checkMembership(String uuid,
                                               Future<JsonObject> checkAlliance,
                                               Future<JsonObject> checkCharacter) {
         return Future.future(promise ->
@@ -115,18 +100,10 @@ public class Esi {
                                     .put("character", character);
                             if (alliance.getJsonArray("result") != null && character.getJsonArray("result") != null) {
                                 String url = "/characters/" + character.getJsonArray("result").getInteger(0);
-                                webClient.getAbs(ESI_BASE + url)
-                                        .send(ar -> {
-                                            if (ar.failed()) {
-                                                promise.fail(ar.cause());
-                                                return;
-                                            }
-                                            if (ar.result().statusCode() != 200) {
-                                                promise.fail(ar.result().statusCode() + ": " + ar.result().statusMessage()
-                                                        + "\n" + url);
-                                                return;
-                                            }
-                                            Integer allianceId = ar.result().body().toJsonObject().getInteger("alliance_id");
+                                etagCache.callApi(ESI_BASE + url)
+                                        .onFailure(promise::fail)
+                                        .onSuccess(result -> {
+                                            Integer allianceId = result.body().toJsonObject().getInteger("alliance_id");
                                             out.put("actualAlliance", allianceId);
                                             promise.complete(out);
                                         });
@@ -138,12 +115,32 @@ public class Esi {
         );
     }
 
-    public Future<JsonObject> lookupCharacter(WebClient webClient, String character) {
-        return lookupByType(webClient, character, "character");
+    public Future<JsonObject> lookupCharacter(String character) {
+        return lookupByType(character, "character");
     }
 
-    public Future<JsonObject> lookupAlliance(WebClient webClient, String alliance) {
-        return lookupByType(webClient, alliance, "alliance");
+    public Future<JsonObject> lookupAlliance(String alliance) {
+        return lookupByType(alliance, "alliance")
+                .compose(json -> {
+                    if (json.getJsonArray("result") == null) {
+                        return Future.succeededFuture(json);
+                    } else {
+                        return Future.future(promise -> fetchAlliance(json.getJsonArray("result").getInteger(0))
+                                .onFailure(promise::fail)
+                                .onSuccess(lookup -> {
+                                    json.put("lookup", lookup);
+                                    promise.complete(json);
+                                }));
+                    }
+                });
     }
 
+    public Future<JsonObject> fetchAlliance(int allianceId) {
+        return Future.future(promise -> {
+            String url = "/alliances/" + allianceId;
+            etagCache.callApi(ESI_BASE + url)
+                    .onFailure(promise::fail)
+                    .onSuccess(result -> promise.complete(result.bodyAsJsonObject()));
+        });
+    }
 }

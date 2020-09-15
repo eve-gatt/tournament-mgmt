@@ -4,6 +4,7 @@ import eve.toys.tournmgmt.web.authn.AppRBAC;
 import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.routes.*;
+import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -42,7 +43,7 @@ public class WebVerticle extends AbstractVerticle {
     public void start(Promise<Void> startPromise) throws Exception {
 
         this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
-        Esi esi = Esi.create();
+        Esi esi = Esi.create(webClient, CircuitBreaker.create("esi-cb", vertx));
         DbClient dbClient = new DbClient(vertx.eventBus());
         JobClient jobClient = new JobClient(vertx.eventBus());
 

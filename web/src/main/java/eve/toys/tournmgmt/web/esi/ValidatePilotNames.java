@@ -8,18 +8,15 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.WebClient;
 
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ValidatePilotNames {
 
-    private final WebClient webClient;
     private final Esi esi;
 
-    public ValidatePilotNames(WebClient webClient, Esi esi) {
-        this.webClient = webClient;
+    public ValidatePilotNames(Esi esi) {
         this.esi = esi;
     }
 
@@ -37,7 +34,7 @@ public class ValidatePilotNames {
     private Future<JsonObject> lookupCharacter(TSV.Row row) {
         try {
             String name = row.getCol(0);
-            return esi.lookupCharacter(webClient, name);
+            return esi.lookupCharacter(name);
         } catch (TSVException e) {
             return Future.failedFuture(e);
         }

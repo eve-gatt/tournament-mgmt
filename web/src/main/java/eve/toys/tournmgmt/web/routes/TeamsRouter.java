@@ -25,18 +25,14 @@ public class TeamsRouter {
 
     private final RenderHelper render;
     private final Router router;
-    private final WebClient webClient;
     private final Esi esi;
     private final DbClient dbClient;
-    private final JobClient jobClient;
 
-    public TeamsRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient, JobClient jobClient) {
+    public TeamsRouter(Vertx vertx, RenderHelper render, Esi esi, DbClient dbClient) {
         router = Router.router(vertx);
         this.render = render;
-        this.webClient = webClient;
         this.esi = esi;
         this.dbClient = dbClient;
-        this.jobClient = jobClient;
 
         AuthnRule isOrganiser = AuthnRule.create().role(Role.ORGANISER);
         AuthnRule isOrganiserOrCaptain = AuthnRule.create().role(Role.ORGANISER).isCaptain();
@@ -134,7 +130,7 @@ public class TeamsRouter {
         RequestParameters params = ctx.get("parsedParameters");
         TSV tsv = new TSV(params.formParameter("tsv").getString(), 1);
 
-        new ValidatePilotNames(webClient, esi).validate(tsv, ar -> {
+        new ValidatePilotNames(esi).validate(tsv, ar -> {
             if (ar.failed()) {
                 ar.cause().printStackTrace();
                 doRedirect(ctx.response(), teamUrl(ctx, "/add-members"));
@@ -223,7 +219,7 @@ public class TeamsRouter {
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient, JobClient jobClient) {
-        return new TeamsRouter(vertx, render, webClient, esi, dbClient, jobClient).router();
+        return new TeamsRouter(vertx, render, esi, dbClient).router();
     }
 
     private Router router() {

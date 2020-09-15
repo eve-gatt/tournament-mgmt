@@ -2,6 +2,7 @@ package eve.toys.tournmgmt.web.job;
 
 import eve.toys.tournmgmt.web.AppStreamHelpers;
 import eve.toys.tournmgmt.web.esi.Esi;
+import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Promise;
@@ -24,9 +25,8 @@ public class JobVerticle extends AbstractVerticle {
 
     public void start(Promise<Void> startPromise) throws Exception {
         LOGGER.info("Initialising jobs");
-        this.webClient = WebClient.create(vertx, new WebClientOptions()
-                .setUserAgent(System.getProperty("http.agent")));
-        this.esi = Esi.create();
+        this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
+        this.esi = Esi.create(webClient, CircuitBreaker.create("esi-cb", vertx));
         this.dbClient = new DbClient(vertx.eventBus());
         vertx.eventBus().consumer(JobClient.JOB_CHECK_ALLIANCE_MEMBERSHIP, this::checkAllianceMembership);
         startPromise.complete();
@@ -40,10 +40,10 @@ public class JobVerticle extends AbstractVerticle {
                     JsonArray body = (JsonArray) result.body();
                     CompositeFuture.all(body.stream()
                             .map(o -> (JsonObject) o)
-                            .map(row -> esi.checkMembership(webClient,
+                            .map(row -> esi.checkMembership(
                                     row.getString("uuid"),
-                                    esi.lookupAlliance(webClient, row.getString("name")),
-                                    esi.lookupCharacter(webClient, row.getString("captain"))))
+                                    esi.lookupAlliance(row.getString("name")),
+                                    esi.lookupCharacter(row.getString("captain"))))
                             .collect(Collectors.toList()))
                             .map(AppStreamHelpers::toJsonObjects)
                             .onFailure(Throwable::printStackTrace)

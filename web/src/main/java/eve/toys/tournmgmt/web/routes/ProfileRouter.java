@@ -64,7 +64,7 @@ public class ProfileRouter {
         MultiMap form = ctx.request().formAttributes();
         String shipName = form.get("name");
         Integer characterId = ((JsonObject) ctx.data().get("character")).getInteger("characterId");
-        esi.lookupShip(webClient, shipName)
+        esi.lookupShip(shipName)
                 .compose(this::fetchShipDetails)
                 .compose(this::fetchSkillRequirements)
                 .compose(tuple -> fetchUsersSkills(ctx.user(), characterId, tuple))
@@ -83,7 +83,7 @@ public class ProfileRouter {
         if (json.getJsonArray("result") == null) {
             return Future.failedFuture(json.getString("inventory_type") + " doesn't exist");
         }
-        return esi.fetchType(webClient, json.getJsonArray("result").getInteger(0));
+        return esi.fetchType(json.getJsonArray("result").getInteger(0));
     }
 
     private Future<Tuple2<List<JsonObject>, List<JsonObject>>> fetchSkillRequirements(JsonObject json) {
@@ -117,7 +117,7 @@ public class ProfileRouter {
 
     private Future<JsonArray> resolveSkillNames(Tuple3<List<JsonObject>, List<JsonObject>, Map<Integer, Integer>> tuple) {
         return CompositeFuture.all(tuple._1().stream()
-                .map(skillId -> esi.fetchType(webClient, skillId.getInteger("value")))
+                .map(skillId -> esi.fetchType(skillId.getInteger("value")))
                 .collect(Collectors.toList()))
                 .compose(f -> Future.succeededFuture(new JsonArray(IntStream.range(0, tuple._1().size())
                         .mapToObj(i -> {

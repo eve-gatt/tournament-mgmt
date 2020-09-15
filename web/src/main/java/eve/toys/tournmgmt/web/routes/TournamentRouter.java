@@ -49,15 +49,13 @@ public class TournamentRouter {
 
     private final Router router;
     private final RenderHelper render;
-    private final WebClient webClient;
     private final DbClient dbClient;
     private final JobClient jobClient;
     private Esi esi;
 
-    public TournamentRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient, JobClient jobClient) {
+    public TournamentRouter(Vertx vertx, RenderHelper render, Esi esi, DbClient dbClient, JobClient jobClient) {
         router = Router.router(vertx);
         this.render = render;
-        this.webClient = webClient;
         this.esi = esi;
         this.dbClient = dbClient;
         this.jobClient = jobClient;
@@ -270,8 +268,8 @@ public class TournamentRouter {
                 .flatMap(row -> {
                     try {
                         return Stream.of(
-                                esi.lookupAlliance(webClient, row.getCol(0)),
-                                esi.lookupCharacter(webClient, row.getCol(1)));
+                                esi.lookupAlliance(row.getCol(0)),
+                                esi.lookupCharacter(row.getCol(1)));
                     } catch (TSVException e) {
                         return Stream.of(Future.failedFuture(e));
                     }
@@ -281,31 +279,57 @@ public class TournamentRouter {
                 .map(this::checkForTeamImportErrors)
                 .onSuccess(msg -> {
                     if (msg.isEmpty()) {
-                        dbClient.callDb(DbClient.DB_WRITE_TEAM_TSV,
-                                new JsonObject()
-                                        .put("tsv", tsv.json())
-                                        .put("createdBy",
-                                                ((JsonObject) ctx.data().get("character")).getString("characterName"))
-                                        .put("uuid", ctx.request().getParam("tournamentUuid")))
-                                .onFailure(t -> {
-                                    String error = t.getMessage();
-                                    Matcher matcher = DUPE_REGEX.matcher(error);
-                                    if (matcher.find()) {
-                                        error = matcher.group(2) + " is already in this tournament.";
-                                    } else {
-                                        t.printStackTrace();
-                                    }
-                                    render.renderPage(ctx,
-                                            "/teams/import",
+                        CompositeFuture.all(tsv.stream()
+                                .map(row ->
+                                        Future.future(promise -> {
+                                            try {
+                                                esi.lookupAlliance(row.getCol(0))
+                                                        .onFailure(promise::fail)
+                                                        .onSuccess(result -> {
+                                                            try {
+                                                                promise.complete(result.getJsonObject("lookup").getString("name") + "," + row.getCol(1));
+                                                            } catch (TSVException e) {
+                                                                promise.fail(e);
+                                                            }
+                                                        });
+                                            } catch (TSVException e) {
+                                                promise.fail(e);
+                                            }
+                                        })
+                                )
+                                .collect(Collectors.toList()))
+                                .map(f -> f.list().stream()
+                                        .map(s -> (String) s)
+                                        .collect(Collectors.joining("\n")))
+                                .onFailure(Throwable::printStackTrace)
+                                .onSuccess(newTsv -> {
+                                    TSV tsv1 = new TSV(newTsv, 2);
+                                    dbClient.callDb(DbClient.DB_WRITE_TEAM_TSV,
                                             new JsonObject()
-                                                    .put("placeholder", "Please fix the errors and paste in the revised data.")
-                                                    .put("tsv", tsv.text())
-                                                    .put("errors", error));
+                                                    .put("tsv", tsv1.json())
+                                                    .put("createdBy",
+                                                            ((JsonObject) ctx.data().get("character")).getString("characterName"))
+                                                    .put("uuid", ctx.request().getParam("tournamentUuid")))
+                                            .onFailure(t -> {
+                                                String error = t.getMessage();
+                                                Matcher matcher = DUPE_REGEX.matcher(error);
+                                                if (matcher.find()) {
+                                                    error = matcher.group(2) + " is already in this tournament.";
+                                                } else {
+                                                    t.printStackTrace();
+                                                }
+                                                render.renderPage(ctx,
+                                                        "/teams/import",
+                                                        new JsonObject()
+                                                                .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                                                .put("tsv", tsv.text())
+                                                                .put("errors", error));
 
-                                })
-                                .onSuccess(result -> {
-                                    jobClient.run(JobClient.JOB_CHECK_ALLIANCE_MEMBERSHIP, new JsonObject());
-                                    doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
+                                            })
+                                            .onSuccess(result -> {
+                                                jobClient.run(JobClient.JOB_CHECK_ALLIANCE_MEMBERSHIP, new JsonObject());
+                                                doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
+                                            });
                                 });
                     } else {
                         render.renderPage(ctx,
@@ -360,7 +384,7 @@ public class TournamentRouter {
         RequestParameter type = params.formParameter("type");
         String tournamentUuid = ctx.request().getParam("tournamentUuid");
 
-        Future.<String>future(promise -> new ValidatePilotNames(webClient, esi).validate(tsv, promise))
+        Future.<String>future(promise -> new ValidatePilotNames(esi).validate(tsv, promise))
                 .onSuccess(validationMsg -> {
                     if (validationMsg.isEmpty()) {
                         dbClient.callDb(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT, new JsonObject()
@@ -446,7 +470,7 @@ public class TournamentRouter {
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient, JobClient jobClient) {
-        return new TournamentRouter(vertx, render, webClient, esi, dbClient, jobClient).router();
+        return new TournamentRouter(vertx, render, esi, dbClient, jobClient).router();
     }
 
     private Router router() {
