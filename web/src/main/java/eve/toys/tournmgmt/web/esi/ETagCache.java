@@ -53,7 +53,7 @@ public class ETagCache {
         cb.executeAndReport(promise, p -> {
 
             if (cacheTotal % 100 == 1) {
-                LOGGER.info(System.out.printf("ExpiryHit:ETagHit:Miss:Total:CacheSize - %d:%d:%d:%d:%d%n", expiryCacheHit, etagCacheHit, cacheMiss, cacheTotal, etags.size()));
+                LOGGER.info(String.format("ExpiryHit:ETagHit:Miss:Total:CacheSize - %d:%d:%d:%d:%d%n", expiryCacheHit, etagCacheHit, cacheMiss, cacheTotal, etags.size()));
             }
 
             rq.send(res -> {
