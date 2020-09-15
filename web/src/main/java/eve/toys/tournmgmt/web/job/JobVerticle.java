@@ -47,8 +47,8 @@ public class JobVerticle extends AbstractVerticle {
                             .collect(Collectors.toList()))
                             .map(AppStreamHelpers::toJsonObjects)
                             .onFailure(Throwable::printStackTrace)
-                            .onSuccess(results ->
-                                    results.forEach(json -> {
+                            .onSuccess(teams ->
+                                    teams.forEach(json -> {
                                         String uuid = json.getString("uuid");
                                         JsonArray expected = json.getJsonObject("expectedAlliance").getJsonArray("result");
                                         String error = "";

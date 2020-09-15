@@ -1,15 +1,16 @@
 package eve.toys.tournmgmt.web.routes;
 
+import eve.toys.tournmgmt.web.AppStreamHelpers;
 import eve.toys.tournmgmt.web.Branding;
+import eve.toys.tournmgmt.web.authn.AppRBAC;
 import eve.toys.tournmgmt.web.authn.AuthnRule;
 import eve.toys.tournmgmt.web.authn.Role;
 import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
+import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.tsv.TSV;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
+import eve.toys.tournmgmt.web.tsv.TSVException;
+import io.vertx.core.*;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -31,8 +32,11 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static eve.toys.tournmgmt.web.authn.AppRBAC.tournamentAuthn;
 import static toys.eve.tournmgmt.common.util.RenderHelper.doRedirect;
@@ -41,18 +45,22 @@ import static toys.eve.tournmgmt.common.util.RenderHelper.tournamentUrl;
 public class TournamentRouter {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneId.of("UTC"));
+    private static final Pattern DUPE_REGEX = Pattern.compile(".*Detail: Key \\([^=]+=\\(([^,]+), ([^\\)]+)\\) already exists\\.");
+
     private final Router router;
     private final RenderHelper render;
     private final WebClient webClient;
     private final DbClient dbClient;
+    private final JobClient jobClient;
     private Esi esi;
 
-    public TournamentRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
+    public TournamentRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient, JobClient jobClient) {
         router = Router.router(vertx);
         this.render = render;
         this.webClient = webClient;
         this.esi = esi;
         this.dbClient = dbClient;
+        this.jobClient = jobClient;
 
         HTTPRequestValidationHandler tournamentValidator = HTTPRequestValidationHandler.create()
                 .addFormParamWithCustomTypeValidator("name",
@@ -85,6 +93,14 @@ public class TournamentRouter {
                 .handler(tournamentValidator)
                 .handler(this::handleEdit)
                 .failureHandler(this::handleEditFailure);
+        router.get("/:tournamentUuid/teams/import")
+                .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiser))
+                .handler(this::importTeams);
+        router.post("/:tournamentUuid/teams/import")
+                .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiser))
+                .handler(TSV.VALIDATOR)
+                .handler(this::handleImportTeams)
+                .failureHandler(this::handleImportFail);
         router.get("/:tournamentUuid/roles")
                 .handler(ctx -> tournamentAuthn(ctx, isOrganiser))
                 .handler(this::roles);
@@ -232,6 +248,99 @@ public class TournamentRouter {
         ctx.reroute(HttpMethod.GET, "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/edit");
     }
 
+    private void importTeams(RoutingContext ctx) {
+        render.renderPage(ctx,
+                "/teams/import",
+                new JsonObject()
+                        .put("tsv", "")
+                        .put("placeholder",
+                                "One line per team - team name followed by captain, separated by a comma or tab character. e.g. \n" +
+                                        "The Tuskers,Mira Chieve\n" +
+                                        "Big Alliancia,Captain Jack\n" +
+                                        "\n" +
+                                        "Tab-separated values are the default format when copy and pasting a range from " +
+                                        "Google sheets."));
+    }
+
+    private void handleImportTeams(RoutingContext ctx) {
+        RequestParameters params = ctx.get("parsedParameters");
+        TSV tsv = new TSV(params.formParameter("tsv").getString(), 2);
+
+        CompositeFuture.all(tsv.stream()
+                .flatMap(row -> {
+                    try {
+                        return Stream.of(
+                                esi.lookupAlliance(webClient, row.getCol(0)),
+                                esi.lookupCharacter(webClient, row.getCol(1)));
+                    } catch (TSVException e) {
+                        return Stream.of(Future.failedFuture(e));
+                    }
+                })
+                .collect(Collectors.toList()))
+                .map(AppStreamHelpers::toJsonObjects)
+                .map(this::checkForTeamImportErrors)
+                .onSuccess(msg -> {
+                    if (msg.isEmpty()) {
+                        dbClient.callDb(DbClient.DB_WRITE_TEAM_TSV,
+                                new JsonObject()
+                                        .put("tsv", tsv.json())
+                                        .put("createdBy",
+                                                ((JsonObject) ctx.data().get("character")).getString("characterName"))
+                                        .put("uuid", ctx.request().getParam("tournamentUuid")))
+                                .onFailure(t -> {
+                                    String error = t.getMessage();
+                                    Matcher matcher = DUPE_REGEX.matcher(error);
+                                    if (matcher.find()) {
+                                        error = matcher.group(2) + " is already in this tournament.";
+                                    } else {
+                                        t.printStackTrace();
+                                    }
+                                    render.renderPage(ctx,
+                                            "/teams/import",
+                                            new JsonObject()
+                                                    .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                                    .put("tsv", tsv.text())
+                                                    .put("errors", error));
+
+                                })
+                                .onSuccess(result -> {
+                                    jobClient.run(JobClient.JOB_CHECK_ALLIANCE_MEMBERSHIP, new JsonObject());
+                                    doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
+                                });
+                    } else {
+                        render.renderPage(ctx,
+                                "/teams/import",
+                                new JsonObject()
+                                        .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                        .put("tsv", tsv.text())
+                                        .put("errors", msg));
+                    }
+                })
+                .onFailure(throwable -> {
+                    render.renderPage(ctx,
+                            "/teams/import",
+                            new JsonObject()
+                                    .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                    .put("tsv", tsv.text())
+                                    .put("errors", throwable.getMessage()));
+
+                });
+    }
+
+    private void handleImportFail(RoutingContext ctx) {
+        Throwable failure = ctx.failure();
+        if (!(failure instanceof ValidationException)) {
+            failure.printStackTrace();
+        }
+        MultiMap form = ctx.request().formAttributes();
+        render.renderPage(ctx,
+                "/teams/import",
+                new JsonObject()
+                        .put("placeholder", "Please fix the errors and paste in the revised data.")
+                        .put("tsv", form.get("tsv"))
+                        .put("errors", failure.getMessage()));
+    }
+
     private void roles(RoutingContext ctx) {
         addRolesToContext(ctx.request().getParam("tournamentUuid"),
                 ctx.data(),
@@ -296,6 +405,27 @@ public class TournamentRouter {
                 JsonObject::mergeIn);
     }
 
+    private String checkForTeamImportErrors(Stream<JsonObject> results) {
+        return results.flatMap(r -> {
+            String result = "";
+            if (r.containsKey("error")) {
+                result += r.getString("error") + "\n";
+            } else {
+                if ("alliance".equals(r.getString("category"))) {
+                    if (r.getJsonArray("result") == null) {
+                        result += r.getString("alliance") + " is not a valid alliance\n";
+                    }
+                }
+                if ("character".equals(r.getString("category"))) {
+                    if (r.getJsonArray("result") == null) {
+                        result += r.getString("character") + " is not a valid character name\n";
+                    }
+                }
+            }
+            return result.isEmpty() ? Stream.empty() : Stream.of(result);
+        }).collect(Collectors.joining());
+    }
+
     private void addRolesToContext(String tournamentUuid, Map<String, Object> data, Handler<AsyncResult<Message<Object>>> handler) {
         dbClient.callDb(DbClient.DB_ROLES_BY_TOURNAMENT, tournamentUuid)
                 .onFailure(t -> handler.handle(Future.failedFuture(t)))
@@ -315,8 +445,8 @@ public class TournamentRouter {
                 });
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
-        return new TournamentRouter(vertx, render, webClient, esi, dbClient).router();
+    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient, JobClient jobClient) {
+        return new TournamentRouter(vertx, render, webClient, esi, dbClient, jobClient).router();
     }
 
     private Router router() {
