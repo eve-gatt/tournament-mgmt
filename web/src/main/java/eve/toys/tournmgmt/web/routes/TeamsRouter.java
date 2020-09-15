@@ -139,12 +139,12 @@ public class TeamsRouter {
                 new JsonObject()
                         .put("tsv", "")
                         .put("placeholder",
-                                "Paste values straight from spreadsheet as two column, name and captain, e.g. \n" +
-                                        "The Tuskers\tMira Chieve\n" +
-                                        "Big Alliancia\tCaptain Jack\n" +
+                                "One line per team - team name followed by captain, separated by a comma or tab character. e.g. \n" +
+                                        "The Tuskers,Mira Chieve\n" +
+                                        "Big Alliancia,Captain Jack\n" +
                                         "\n" +
                                         "Tab-separated values are the default format when copy and pasting a range from " +
-                                        "a spreadsheet. CSV also works."));
+                                        "Google sheets."));
     }
 
     private void handleImportTeams(RoutingContext ctx) {
@@ -213,7 +213,7 @@ public class TeamsRouter {
                 new JsonObject()
                         .put("tsv", "")
                         .put("placeholder",
-                                "Paste values straight from spreadsheet as a single column of pilot names, e.g.\n\n" +
+                                "One pilot name per line, e.g.\n\n" +
                                         "Jack Spratt\n" +
                                         "John Pilot\n" +
                                         "Josie Tackle\n"));
