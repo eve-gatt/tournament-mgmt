@@ -8,6 +8,7 @@ import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
 import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.tsv.TSV;
+import eve.toys.tournmgmt.web.tsv.TSVException;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -160,7 +161,7 @@ public class TeamsRouter {
                         return Stream.of(
                                 esi.lookupAlliance(webClient, row.getCol(0)),
                                 esi.lookupCharacter(webClient, row.getCol(1)));
-                    } catch (TSV.TSVException e) {
+                    } catch (TSVException e) {
                         return Stream.of(Future.failedFuture(e));
                     }
                 })

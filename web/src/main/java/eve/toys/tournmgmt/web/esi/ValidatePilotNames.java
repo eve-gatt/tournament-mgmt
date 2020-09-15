@@ -2,6 +2,7 @@ package eve.toys.tournmgmt.web.esi;
 
 import eve.toys.tournmgmt.web.AppStreamHelpers;
 import eve.toys.tournmgmt.web.tsv.TSV;
+import eve.toys.tournmgmt.web.tsv.TSVException;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -37,7 +38,7 @@ public class ValidatePilotNames {
         try {
             String name = row.getCol(0);
             return esi.lookupCharacter(webClient, name);
-        } catch (TSV.TSVException e) {
+        } catch (TSVException e) {
             return Future.failedFuture(e);
         }
     }

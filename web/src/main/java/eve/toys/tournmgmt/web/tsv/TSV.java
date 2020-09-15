@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 public class TSV {
     public static final HTTPRequestValidationHandler VALIDATOR = HTTPRequestValidationHandler.create()
             .addFormParamWithCustomTypeValidator("tsv",
-                    ParameterTypeValidator.createStringTypeValidator(null, 7, null, null),
+                    ParameterTypeValidator.createStringTypeValidator(null, 3, null, null),
                     true,
                     false);
 
@@ -34,7 +34,14 @@ public class TSV {
                 JsonArray::new,
                 (a, r) -> {
                     JsonArray row = new JsonArray();
-                    IntStream.range(0, columnCount).forEach(i -> row.add(r.getCol(i)));
+                    IntStream.range(0, columnCount).forEach(i -> {
+                        try {
+                            String val = r.getCol(i);
+                            row.add(val);
+                        } catch (TSVException e) {
+                            row.add(e.getMessage());
+                        }
+                    });
                     a.add(row);
                 },
                 JsonArray::addAll);
@@ -51,12 +58,6 @@ public class TSV {
         return tsv;
     }
 
-    private static class TSVException extends RuntimeException {
-        public TSVException(String msg) {
-            super(msg);
-        }
-    }
-
     public class Row {
         private final String row;
 
@@ -64,16 +65,17 @@ public class TSV {
             this.row = row;
         }
 
-        public String getCol(int columnIndex) {
+        public String getCol(int columnIndex) throws TSVException {
             try {
                 return StringEscapeUtils.escapeJava(columns().get(columnIndex));
+            } catch (TSVException e) {
+                throw e;
             } catch (Exception e) {
-                e.printStackTrace();
-                return null;
+                throw new TSVException(e);
             }
         }
 
-        private List<String> columns() {
+        private List<String> columns() throws TSVException {
             List<String> columns = Arrays.stream(row.split(COLUMN_SPLIT))
                     .map(String::trim)
                     .collect(Collectors.toList());
