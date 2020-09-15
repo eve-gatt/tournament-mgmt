@@ -9,6 +9,7 @@ import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
 import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.tsv.TSV;
 import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
@@ -154,9 +155,15 @@ public class TeamsRouter {
         TSV tsv = new TSV(params.formParameter("tsv").getString(), 2);
 
         CompositeFuture.all(tsv.stream()
-                .flatMap(row -> Stream.of(
-                        esi.lookupAlliance(webClient, row.getCol(0)),
-                        esi.lookupCharacter(webClient, row.getCol(1))))
+                .flatMap(row -> {
+                    try {
+                        return Stream.of(
+                                esi.lookupAlliance(webClient, row.getCol(0)),
+                                esi.lookupCharacter(webClient, row.getCol(1)));
+                    } catch (TSV.TSVException e) {
+                        return Stream.of(Future.failedFuture(e));
+                    }
+                })
                 .collect(Collectors.toList()))
                 .map(AppStreamHelpers::toJsonObjects)
                 .map(this::checkForTeamImportErrors)
@@ -198,15 +205,28 @@ public class TeamsRouter {
                     }
                 })
                 .onFailure(throwable -> {
-                    throwable.printStackTrace();
-                    doRedirect(ctx.response(), tournamentUrl(ctx, "/teams/import"));
+                    render.renderPage(ctx,
+                            "/teams/import",
+                            new JsonObject()
+                                    .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                    .put("tsv", tsv.text())
+                                    .put("errors", throwable.getMessage()));
+
                 });
     }
 
     private void handleImportFail(RoutingContext ctx) {
         Throwable failure = ctx.failure();
-        failure.printStackTrace();
-        doRedirect(ctx.response(), tournamentUrl(ctx, "/teams/import"));
+        if (!(failure instanceof ValidationException)) {
+            failure.printStackTrace();
+        }
+        MultiMap form = ctx.request().formAttributes();
+        render.renderPage(ctx,
+                "/teams/import",
+                new JsonObject()
+                        .put("placeholder", "Please fix the errors and paste in the revised data.")
+                        .put("tsv", form.get("tsv"))
+                        .put("errors", failure.getMessage()));
     }
 
     private void addMembers(RoutingContext ctx) {
@@ -261,7 +281,6 @@ public class TeamsRouter {
     }
 
     private void handleAddMembersFail(RoutingContext ctx) {
-
         Throwable failure = ctx.failure();
         if (!(failure instanceof ValidationException)) {
             failure.printStackTrace();
@@ -273,7 +292,6 @@ public class TeamsRouter {
                         .put("placeholder", "Please fix the errors and paste in the revised data.")
                         .put("tsv", form.get("tsv"))
                         .put("errors", failure.getMessage()));
-
     }
 
     private void membersData(RoutingContext ctx) {

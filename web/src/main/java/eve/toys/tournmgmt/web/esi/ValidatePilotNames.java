@@ -34,7 +34,12 @@ public class ValidatePilotNames {
     }
 
     private Future<JsonObject> lookupCharacter(TSV.Row row) {
-        return esi.lookupCharacter(webClient, row.getCol(0));
+        try {
+            String name = row.getCol(0);
+            return esi.lookupCharacter(webClient, name);
+        } catch (TSV.TSVException e) {
+            return Future.failedFuture(e);
+        }
     }
 
     private Stream<String> filterForInvalidNames(Stream<JsonObject> results) {
