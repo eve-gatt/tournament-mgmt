@@ -30,6 +30,8 @@ public class SuperuserRouter {
         switch (jobName) {
             case "check-alliance-membership":
                 jobClient.run(JobClient.JOB_CHECK_ALLIANCE_MEMBERSHIP, new JsonObject());
+            case "check-pilots-on-one-team":
+                jobClient.run(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, new JsonObject());
         }
         RenderHelper.doRedirect(ctx.response(), "/auth/superuser/home");
     }

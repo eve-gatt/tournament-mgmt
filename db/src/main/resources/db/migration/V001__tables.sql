@@ -7,6 +7,7 @@ create table tournament
     practice_on_td boolean                  default false not null,
     play_on_td     boolean                  default false not null,
     teams_locked   boolean                  default false not null,
+    msg            varchar,
     created_by     varchar                                not null,
     created_on     timestamp with time zone default now() not null,
     constraint tournament_pk

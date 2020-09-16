@@ -69,12 +69,16 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_WRITE_TEAM_MEMBERS_TSV, this::writeTeamMembersTsv);
         vertx.eventBus().consumer(DbClient.DB_MEMBERS_BY_TEAM, this::membersByTeam);
         vertx.eventBus().consumer(DbClient.DB_ALL_TEAMS, this::allTeams);
+        vertx.eventBus().consumer(DbClient.DB_CLEAR_ALL_TOURNAMENT_MSGS, this::clearAllTournamentMsgs);
         vertx.eventBus().consumer(DbClient.DB_UPDATE_TEAM_MESSAGE, this::updateTeamMessage);
+        vertx.eventBus().consumer(DbClient.DB_UPDATE_TOURNAMENT_MESSAGE, this::updateTournamentMessage);
         vertx.eventBus().consumer(DbClient.DB_ROLES_BY_TOURNAMENT, this::rolesByTournament);
         vertx.eventBus().consumer(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT, this::replaceRolesByTypeAndTournament);
         vertx.eventBus().consumer(DbClient.DB_HAS_ROLE, this::hasRole);
         vertx.eventBus().consumer(DbClient.DB_PROBLEMS_BY_TOURNAMENT, this::problemsByTournament);
         vertx.eventBus().consumer(DbClient.DB_TOURNAMENTS_CHARACTER_CAN_VIEW, this::tournamentsCharacterCanView);
+        vertx.eventBus().consumer(DbClient.DB_ALL_CAPTAINS, this::allCaptains);
+        vertx.eventBus().consumer(DbClient.DB_ALL_PILOTS, this::allPilots);
 
         startPromise.complete();
     }
@@ -354,7 +358,7 @@ public class DbVerticle extends AbstractVerticle {
     }
 
     private void allTeams(Message<JsonObject> msg) {
-        sqlClient.query("select name, captain, uuid from team", ar -> {
+        sqlClient.query("select name, captain, uuid, tournament_uuid from team", ar -> {
             if (ar.failed()) {
                 ar.cause().printStackTrace();
                 msg.fail(1, ar.cause().getMessage());
@@ -362,6 +366,18 @@ public class DbVerticle extends AbstractVerticle {
                 msg.reply(new JsonArray(ar.result().getRows()));
             }
         });
+    }
+
+    private void clearAllTournamentMsgs(Message<Void> msg) {
+        sqlClient.update("update tournament set msg = null",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(null);
+                    }
+                });
     }
 
     private void updateTeamMessage(Message<JsonObject> msg) {
@@ -374,6 +390,24 @@ public class DbVerticle extends AbstractVerticle {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
                         msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(null);
+                    }
+                });
+    }
+
+    private void updateTournamentMessage(Message<JsonObject> msg) {
+        String message = msg.body().getString("message");
+        String uuid = msg.body().getString("uuid");
+        sqlClient.updateWithParams("update tournament set msg = ? " +
+                        "where uuid = '" + uuid + "'",
+                new JsonArray().add(message),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(null);
                     }
                 });
     }
@@ -466,7 +500,12 @@ public class DbVerticle extends AbstractVerticle {
         sqlClient.query("select msg " +
                         "from team " +
                         "where tournament_uuid = '" + uuid + "' " +
-                        "and (msg = '') is not true",
+                        "  and (msg <> '') is true " +
+                        "union " +
+                        "select msg " +
+                        "from tournament " +
+                        "where uuid = '" + uuid + "' " +
+                        "  and (msg <> '') is true ",
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
@@ -513,6 +552,31 @@ public class DbVerticle extends AbstractVerticle {
                         .add(characterName)
                         .add(characterName)
                         .add(characterName),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(new JsonArray(ar.result().getRows()));
+                    }
+                });
+    }
+
+    private void allCaptains(Message<Void> msg) {
+        sqlClient.query("select tournament_uuid, captain as name from team",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(new JsonArray(ar.result().getRows()));
+                    }
+                });
+    }
+
+    private void allPilots(Message<Void> msg) {
+        sqlClient.query("select tournament_uuid, team_member.name " +
+                        "from team_member inner join team on team_member.team_uuid = team.uuid",
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();

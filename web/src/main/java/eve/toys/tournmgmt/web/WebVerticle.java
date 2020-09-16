@@ -102,7 +102,7 @@ public class WebVerticle extends AbstractVerticle {
         router.mountSubRouter("/login", LoginRouter.routes(vertx, render, oauth2));
         router.mountSubRouter("/auth/tournament", TournamentRouter.routes(vertx, render, webClient, esi, dbClient, jobClient));
         router.mountSubRouter("/auth/profile", ProfileRouter.routes(vertx, render, webClient, esi, dbClient));
-        router.mountSubRouter("/auth/tournament", TeamsRouter.routes(vertx, render, webClient, esi, dbClient, jobClient));
+        router.mountSubRouter("/auth/tournament", TeamsRouter.routes(vertx, render, esi, dbClient, jobClient));
         router.mountSubRouter("/auth/tournament", RefereeRouter.routes(vertx, render));
         router.mountSubRouter("/auth/tournament", ThunderdomeRouter.routes(vertx, render));
         router.route("/auth/superuser/*")

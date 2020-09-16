@@ -15,7 +15,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.api.RequestParameters;
 import io.vertx.ext.web.api.validation.ValidationException;
-import io.vertx.ext.web.client.WebClient;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
@@ -27,12 +26,14 @@ public class TeamsRouter {
     private final Router router;
     private final Esi esi;
     private final DbClient dbClient;
+    private final JobClient jobClient;
 
-    public TeamsRouter(Vertx vertx, RenderHelper render, Esi esi, DbClient dbClient) {
+    public TeamsRouter(Vertx vertx, RenderHelper render, Esi esi, DbClient dbClient, JobClient jobClient) {
         router = Router.router(vertx);
         this.render = render;
         this.esi = esi;
         this.dbClient = dbClient;
+        this.jobClient = jobClient;
 
         AuthnRule isOrganiser = AuthnRule.create().role(Role.ORGANISER);
         AuthnRule isOrganiserOrCaptain = AuthnRule.create().role(Role.ORGANISER).isCaptain();
@@ -111,7 +112,10 @@ public class TeamsRouter {
         dbClient.callDb(DbClient.DB_DELETE_TEAM_BY_UUID,
                 ctx.request().getParam("teamUuid"))
                 .onFailure(ctx::fail)
-                .onSuccess(result -> doRedirect(ctx.response(), tournamentUrl(ctx, "/teams")));
+                .onSuccess(result -> {
+                    jobClient.run(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, new JsonObject());
+                    doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
+                });
     }
 
     private void addMembers(RoutingContext ctx) {
@@ -153,7 +157,10 @@ public class TeamsRouter {
                                             .put("tsv", tsv.text())
                                             .put("errors", t.getMessage()));
                         })
-                        .onSuccess(results -> doRedirect(ctx.response(), teamUrl(ctx, "/edit")));
+                        .onSuccess(results -> {
+                            jobClient.run(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, new JsonObject());
+                            doRedirect(ctx.response(), teamUrl(ctx, "/edit"));
+                        });
             } else {
                 render.renderPage(ctx,
                         "/teams/addmembers",
@@ -214,12 +221,13 @@ public class TeamsRouter {
         dbClient.callDb(DbClient.DB_KICK_PILOT_BY_UUID, ctx.request().getParam("pilotUuid"))
                 .onFailure(ctx::fail)
                 .onSuccess(result -> {
+                    jobClient.run(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, new JsonObject());
                     doRedirect(ctx.response(), teamUrl(ctx, "/edit"));
                 });
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient, JobClient jobClient) {
-        return new TeamsRouter(vertx, render, esi, dbClient).router();
+    public static Router routes(Vertx vertx, RenderHelper render, Esi esi, DbClient dbClient, JobClient jobClient) {
+        return new TeamsRouter(vertx, render, esi, dbClient, jobClient).router();
     }
 
     private Router router() {

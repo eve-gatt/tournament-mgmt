@@ -5,6 +5,8 @@ block append styles
 
 block content
     - var uuid = tournament.getString("uuid")
+    - var isSuperuser = character.getBoolean("isSuperuser")
+    - var isCreator = tournament.getBoolean("is_creator")
 
     mixin subtitle("Home")
 
@@ -19,7 +21,7 @@ block content
         - var roles = tournament.getString("roles") == null ? "" : tournament.getString("roles")
         - var isSuperuser = character.getBoolean("isSuperuser")
 
-        if (isSuperuser || roles.contains("organiser")) && problems.size() > 0
+        if (isSuperuser || isCreator || roles.contains("organiser")) && problems.size() > 0
             h3 Problems
             .problems
                 each problem in problems
