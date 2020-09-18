@@ -1,31 +1,37 @@
 package eve.toys.tournmgmt.web.routes;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.common.util.RenderHelper;
+import toys.eve.tournmgmt.db.DbClient;
 
 public class ThunderdomeRouter {
 
-    private final EventBus eventBus;
+    private final DbClient dbClient;
     private final RenderHelper render;
     private final Router router;
 
-    public ThunderdomeRouter(Vertx vertx, RenderHelper render) {
+    public ThunderdomeRouter(Vertx vertx, RenderHelper render, DbClient dbClient) {
         router = Router.router(vertx);
         this.render = render;
-        this.eventBus = vertx.eventBus();
+        this.dbClient = dbClient;
         router.get("/:tournamentUuid/thunderdome").handler(this::home);
     }
 
     private void home(RoutingContext ctx) {
-        render.renderPage(ctx, "/thunderdome/home", new JsonObject());
+        String uuid = ctx.request().getParam("tournamentUuid");
+        dbClient.callDb(DbClient.DB_TD_SUMMARY_BY_TOURNAMENT, uuid)
+                .onFailure(ctx::fail)
+                .onSuccess(result -> {
+                    JsonObject td = (JsonObject) result.body();
+                    render.renderPage(ctx, "/thunderdome/home", td);
+                });
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render) {
-        return new ThunderdomeRouter(vertx, render).router();
+    public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient) {
+        return new ThunderdomeRouter(vertx, render, dbClient).router();
     }
 
     private Router router() {

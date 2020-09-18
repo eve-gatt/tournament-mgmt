@@ -75,3 +75,16 @@ create table tournament_role
             on update cascade on delete cascade
 );
 
+create table thunderdome
+(
+    id              serial
+        constraint thunderdome_pk
+            primary key,
+    tournament_uuid uuid    not null,
+    allocated_to    varchar,
+    username        varchar not null,
+    password        varchar not null,
+    constraint thunderdome_tournament_uuid_fk
+        foreign key (tournament_uuid) references tournament (uuid)
+            on update cascade on delete cascade
+);

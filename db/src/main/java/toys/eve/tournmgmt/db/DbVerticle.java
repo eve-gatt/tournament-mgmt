@@ -79,6 +79,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_TOURNAMENTS_CHARACTER_CAN_VIEW, this::tournamentsCharacterCanView);
         vertx.eventBus().consumer(DbClient.DB_ALL_CAPTAINS, this::allCaptains);
         vertx.eventBus().consumer(DbClient.DB_ALL_PILOTS, this::allPilots);
+        vertx.eventBus().consumer(DbClient.DB_TD_SUMMARY_BY_TOURNAMENT, this::tdSummaryByTournament);
 
         startPromise.complete();
     }
@@ -583,6 +584,21 @@ public class DbVerticle extends AbstractVerticle {
                         msg.fail(1, ar.cause().getMessage());
                     } else {
                         msg.reply(new JsonArray(ar.result().getRows()));
+                    }
+                });
+    }
+
+    private void tdSummaryByTournament(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.query("select " +
+                        "    (select count(*) from thunderdome where tournament_uuid = '" + uuid + "' and allocated_to is not null) as allocated, " +
+                        "    (select count(*) from thunderdome where tournament_uuid = '" + uuid + "') as total",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(ar.result().getRows().get(0));
                     }
                 });
     }

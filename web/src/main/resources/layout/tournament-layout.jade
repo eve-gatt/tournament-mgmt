@@ -1,14 +1,50 @@
 extends ./default-layout
 
+block styles
+    style.
+        !{tournament_styles}
+        .menu {
+            margin-bottom: 18px;
+        }
+
+        .tournament-header {
+            display: flex;
+            justify-content: flex-start;
+            margin-top: 8px;
+        }
+
+        .tournament-header .box {
+            margin-right: 24px;
+        }
+
+        .tournament-header .box .sub {
+            size: 0.8em;
+            color: #BCBCBC;
+        }
+
+        .tournament-header .box .name {
+            text-align: right;
+            margin-left: 24px;
+        }
+
+        .tournament-header .box .name a {
+            font-size: 1.2em;
+            color: #e2e2e2;
+        }
+
 mixin subtitle(name)
     - var uuid = tournament.getString("uuid")
+    .tournament-header
+        .box
+            .sub Tournament
+            .name: a(href="/auth/tournament/" + uuid + "/home")= tournament.getString("name")
+        if team
+            .box
+                .sub Team
+                .name: a(href="/auth/tournament/" + uuid + "/teams/" + team.getString("uuid") + "/edit")= team.getString("name")
+
     h2
-        a(href="/auth/tournament/" + uuid + "/home")= tournament.getString("name")
-        | &nbsp;
         span.accent= name
-    if team
-        h2
-            a(href="/auth/tournament/" + uuid + "/teams/" + team.getString("uuid") + "/edit")= team.getString("name")
 
     .menu
         - var roles = tournament.getString("roles") == null ? "" : tournament.getString("roles")
@@ -30,13 +66,6 @@ mixin subtitle(name)
 
         if isSuperuser || isCreator || roles.contains("organiser") || roles.contains("referee")
             a(href="/auth/tournament/" + uuid + "/referee") Referee
-
-block styles
-    style.
-        !{tournament_styles}
-        .menu {
-            margin-bottom: 18px;
-        }
 
 block scripts
 

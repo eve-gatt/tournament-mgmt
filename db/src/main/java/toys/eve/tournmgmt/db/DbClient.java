@@ -30,6 +30,7 @@ public final class DbClient {
     public static final String DB_KICK_PILOT_BY_UUID = "DB_KICK_PILOT_BY_UUID";
     public static final String DB_ALL_CAPTAINS = "DB_ALL_CAPTAINS";
     public static final String DB_ALL_PILOTS = "DB_ALL_PILOTS";
+    public static final String DB_TD_SUMMARY_BY_TOURNAMENT = "TD_SUMMARY_BY_TOURNAMENT";
 
     private final EventBus eventBus;
 
