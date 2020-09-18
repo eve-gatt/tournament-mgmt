@@ -42,6 +42,30 @@ block content
             tbody
         a(href="/auth/tournament/create") Create
 
+    h2 Name in use on Thunderdome
+
+    p.
+        Most tournaments requirement your pilot name on Thunderdome to match your TQ name. However if you've previously
+        entered a tournament this name may already be used on an account you no longer have access to.
+    if reports.size() == 0
+        p.
+            Please report this using the following link and a request will be logged with CCP. You can check back here
+            to check the status of this request.
+
+        a(href="/auth/profile/name-in-use") Report name in use
+    else
+        table.pure-table
+            thead
+                th Reported
+                th Resolved
+                th Resolved by
+            tbody
+                each report in reports
+                    tr
+                        td= report.getString("reported_at_formatted")
+                        td= report.getString("resolved_at_formatted") == null ? "in queue" : report.getString("resolved_at_formatted")
+                        td= report.getString("resolved_by")
+
     h2 Ship skills check
 
     p Type a ship name to verify that your character has the skills to fly it.

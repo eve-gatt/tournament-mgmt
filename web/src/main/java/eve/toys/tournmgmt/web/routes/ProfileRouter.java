@@ -18,6 +18,9 @@ import io.vertx.ext.web.client.WebClient;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +30,8 @@ import java.util.stream.IntStream;
 import static toys.eve.tournmgmt.common.util.RenderHelper.doRedirect;
 
 public class ProfileRouter {
+
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneId.of("UTC"));
 
     private static final List<Integer> SKILL_IDS = Arrays.asList(182, 183, 184, 1285, 1289, 1290);
     private static final List<Integer> SKILL_LEVELS = Arrays.asList(277, 278, 279, 1286, 1287, 1288);
@@ -47,10 +52,28 @@ public class ProfileRouter {
         router.get("/tournaments").handler(this::tournamentsJson);
         router.get("/shipcheck").handler(ctx -> doRedirect(ctx.response(), "/auth/profile/me"));
         router.post("/shipcheck").handler(this::shipCheck);
+        router.get("/name-in-use").handler(this::nameInUse);
+        router.get("/name-in-use/:characterId/confirm").handler(this::nameInUseConfirm);
     }
 
     private void me(RoutingContext ctx) {
-        render.renderPage(ctx, "/profile/me", new JsonObject());
+        String loggedInCharacterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
+        dbClient.callDb(DbClient.DB_CHECK_NAME_IN_USE_REPORTS, loggedInCharacterName)
+                .onFailure(ctx::fail)
+                .onSuccess(result -> {
+                    JsonArray reports = (JsonArray) result.body();
+                    List<JsonObject> withFormattedDate = reports.stream()
+                            .map(o -> (JsonObject) o)
+                            .map(report -> {
+                                Instant resolvedAt = report.getInstant("resolved_at");
+                                if (resolvedAt != null) {
+                                    report.put("resolved_at_formatted", DATE_FORMAT.format(resolvedAt));
+                                }
+                                return report.put("reported_at_formatted", DATE_FORMAT.format(report.getInstant("reported_at")));
+                            })
+                            .collect(Collectors.toList());
+                    render.renderPage(ctx, "/profile/me", new JsonObject().put("reports", new JsonArray(withFormattedDate)));
+                });
     }
 
     private void tournamentsJson(RoutingContext ctx) {
@@ -77,6 +100,26 @@ public class ProfileRouter {
                     t.printStackTrace();
                     doRedirect(ctx.response(), "/auth/profile/me");
                 });
+    }
+
+    private void nameInUse(RoutingContext ctx) {
+        render.renderPage(ctx, "/profile/nameinuse", new JsonObject());
+    }
+
+    private void nameInUseConfirm(RoutingContext ctx) {
+        int suppliedCharacterId = Integer.parseInt(ctx.request().getParam("characterId"));
+        int loggedInCharacterId = ((JsonObject) ctx.data().get("character")).getInteger("characterId");
+        String loggedInCharacterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
+        if (suppliedCharacterId != loggedInCharacterId) {
+            ctx.fail(403);
+        } else {
+            dbClient.callDb(DbClient.DB_RECORD_NAME_IN_USE, loggedInCharacterName)
+                    .onFailure(ctx::fail)
+                    .onSuccess(msg -> {
+                        doRedirect(ctx.response(), "/auth/profile/me");
+                    });
+
+        }
     }
 
     private Future<JsonObject> fetchShipDetails(JsonObject json) {

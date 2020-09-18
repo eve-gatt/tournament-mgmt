@@ -80,6 +80,8 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_ALL_CAPTAINS, this::allCaptains);
         vertx.eventBus().consumer(DbClient.DB_ALL_PILOTS, this::allPilots);
         vertx.eventBus().consumer(DbClient.DB_TD_SUMMARY_BY_TOURNAMENT, this::tdSummaryByTournament);
+        vertx.eventBus().consumer(DbClient.DB_RECORD_NAME_IN_USE, this::recordNameInUse);
+        vertx.eventBus().consumer(DbClient.DB_CHECK_NAME_IN_USE_REPORTS, this::checkNameInUse);
 
         startPromise.complete();
     }
@@ -599,6 +601,37 @@ public class DbVerticle extends AbstractVerticle {
                         msg.fail(1, ar.cause().getMessage());
                     } else {
                         msg.reply(ar.result().getRows().get(0));
+                    }
+                });
+    }
+
+    private void recordNameInUse(Message msg) {
+        String name = (String) msg.body();
+        sqlClient.updateWithParams("insert into name_in_use_reports (uuid, name) " +
+                        "values ('" + UUID.randomUUID().toString() + "', ?)",
+                new JsonArray().add(name),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(null);
+                    }
+                });
+    }
+
+    private void checkNameInUse(Message<String> msg) {
+        String name = msg.body();
+        sqlClient.queryWithParams("select reported_at, resolved_at, resolved_by " +
+                        "from name_in_use_reports " +
+                        "where name = ?",
+                new JsonArray().add(name),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(new JsonArray(ar.result().getRows()));
                     }
                 });
     }

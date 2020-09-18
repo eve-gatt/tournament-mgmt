@@ -77,14 +77,27 @@ create table tournament_role
 
 create table thunderdome
 (
-    id              serial
-        constraint thunderdome_pk
-            primary key,
+    id              serial  not null,
     tournament_uuid uuid    not null,
     allocated_to    varchar,
     username        varchar not null,
     password        varchar not null,
+    constraint thunderdome_pk
+        primary key (id),
     constraint thunderdome_tournament_uuid_fk
         foreign key (tournament_uuid) references tournament (uuid)
             on update cascade on delete cascade
 );
+
+create table name_in_use_reports
+(
+    uuid        uuid                                   not null,
+    reported_at timestamp with time zone default now() not null,
+    name        varchar                                not null,
+    resolved    boolean                  default false not null,
+    resolved_at timestamp with time zone,
+    resolved_by varchar,
+    constraint name_in_use_reports_pk
+        primary key (uuid)
+);
+
