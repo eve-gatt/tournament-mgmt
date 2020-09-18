@@ -72,7 +72,12 @@ public class ProfileRouter {
                                 return report.put("reported_at_formatted", DATE_FORMAT.format(report.getInstant("reported_at")));
                             })
                             .collect(Collectors.toList());
-                    render.renderPage(ctx, "/profile/me", new JsonObject().put("reports", new JsonArray(withFormattedDate)));
+                    JsonObject out = new JsonObject().put("reports", new JsonArray(withFormattedDate));
+                    if (withFormattedDate.stream()
+                            .noneMatch(r -> r.getString("resolved_by") == null || r.getString("resolved_by").isEmpty())) {
+                        out.put("canReportAgain", true);
+                    }
+                    render.renderPage(ctx, "/profile/me", out);
                 });
     }
 

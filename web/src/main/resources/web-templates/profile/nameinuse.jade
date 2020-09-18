@@ -3,7 +3,10 @@ extends ../../layout/default-layout
 block content
     h2 Name in use on Thunderdome
 
-    p Please confirm that the name "#{character.getString("characterName")}" is already in use on Thunderdome.
+    p.
+        Please confirm that the name "#{character.getString("characterName")}" is already in use on Thunderdome and
+        you would like any existing usages removed.
+
     a(href="/auth/profile/name-in-use/" + character.getInteger("characterId") + "/confirm") Confirm
     a(href="/auth/profile/me") Cancel
 

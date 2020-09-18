@@ -51,9 +51,10 @@ block content
         p.
             Please report this using the following link and a request will be logged with CCP. You can check back here
             to check the status of this request.
-
+    if canReportAgain
         a(href="/auth/profile/name-in-use") Report name in use
-    else
+
+    if reports.size() > 0
         table.pure-table
             thead
                 th Reported
