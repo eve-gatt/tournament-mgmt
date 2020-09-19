@@ -31,7 +31,7 @@ public class DbVerticle extends AbstractVerticle {
 
         try {
             Flyway flyway = Flyway.configure()
-                    .baselineVersion("002")
+//                    .baselineVersion("002")
                     .dataSource(URL, USER, PASSWORD)
                     .load();
             if (Boolean.parseBoolean(System.getProperty("db_do_clean", "false"))) {
@@ -39,7 +39,7 @@ public class DbVerticle extends AbstractVerticle {
                 flyway.clean();
             }
             LOGGER.info("Flyway migration");
-            flyway.baseline();
+//            flyway.baseline();
             flyway.migrate();
         } catch (FlywayException e) {
             startPromise.fail(e);
@@ -178,7 +178,7 @@ public class DbVerticle extends AbstractVerticle {
     private void teamByUuid(Message<JsonObject> msg) {
         String uuid = msg.body().getString("uuid");
         String characterName = msg.body().getString("characterName");
-        sqlClient.queryWithParams("select name, captain, uuid, locked, " +
+        sqlClient.queryWithParams("select name, captain, logo, uuid, locked, " +
                         "(captain = ?) as is_captain " +
                         "from team " +
                         "where uuid = '" + uuid + "'",
@@ -239,13 +239,16 @@ public class DbVerticle extends AbstractVerticle {
                 .map(row -> {
                     try {
                         String alliance = row.getString(0).replaceAll("'", "''");
-                        String character = row.getString(1).replaceAll("'", "''");
+                        String logo = row.getString(1);
+                        String character = row.getString(2).replaceAll("'", "''");
                         return "(" +
                                 "'" + UUID.randomUUID().toString() + "'" +
                                 ", " +
                                 "'" + uuid + "'" +
                                 ", " +
                                 "'" + alliance + "'" +
+                                ", " +
+                                "'" + logo + "'" +
                                 ", " +
                                 "'" + character + "'" +
                                 ", " +
@@ -258,7 +261,7 @@ public class DbVerticle extends AbstractVerticle {
                     }
                 })
                 .collect(Collectors.joining(","));
-        sqlClient.update("insert into team (uuid, tournament_uuid, name, captain, created_by) " +
+        sqlClient.update("insert into team (uuid, tournament_uuid, name, logo, captain, created_by) " +
                         "values " + values,
                 ar -> {
                     if (ar.failed()) {
@@ -273,7 +276,7 @@ public class DbVerticle extends AbstractVerticle {
 
     private void teamsByTournament(Message<JsonObject> msg) {
         String uuid = msg.body().getString("uuid");
-        sqlClient.query("select name, uuid, captain, locked, msg, " +
+        sqlClient.query("select name, logo, uuid, captain, locked, msg, " +
                         "(select count(*) from team_member where team.uuid = team_uuid) as member_count " +
                         "from team " +
                         "where tournament_uuid = '" + uuid + "'",

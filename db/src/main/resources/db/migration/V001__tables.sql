@@ -7,9 +7,9 @@ create table tournament
     practice_on_td boolean                  default false not null,
     play_on_td     boolean                  default false not null,
     teams_locked   boolean                  default false not null,
-    msg            varchar,
     created_by     varchar                                not null,
     created_on     timestamp with time zone default now() not null,
+    msg            varchar,
     constraint tournament_pk
         primary key (tournament_id),
     constraint tournament_uuid_key
@@ -25,6 +25,7 @@ create table team
     uuid            uuid                                   not null,
     tournament_uuid uuid                                   not null,
     name            varchar                                not null,
+    logo            varchar,
     captain         varchar                                not null,
     locked          boolean                  default false not null,
     created_by      varchar                                not null,
@@ -61,6 +62,9 @@ create table team_member
         foreign key (team_uuid) references team (uuid)
             on update cascade on delete cascade
 );
+
+create type role_type as enum
+    ('organiser', 'referee', 'staff');
 
 create table tournament_role
 (

@@ -14,6 +14,17 @@ block append styles
             text-align: right;
         }
 
+        .teams .team-name {
+            display: flex;
+            align-items: center;
+        }
+
+        .teams .team-name img {
+            max-width: 18px;
+            max-height: 18px;
+            margin: 0 6px;
+        }
+
 block content
     - var uuid = tournament.getString("uuid")
 

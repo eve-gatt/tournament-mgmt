@@ -279,31 +279,32 @@ public class TournamentRouter {
                 .map(this::checkForTeamImportErrors)
                 .onSuccess(msg -> {
                     if (msg.isEmpty()) {
-                        CompositeFuture.all(tsv.stream()
-                                .map(row ->
-                                        Future.future(promise -> {
+                        CompositeFuture.all(tsv.stream().map(row -> Future.future(promise -> {
+                            try {
+                                esi.lookupAlliance(row.getCol(0))
+                                        .onFailure(promise::fail)
+                                        .onSuccess(result -> {
                                             try {
-                                                esi.lookupAlliance(row.getCol(0))
-                                                        .onFailure(promise::fail)
-                                                        .onSuccess(result -> {
-                                                            try {
-                                                                promise.complete(result.getJsonObject("lookup").getString("name") + "," + row.getCol(1));
-                                                            } catch (TSVException e) {
-                                                                promise.fail(e);
-                                                            }
-                                                        });
+                                                Integer allianceId = result.getJsonArray("result").getInteger(0);
+                                                promise.complete(result.getJsonObject("lookup").getString("name")
+                                                        + ","
+                                                        + "https://images.evetech.net/alliances/" + allianceId + "/logo"
+                                                        + ","
+                                                        + row.getCol(1));
                                             } catch (TSVException e) {
                                                 promise.fail(e);
                                             }
-                                        })
-                                )
-                                .collect(Collectors.toList()))
+                                        });
+                            } catch (TSVException e) {
+                                promise.fail(e);
+                            }
+                        })).collect(Collectors.toList()))
                                 .map(f -> f.list().stream()
                                         .map(s -> (String) s)
                                         .collect(Collectors.joining("\n")))
                                 .onFailure(Throwable::printStackTrace)
                                 .onSuccess(newTsv -> {
-                                    TSV tsv1 = new TSV(newTsv, 2);
+                                    TSV tsv1 = new TSV(newTsv, 3);
                                     dbClient.callDb(DbClient.DB_WRITE_TEAM_TSV,
                                             new JsonObject()
                                                     .put("tsv", tsv1.json())

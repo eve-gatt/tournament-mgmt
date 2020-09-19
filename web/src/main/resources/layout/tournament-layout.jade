@@ -4,17 +4,14 @@ block styles
     style.
         !{tournament_styles}
         .menu {
-            margin-bottom: 18px;
+            margin: 12px 0 12px;
         }
 
         .tournament-header {
-            display: flex;
-            justify-content: flex-start;
+            display: grid;
+            grid-template-columns: auto auto auto 1fr;
+            grid-gap: 24px;
             margin-top: 8px;
-        }
-
-        .tournament-header .box {
-            margin-right: 24px;
         }
 
         .tournament-header .box .sub {
@@ -32,19 +29,14 @@ block styles
             color: #e2e2e2;
         }
 
+        .tournament-header .logo {
+            max-width: 128px;
+            max-height: 128px;
+        }
+
+
 mixin subtitle(name)
     - var uuid = tournament.getString("uuid")
-    .tournament-header
-        .box
-            .sub Tournament
-            .name: a(href="/auth/tournament/" + uuid + "/home")= tournament.getString("name")
-        if team
-            .box
-                .sub Team
-                .name: a(href="/auth/tournament/" + uuid + "/teams/" + team.getString("uuid") + "/edit")= team.getString("name")
-
-    h2
-        span.accent= name
 
     .menu
         - var roles = tournament.getString("roles") == null ? "" : tournament.getString("roles")
@@ -52,6 +44,7 @@ mixin subtitle(name)
         - var isCreator = tournament.getBoolean("is_creator")
         - var isCaptain = tournament.getBoolean("is_captain")
         - var isPilot = tournament.getBoolean("is_pilot")
+
         a(href="/auth/tournament/" + uuid + "/home") Home
         if isSuperuser || isCreator || roles.contains("organiser")
             a(href="/auth/tournament/" + uuid + "/edit") Edit details
@@ -66,6 +59,21 @@ mixin subtitle(name)
 
         if isSuperuser || isCreator || roles.contains("organiser") || roles.contains("referee")
             a(href="/auth/tournament/" + uuid + "/referee") Referee
+
+    .tournament-header
+        if team
+            img.logo(src=team.getString("logo") + "?size=128")
+        .box
+            .sub Tournament
+            .name: a(href="/auth/tournament/" + uuid + "/home")= tournament.getString("name")
+        if team
+            .box
+                .sub Team
+                .name
+                    a(href="/auth/tournament/" + uuid + "/teams/" + team.getString("uuid") + "/edit")= team.getString("name")
+
+    h2
+        span.accent= name
 
 block scripts
 
