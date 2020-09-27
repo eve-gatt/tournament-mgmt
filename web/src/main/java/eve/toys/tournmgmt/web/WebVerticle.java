@@ -38,13 +38,14 @@ public class WebVerticle extends AbstractVerticle {
     private static final String ESI_CLIENT = System.getenv("ESI_CLIENT");
     private static final String ESI_SECRET = System.getenv("ESI_SECRET");
     private WebClient webClient;
+    private DbClient dbClient;
 
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
 
         this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
         Esi esi = Esi.create(webClient, CircuitBreaker.create("esi-cb", vertx));
-        DbClient dbClient = new DbClient(vertx.eventBus());
+        dbClient = new DbClient(vertx.eventBus());
         JobClient jobClient = new JobClient(vertx.eventBus());
 
         SessionStore sessionStore = LocalSessionStore.create(vertx);
@@ -83,7 +84,8 @@ public class WebVerticle extends AbstractVerticle {
                 .handler(BodyHandler.create())
                 .pathRegex("^(?!/js/|/css/|/assets/).+")
                 .handler(ctx -> addCharacterInfoToContext(ctx)
-                        .compose(v -> addTournamentInfoToContext(ctx, dbClient))
+                        .compose(v -> addPilotsTeamsToContext(ctx))
+                        .compose(v -> addTournamentInfoToContext(ctx))
                         .onSuccess(f -> ctx.next())
                         .onFailure(throwable -> {
                             throwable.printStackTrace();
@@ -151,7 +153,24 @@ public class WebVerticle extends AbstractVerticle {
         });
     }
 
-    private Future<Void> addTournamentInfoToContext(RoutingContext ctx, DbClient dbClient) {
+    private Future<Void> addPilotsTeamsToContext(RoutingContext ctx) {
+        return Future.future(promise -> {
+            if (ctx.data().containsKey("character")) {
+                String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
+                dbClient.callDb(DbClient.DB_TEAMS_BY_PILOT, characterName)
+                        .onFailure(promise::fail)
+                        .onSuccess(results -> {
+                            JsonArray teams = (JsonArray) results.body();
+                            ctx.data().put("pilotsTeams", teams);
+                            promise.complete();
+                        });
+            } else {
+                promise.complete();
+            }
+        });
+    }
+
+    private Future<Void> addTournamentInfoToContext(RoutingContext ctx) {
         return Future.future(promise -> {
             if (ctx.data().containsKey("character")) {
                 String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");

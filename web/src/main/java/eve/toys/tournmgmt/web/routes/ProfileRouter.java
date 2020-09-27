@@ -35,16 +35,14 @@ public class ProfileRouter {
 
     private static final List<Integer> SKILL_IDS = Arrays.asList(182, 183, 184, 1285, 1289, 1290);
     private static final List<Integer> SKILL_LEVELS = Arrays.asList(277, 278, 279, 1286, 1287, 1288);
-    private final WebClient webClient;
     private final RenderHelper render;
     private final Router router;
     private final DbClient dbClient;
     private Esi esi;
 
-    public ProfileRouter(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
+    public ProfileRouter(Vertx vertx, RenderHelper render, Esi esi, DbClient dbClient) {
         router = Router.router(vertx);
         this.render = render;
-        this.webClient = webClient;
         this.esi = esi;
         this.dbClient = dbClient;
 
@@ -57,27 +55,10 @@ public class ProfileRouter {
     }
 
     private void me(RoutingContext ctx) {
-        String loggedInCharacterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
-        dbClient.callDb(DbClient.DB_CHECK_NAME_IN_USE_REPORTS, loggedInCharacterName)
+        checkNameInUseReports(ctx.data())
                 .onFailure(ctx::fail)
-                .onSuccess(result -> {
-                    JsonArray reports = (JsonArray) result.body();
-                    List<JsonObject> withFormattedDate = reports.stream()
-                            .map(o -> (JsonObject) o)
-                            .map(report -> {
-                                Instant resolvedAt = report.getInstant("resolved_at");
-                                if (resolvedAt != null) {
-                                    report.put("resolved_at_formatted", DATE_FORMAT.format(resolvedAt));
-                                }
-                                return report.put("reported_at_formatted", DATE_FORMAT.format(report.getInstant("reported_at")));
-                            })
-                            .collect(Collectors.toList());
-                    JsonObject out = new JsonObject().put("reports", new JsonArray(withFormattedDate));
-                    if (withFormattedDate.stream()
-                            .noneMatch(r -> r.getString("resolved_by") == null || r.getString("resolved_by").isEmpty())) {
-                        out.put("canReportAgain", true);
-                    }
-                    render.renderPage(ctx, "/profile/me", out);
+                .onSuccess(v -> {
+                    render.renderPage(ctx, "/profile/me", new JsonObject());
                 });
     }
 
@@ -92,7 +73,8 @@ public class ProfileRouter {
         MultiMap form = ctx.request().formAttributes();
         String shipName = form.get("name");
         Integer characterId = ((JsonObject) ctx.data().get("character")).getInteger("characterId");
-        esi.lookupShip(shipName)
+        checkNameInUseReports(ctx.data())
+                .compose(v -> esi.lookupShip(shipName))
                 .compose(this::fetchShipDetails)
                 .compose(this::fetchSkillRequirements)
                 .compose(tuple -> fetchUsersSkills(ctx.user(), characterId, tuple))
@@ -125,6 +107,33 @@ public class ProfileRouter {
                     });
 
         }
+    }
+
+    public Future<Void> checkNameInUseReports(Map<String, Object> data) {
+        return Future.future(promise -> {
+            String loggedInCharacterName = ((JsonObject) data.get("character")).getString("characterName");
+            dbClient.callDb(DbClient.DB_CHECK_NAME_IN_USE_REPORTS, loggedInCharacterName)
+                    .onFailure(promise::fail)
+                    .onSuccess(result -> {
+                        JsonArray reports = (JsonArray) result.body();
+                        List<JsonObject> withFormattedDate = reports.stream()
+                                .map(o -> (JsonObject) o)
+                                .map(report -> {
+                                    Instant resolvedAt = report.getInstant("resolved_at");
+                                    if (resolvedAt != null) {
+                                        report.put("resolved_at_formatted", DATE_FORMAT.format(resolvedAt));
+                                    }
+                                    return report.put("reported_at_formatted", DATE_FORMAT.format(report.getInstant("reported_at")));
+                                })
+                                .collect(Collectors.toList());
+                        data.put("reports", new JsonArray(withFormattedDate));
+                        if (withFormattedDate.stream()
+                                .noneMatch(r -> r.getString("resolved_by") == null || r.getString("resolved_by").isEmpty())) {
+                            data.put("canReportAgain", true);
+                        }
+                        promise.complete();
+                    });
+        });
     }
 
     private Future<JsonObject> fetchShipDetails(JsonObject json) {
@@ -179,7 +188,7 @@ public class ProfileRouter {
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient) {
-        return new ProfileRouter(vertx, render, webClient, esi, dbClient).router();
+        return new ProfileRouter(vertx, render, esi, dbClient).router();
     }
 
     private Router router() {

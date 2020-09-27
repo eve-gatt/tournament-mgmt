@@ -82,6 +82,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_TD_SUMMARY_BY_TOURNAMENT, this::tdSummaryByTournament);
         vertx.eventBus().consumer(DbClient.DB_RECORD_NAME_IN_USE, this::recordNameInUse);
         vertx.eventBus().consumer(DbClient.DB_CHECK_NAME_IN_USE_REPORTS, this::checkNameInUse);
+        vertx.eventBus().consumer(DbClient.DB_TEAMS_BY_PILOT, this::teamsByPilot);
 
         startPromise.complete();
     }
@@ -629,6 +630,31 @@ public class DbVerticle extends AbstractVerticle {
                         "from name_in_use_reports " +
                         "where name = ?",
                 new JsonArray().add(name),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(new JsonArray(ar.result().getRows()));
+                    }
+                });
+    }
+
+    private void teamsByPilot(Message<String> msg) {
+        String pilotName = msg.body();
+        sqlClient.queryWithParams("select " +
+                        "team.name team_name, " +
+                        "team.uuid team_uuid, " +
+                        "t.name tournament_name, " +
+                        "t.uuid tournament_uuid " +
+                        "from team inner join tournament t on team.tournament_uuid = t.uuid " +
+                        "where team.captain = ? " +
+                        "or exists(select 1 " +
+                        "  from team_member " +
+                        "  inner join team on team_member.team_uuid = team.uuid " +
+                        "  where team.tournament_uuid = t.uuid " +
+                        "  and team_member.name = ?)",
+                new JsonArray().add(pilotName).add(pilotName),
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
