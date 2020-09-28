@@ -27,13 +27,18 @@ block content
                 th Actions
             tbody
 
-    - var adminConditions = team.getBoolean("locked") && (isSuperuser || roles.contains("organiser"))
-    - var nonAdminConditions = !team.getBoolean("locked") && (isSuperuser || roles.contains("organiser") || isCreator || isTeamCaptain)
-    if adminConditions || nonAdminConditions
+    - var isLocked = team.getBoolean("locked")
+    - var canAlwaysMaintain = isSuperuser || isCreator || roles.contains("organiser")
+    - var canMaintainWhenNotLocked = !isLocked && isTeamCaptain
+
+    if canAlwaysMaintain || canMaintainWhenNotLocked
         a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/add-members") Add team members
-        a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/lock-team") Lock team
-    if team.getBoolean("locked")
-        a(href='#') Thunderdome accounts
+        if isLocked
+            a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/unlock-team") Unlock team
+        else
+            a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/lock-team") Lock team
+    if isLocked
+        a(href="/auth/tournament/" + tournamentUuid + "/thunderdome") Thunderdome accounts
 
 block scripts
     script.

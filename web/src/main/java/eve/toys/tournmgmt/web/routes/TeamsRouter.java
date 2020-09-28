@@ -63,6 +63,19 @@ public class TeamsRouter {
         router.get("/:tournamentUuid/teams/:teamUuid/lock-team")
                 .handler(ctx -> AppRBAC.teamAuthn(ctx, isOrganiserOrCaptain))
                 .handler(this::lockTeam);
+        router.get("/:tournamentUuid/teams/:teamUuid/unlock-team")
+                .handler(ctx -> AppRBAC.teamAuthn(ctx, isOrganiserOrCaptain))
+                .handler(ctx -> {
+                    if (!ctx.failed()) {
+                        boolean isLocked = ((JsonObject) ctx.data().get("team")).getBoolean("locked");
+                        if (isLocked) {
+                            ctx.next();
+                        } else {
+                            ctx.fail(403);
+                        }
+                    }
+                })
+                .handler(this::unlockTeam);
         router.get("/:tournamentUuid/teams/:teamUuid/lock-team/confirm")
                 .handler(ctx -> AppRBAC.teamAuthn(ctx, isOrganiserOrCaptain))
                 .handler(this::lockTeamConfirm);
@@ -197,11 +210,18 @@ public class TeamsRouter {
         render.renderPage(ctx, "/teams/lockteam", new JsonObject());
     }
 
-    private void lockTeamConfirm(RoutingContext ctx) {
-        dbClient.callDb(DbClient.DB_LOCK_TEAM_BY_UUID,
+    private void unlockTeam(RoutingContext ctx) {
+        dbClient.callDb(DbClient.DB_TOGGLE_LOCK_TEAM_BY_UUID,
                 ctx.request().getParam("teamUuid"))
                 .onFailure(ctx::fail)
-                .onSuccess(result -> doRedirect(ctx.response(), tournamentUrl(ctx, "/teams")));
+                .onSuccess(result -> doRedirect(ctx.response(), teamUrl(ctx, "/edit")));
+    }
+
+    private void lockTeamConfirm(RoutingContext ctx) {
+        dbClient.callDb(DbClient.DB_TOGGLE_LOCK_TEAM_BY_UUID,
+                ctx.request().getParam("teamUuid"))
+                .onFailure(ctx::fail)
+                .onSuccess(result -> doRedirect(ctx.response(), teamUrl(ctx, "/edit")));
     }
 
     private void loadPilot(RoutingContext ctx) {
