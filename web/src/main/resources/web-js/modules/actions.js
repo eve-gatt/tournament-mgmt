@@ -9,18 +9,18 @@ export function tournamentActions(sel) {
         .attr('href', d => '/auth/tournament/' + d.uuid + '/home').text('Home');
     sel.filter(d => hasRole(d, 'organiser'))
         .append('a')
-        .attr('href', d => '/auth/tournament/' + d.uuid + '/edit').text('Edit details');
+        .attr('href', d => '/auth/tournament/' + d.uuid + '/edit').text('Edit');
     sel.filter(d => hasRole(d, 'organiser'))
         .append('a')
         .attr('href', d => '/auth/tournament/' + d.uuid + '/delete').text('Delete');
 
     sel.append('a').attr('href', '/wip').text('Search for pilot');
-    sel.append('a').attr('href', d => '/auth/tournament/' + d.uuid + '/teams').text('Manage teams');
-    sel.append('a').attr('href', d => '/auth/tournament/' + d.uuid + '/thunderdome').text('Manage Thunderdome');
+    sel.append('a').attr('href', d => '/auth/tournament/' + d.uuid + '/teams').text('Teams');
+    sel.append('a').attr('href', d => '/auth/tournament/' + d.uuid + '/thunderdome').text('Thunderdome');
 
     sel.filter(d => hasRole(d, 'organiser'))
         .append('a')
-        .attr('href', d => '/auth/tournament/' + d.uuid + '/roles').text('Manage roles')
+        .attr('href', d => '/auth/tournament/' + d.uuid + '/roles').text('Roles')
 
     sel.filter(d => hasRole(d, 'organiser') || hasRole(d, 'referee'))
         .append('a')

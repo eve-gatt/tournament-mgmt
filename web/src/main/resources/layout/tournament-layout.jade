@@ -47,15 +47,15 @@ mixin subtitle(name)
 
         a(href="/auth/tournament/" + uuid + "/home") Home
         if isSuperuser || isCreator || roles.contains("organiser")
-            a(href="/auth/tournament/" + uuid + "/edit") Edit details
+            a(href="/auth/tournament/" + uuid + "/edit") Edit
             a(href="/auth/tournament/" + uuid + "/delete") Delete
 
         a(href="/wip") Search for pilot
-        a(href="/auth/tournament/" + uuid + "/teams") Manage teams
-        a(href="/auth/tournament/" + uuid + "/thunderdome") Manage Thunderdome
+        a(href="/auth/tournament/" + uuid + "/teams") Teams
+        a(href="/auth/tournament/" + uuid + "/thunderdome") Thunderdome
 
         if isSuperuser || isCreator || roles.contains("organiser")
-            a(href="/auth/tournament/" + uuid + "/roles") Manage roles
+            a(href="/auth/tournament/" + uuid + "/roles") Roles
 
         if isSuperuser || isCreator || roles.contains("organiser") || roles.contains("referee")
             a(href="/auth/tournament/" + uuid + "/referee") Referee

@@ -14,10 +14,6 @@ block styles
             margin-left: 12px;
         }
 
-        .teams li {
-            list-style-type: none;
-        }
-
         .shipcheck {
             display: grid;
             grid-template-columns: auto 1fr;
@@ -34,12 +30,7 @@ block styles
 
 block content
 
-    if pilotsTeams && pilotsTeams.size() > 0
-        h2 Your teams
-        ul.teams
-            each team in pilotsTeams
-                li
-                    a(href="/auth/tournament/" + team.getString("tournament_uuid") + "/teams/" + team.getString("team_uuid") + "/edit") #{team.getString("tournament_name")} - #{team.getString("team_name")}
+    mixin myTeam
 
     h2 Tournaments
 
