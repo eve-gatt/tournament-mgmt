@@ -42,7 +42,7 @@ jobs:
           GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./gradlew build jib
+          ./gradlew build test jib
 
       - name: Update deployment file
         run: sed -i 's|<VERSION>|'${GITHUB_RUN_ID}'|' $GITHUB_WORKSPACE/deploy/k8s/deployment.yml
