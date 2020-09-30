@@ -46,8 +46,21 @@ block content
                 tbody
             a(href="/auth/tournament/create") Create
 
+    if pilotsTeams && pilotsTeams.size() > 0
+        .section
+            h2 Thunderdome account
+            table.pure-table
+                tbody
+                    tr
+                        td Username
+                        td: i pending
+                    tr
+                        td Password
+                        td: i pending
+
+
     .section
-        h2 Name in use on Thunderdome
+        h3 Name in use on Thunderdome
 
         p.
             Most tournaments requirement your pilot name on Thunderdome to match your TQ name. However if you've previously

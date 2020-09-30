@@ -14,6 +14,9 @@ block styles
                 "left left left right";
             grid-gap: 24px;
             margin-top: 8px;
+            border-bottom: 1px solid #815200;
+            padding-bottom: 12px;
+            margin-bottom: 12px;
         }
 
         .tournament-header .box .sub {
@@ -69,20 +72,19 @@ mixin subtitle(name)
         if isSuperuser || isCreator || roles.contains("organiser") || roles.contains("referee")
             a(href="/auth/tournament/" + uuid + "/referee") Referee
 
-    .section
-        .tournament-header
-            if team
-                img.logo(src=team.getString("logo") + "?size=128")
+    .tournament-header
+        if team
+            img.logo(src=team.getString("logo") + "?size=128")
+        .box
+            .sub Tournament
+            .name: a(href="/auth/tournament/" + uuid + "/home")= tournament.getString("name")
+        if team
             .box
-                .sub Tournament
-                .name: a(href="/auth/tournament/" + uuid + "/home")= tournament.getString("name")
-            if team
-                .box
-                    .sub Team
-                    .name
-                        a(href="/auth/tournament/" + uuid + "/teams/" + team.getString("uuid") + "/edit")= team.getString("name")
-            h2
-                span.accent= name
+                .sub Team
+                .name
+                    a(href="/auth/tournament/" + uuid + "/teams/" + team.getString("uuid") + "/edit")= team.getString("name")
+        h2
+            span.accent= name
 
 block scripts
 
