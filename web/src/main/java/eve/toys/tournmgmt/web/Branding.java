@@ -18,14 +18,14 @@ public class Branding {
             "}\n" +
             "\n" +
 */
-            ".header .left h1 {\n" +
-            "  display: none;\n" +
-            "}\n" +
-            "\n" +
-            ".header .left {\n" +
-            "  background: transparent url(\"/assets/eventao.png\") 0% 0% no-repeat padding-box;\n" +
-            "  background-size: 324px 218px;\n" +
-            "  background-position: 12px 12px;\n" +
-            "  opacity: 1;\n" +
-            "}\n";
+            ".header .left h1, .header .left img {\n" +
+                    "  display: none;\n" +
+                    "}\n" +
+                    "\n" +
+                    ".header .left {\n" +
+                    "  background: transparent url(\"/assets/eventao.png\") 0% 0% no-repeat padding-box;\n" +
+                    "  background-size: 324px 218px;\n" +
+                    "  background-position: 12px 12px;\n" +
+                    "  opacity: 1;\n" +
+                    "}\n";
 }
