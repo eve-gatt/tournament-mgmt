@@ -87,6 +87,10 @@ public class TSV {
                 });
     }
 
+    public int rowCount() {
+        return tsv.split(LINE_SPLIT).length;
+    }
+
     public class Row {
         private final String row;
 

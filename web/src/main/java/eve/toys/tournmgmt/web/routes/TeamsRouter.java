@@ -164,35 +164,48 @@ public class TeamsRouter {
                 return;
             }
             if (ar.result().isEmpty()) {
-                // TODO: check if too many members after import
-                // TODO: check members aren't in other teams
-                tsv.validateAndProcess().onFailure(t -> {
-                    t.printStackTrace();
-                    doRedirect(ctx.response(), teamUrl(ctx, "/add-members"));
-                }).onSuccess(v -> dbClient.callDb(DbClient.DB_WRITE_TEAM_MEMBERS_TSV,
-                        new JsonObject()
-                                .put("tsv", tsv.json())
-                                .put("addedBy", ((JsonObject) ctx.data().get("character")).getString("characterName"))
-                                .put("uuid", ctx.request().getParam("teamUuid")))
-                        .onFailure(t -> {
-                            String error = t.getMessage();
-                            Matcher matcher = DbClient.DUPE_REGEX.matcher(error);
-                            if (matcher.find()) {
-                                error = matcher.group(2) + " is already in this team.";
+                dbClient.callDb(DbClient.DB_MEMBERS_BY_TEAM,
+                        ctx.request().getParam("teamUuid"))
+                        .onFailure(ctx::fail)
+                        .onSuccess(msg -> {
+                            JsonArray members = (JsonArray) msg.body();
+                            if (tsv.rowCount() + members.size() > 19) {
+                                render.renderPage(ctx,
+                                        "/teams/addmembers",
+                                        new JsonObject()
+                                                .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                                .put("tsv", tsv.text())
+                                                .put("errors", "The maximum team size is 20"));
                             } else {
-                                t.printStackTrace();
+                                tsv.validateAndProcess().onFailure(t -> {
+                                    t.printStackTrace();
+                                    doRedirect(ctx.response(), teamUrl(ctx, "/add-members"));
+                                }).onSuccess(v -> dbClient.callDb(DbClient.DB_WRITE_TEAM_MEMBERS_TSV,
+                                        new JsonObject()
+                                                .put("tsv", tsv.json())
+                                                .put("addedBy", ((JsonObject) ctx.data().get("character")).getString("characterName"))
+                                                .put("uuid", ctx.request().getParam("teamUuid")))
+                                        .onFailure(t -> {
+                                            String error = t.getMessage();
+                                            Matcher matcher = DbClient.DUPE_REGEX.matcher(error);
+                                            if (matcher.find()) {
+                                                error = matcher.group(2) + " is already in this team.";
+                                            } else {
+                                                t.printStackTrace();
+                                            }
+                                            render.renderPage(ctx,
+                                                    "/teams/addmembers",
+                                                    new JsonObject()
+                                                            .put("placeholder", "Please fix the errors and paste in the revised data.")
+                                                            .put("tsv", tsv.text())
+                                                            .put("errors", error));
+                                        })
+                                        .onSuccess(results -> {
+                                            jobClient.run(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, new JsonObject());
+                                            doRedirect(ctx.response(), teamUrl(ctx, "/edit"));
+                                        }));
                             }
-                            render.renderPage(ctx,
-                                    "/teams/addmembers",
-                                    new JsonObject()
-                                            .put("placeholder", "Please fix the errors and paste in the revised data.")
-                                            .put("tsv", tsv.text())
-                                            .put("errors", error));
-                        })
-                        .onSuccess(results -> {
-                            jobClient.run(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, new JsonObject());
-                            doRedirect(ctx.response(), teamUrl(ctx, "/edit"));
-                        }));
+                        });
             } else {
                 render.renderPage(ctx,
                         "/teams/addmembers",
