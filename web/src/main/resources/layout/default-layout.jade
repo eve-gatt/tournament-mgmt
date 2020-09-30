@@ -1,6 +1,6 @@
 mixin myTeam
     if pilotsTeams && pilotsTeams.size() > 0
-        .box
+        .section
             h2 Your team
             ul.teams
                 each team in pilotsTeams
@@ -279,15 +279,14 @@ html
                 list-style-type: none;
             }
 
-            .box {
+            .section {
                 margin: 8px 0 12px 0;
-                padding: 0 12px 12px 12px;
                 display: flex;
                 flex-direction: column;
 
             }
 
-            .box + .box {
+            .section + .section {
                 border-top: 1px solid #815200;
             }
 

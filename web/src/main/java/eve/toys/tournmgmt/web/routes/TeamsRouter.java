@@ -20,6 +20,8 @@ import io.vertx.ext.web.api.validation.ValidationException;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
+import java.util.regex.Matcher;
+
 import static toys.eve.tournmgmt.common.util.RenderHelper.*;
 
 public class TeamsRouter {
@@ -147,21 +149,8 @@ public class TeamsRouter {
 
     private void handleAddMembers(RoutingContext ctx) {
         RequestParameters params = ctx.get("parsedParameters");
-        TSV tsv = new TSV(params.formParameter("tsv").getString(), 1);
-        tsv.processor(row -> Future.future(promise -> {
-            try {
-                esi.lookupCharacter(row.getCol(0))
-                        .onFailure(promise::fail)
-                        .onSuccess(json -> {
-                            int characterId = json.getJsonArray("result").getInteger(0);
-                            esi.fetchCharacter(characterId)
-                                    .onFailure(promise::fail)
-                                    .onSuccess(json2 -> promise.complete(json2.getString("name")));
-                        });
-            } catch (TSVException e) {
-                promise.fail(e);
-            }
-        }));
+        TSV tsv = new TSV(params.formParameter("tsv").getString(), 1)
+                .processor(this::pilotNameProcessor);
 
         new ValidatePilotNames(esi).validate(tsv, ar -> {
             if (ar.failed()) {
@@ -181,13 +170,19 @@ public class TeamsRouter {
                                 .put("addedBy", ((JsonObject) ctx.data().get("character")).getString("characterName"))
                                 .put("uuid", ctx.request().getParam("teamUuid")))
                         .onFailure(t -> {
-                            t.printStackTrace();
+                            String error = t.getMessage();
+                            Matcher matcher = DbClient.DUPE_REGEX.matcher(error);
+                            if (matcher.find()) {
+                                error = matcher.group(2) + " is already in this team.";
+                            } else {
+                                t.printStackTrace();
+                            }
                             render.renderPage(ctx,
                                     "/teams/addmembers",
                                     new JsonObject()
                                             .put("placeholder", "Please fix the errors and paste in the revised data.")
                                             .put("tsv", tsv.text())
-                                            .put("errors", t.getMessage()));
+                                            .put("errors", error));
                         })
                         .onSuccess(results -> {
                             jobClient.run(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, new JsonObject());
@@ -263,6 +258,27 @@ public class TeamsRouter {
                     jobClient.run(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, new JsonObject());
                     doRedirect(ctx.response(), teamUrl(ctx, "/edit"));
                 });
+    }
+
+    private Future<String> pilotNameProcessor(TSV.Row row) {
+        return Future.future(promise -> {
+            try {
+                esi.lookupCharacter(row.getCol(0))
+                        .onFailure(promise::fail)
+                        .onSuccess(json -> {
+                            int characterId = json.getJsonArray("result").getInteger(0);
+                            esi.fetchCharacter(characterId)
+                                    .onFailure(promise::fail)
+                                    .onSuccess(json2 -> {
+                                        String name = json2.containsKey("error") ? json2.getString("error") : json2.getString("name");
+                                        System.out.println(json2.encodePrettily());
+                                        promise.complete(name);
+                                    });
+                        });
+            } catch (TSVException e) {
+                promise.fail(e);
+            }
+        });
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, Esi esi, DbClient dbClient, JobClient jobClient) {

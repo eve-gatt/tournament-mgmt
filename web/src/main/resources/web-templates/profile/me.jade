@@ -32,72 +32,75 @@ block content
 
     mixin myTeam
 
-    h2 Tournaments
+    .section
+        h2 Tournaments
 
-    .tournaments
-        .no-tournaments You are currently not involved in any tournaments.
-        table.pure-table
-            thead
-                th Name
-                th Organiser
-                th Teams locked
-                th Actions
-            tbody
-        a(href="/auth/tournament/create") Create
+        .tournaments
+            .no-tournaments You are currently not involved in any tournaments.
+            table.pure-table
+                thead
+                    th Name
+                    th Organiser
+                    th Teams locked
+                    th Actions
+                tbody
+            a(href="/auth/tournament/create") Create
 
-    h2 Name in use on Thunderdome
+    .section
+        h2 Name in use on Thunderdome
 
-    p.
-        Most tournaments requirement your pilot name on Thunderdome to match your TQ name. However if you've previously
-        entered a tournament this name may already be used on an account you no longer have access to.
-    if reports.size() == 0
         p.
-            Please report this using the following link and a request will be logged with CCP. You can check back here
-            to check the status of this request.
-    if canReportAgain
-        a(href="/auth/profile/name-in-use") Report name in use
+            Most tournaments requirement your pilot name on Thunderdome to match your TQ name. However if you've previously
+            entered a tournament this name may already be used on an account you no longer have access to.
+        if reports.size() == 0
+            p.
+                Please report this using the following link and a request will be logged with CCP. You can check back here
+                to check the status of this request.
+        if canReportAgain
+            a(href="/auth/profile/name-in-use") Report name in use
 
-    if reports.size() > 0
-        table.pure-table
-            thead
-                th Reported
-                th Resolved
-                th Resolved by
-            tbody
-                each report in reports
-                    tr
-                        td= report.getString("reported_at_formatted")
-                        td= report.getString("resolved_at_formatted") == null ? "in queue" : report.getString("resolved_at_formatted")
-                        td= report.getString("resolved_by")
+        if reports.size() > 0
+            table.pure-table
+                thead
+                    th Reported
+                    th Resolved
+                    th Resolved by
+                tbody
+                    each report in reports
+                        tr
+                            td= report.getString("reported_at_formatted")
+                            td= report.getString("resolved_at_formatted") == null ? "in queue" : report.getString("resolved_at_formatted")
+                            td= report.getString("resolved_by")
 
-    h2 Ship skills check
+    .section
+        h2 Ship skills check
 
-    p Type a ship name to verify that your character has the skills to fly it.
+        p Type a ship name to verify that your character has the skills to fly it.
 
-    .shipcheck
-        form.pure-form.pure-form-aligned(action="/auth/profile/shipcheck", method="POST")
-            fieldset
-                .pure-control-group
-                    label(for="ship-name") Ship name
-                    input(type="text", name="name", placeholder="", value=shipname)#ship-name
+        .shipcheck
+            form.pure-form.pure-form-aligned(action="/auth/profile/shipcheck", method="POST")
+                fieldset
+                    .pure-control-group
+                        label(for="ship-name") Ship name
+                        input(type="text", name="name", placeholder="", value=shipname)#ship-name
 
-                .pure-controls
-                    button.pure-button.pure-button-primary(type="submit") Check
+                    .pure-controls
+                        button.pure-button.pure-button-primary(type="submit") Check
 
-        if shipcheck
-            .reqs
-                table.pure-table
-                    thead
-                        th Skill
-                        th Required
-                        th You
-                    tbody
-                        each req in shipcheck
-                            tr
-                                td= req.getString("skill")
-                                td= req.getInteger("level")
-                                - var clazz = req.getInteger("toonLevel") < req.getInteger("level") ? "error" : ""
-                                td(class=clazz)= req.getInteger("toonLevel")
+            if shipcheck
+                .reqs
+                    table.pure-table
+                        thead
+                            th Skill
+                            th Required
+                            th You
+                        tbody
+                            each req in shipcheck
+                                tr
+                                    td= req.getString("skill")
+                                    td= req.getInteger("level")
+                                    - var clazz = req.getInteger("toonLevel") < req.getInteger("level") ? "error" : ""
+                                    td(class=clazz)= req.getInteger("toonLevel")
 
 block scripts
     script.

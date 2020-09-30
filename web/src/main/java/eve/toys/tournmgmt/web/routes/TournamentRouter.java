@@ -33,7 +33,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -45,7 +44,6 @@ import static toys.eve.tournmgmt.common.util.RenderHelper.tournamentUrl;
 public class TournamentRouter {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneId.of("UTC"));
-    private static final Pattern DUPE_REGEX = Pattern.compile(".*Detail: Key \\([^=]+=\\(([^,]+), ([^\\)]+)\\) already exists\\.");
 
     private final Router router;
     private final RenderHelper render;
@@ -313,7 +311,7 @@ public class TournamentRouter {
                                                     .put("uuid", ctx.request().getParam("tournamentUuid")))
                                             .onFailure(t -> {
                                                 String error = t.getMessage();
-                                                Matcher matcher = DUPE_REGEX.matcher(error);
+                                                Matcher matcher = DbClient.DUPE_REGEX.matcher(error);
                                                 if (matcher.find()) {
                                                     error = matcher.group(2) + " is already in this tournament.";
                                                 } else {

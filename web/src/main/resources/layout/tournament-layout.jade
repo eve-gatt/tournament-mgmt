@@ -10,6 +10,8 @@ block styles
         .tournament-header {
             display: grid;
             grid-template-columns: auto auto auto 1fr;
+            grid-template-areas:
+                "left left left right";
             grid-gap: 24px;
             margin-top: 8px;
         }
@@ -32,6 +34,13 @@ block styles
         .tournament-header .logo {
             max-width: 128px;
             max-height: 128px;
+        }
+
+        .tournament-header h2 {
+            grid-area: right;
+            margin-top: 0;
+            align-self: start;
+            justify-self: end;
         }
 
 
@@ -60,20 +69,20 @@ mixin subtitle(name)
         if isSuperuser || isCreator || roles.contains("organiser") || roles.contains("referee")
             a(href="/auth/tournament/" + uuid + "/referee") Referee
 
-    .tournament-header
-        if team
-            img.logo(src=team.getString("logo") + "?size=128")
-        .box
-            .sub Tournament
-            .name: a(href="/auth/tournament/" + uuid + "/home")= tournament.getString("name")
-        if team
+    .section
+        .tournament-header
+            if team
+                img.logo(src=team.getString("logo") + "?size=128")
             .box
-                .sub Team
-                .name
-                    a(href="/auth/tournament/" + uuid + "/teams/" + team.getString("uuid") + "/edit")= team.getString("name")
-
-    h2
-        span.accent= name
+                .sub Tournament
+                .name: a(href="/auth/tournament/" + uuid + "/home")= tournament.getString("name")
+            if team
+                .box
+                    .sub Team
+                    .name
+                        a(href="/auth/tournament/" + uuid + "/teams/" + team.getString("uuid") + "/edit")= team.getString("name")
+            h2
+                span.accent= name
 
 block scripts
 

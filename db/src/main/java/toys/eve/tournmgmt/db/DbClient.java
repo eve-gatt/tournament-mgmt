@@ -4,7 +4,11 @@ import io.vertx.core.Future;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 
+import java.util.regex.Pattern;
+
 public final class DbClient {
+
+    public static final Pattern DUPE_REGEX = Pattern.compile(".*Detail: Key \\([^=]+=\\(([^,]+), ([^\\)]+)\\) already exists\\.");
 
     public static final String DB_CREATE_TOURNAMENT = "CREATE_TOURNAMENT";
     public static final String DB_FETCH_TOURNAMENTS = "DB_FETCH_TOURNAMENTS";
