@@ -53,11 +53,19 @@ block content
                 tbody
                     tr
                         td Username
-                        td: i pending
+                        td
+                            if thunderdome.getString("username") != null
+                                != thunderdome.getString("username")
+                            else
+                                i pending
+
                     tr
                         td Password
-                        td: i pending
-
+                        td
+                            if thunderdome.getString("password") != null
+                                != thunderdome.getString("password")
+                            else
+                                i pending
 
     .section
         h2 Name in use on Thunderdome

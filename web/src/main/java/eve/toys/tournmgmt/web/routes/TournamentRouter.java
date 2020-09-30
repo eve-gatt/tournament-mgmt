@@ -273,7 +273,7 @@ public class TournamentRouter {
                     }
                 })
                 .collect(Collectors.toList()))
-                .map(AppStreamHelpers::toJsonObjects)
+                .map(AppStreamHelpers::compositeFutureToJsonObjects)
                 .map(this::checkForTeamImportErrors)
                 .onSuccess(msg -> {
                     if (msg.isEmpty()) {

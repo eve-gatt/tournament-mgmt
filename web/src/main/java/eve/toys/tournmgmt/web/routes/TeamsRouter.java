@@ -8,9 +8,11 @@ import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
 import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.tsv.TSV;
 import eve.toys.tournmgmt.web.tsv.TSVException;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
@@ -20,7 +22,9 @@ import io.vertx.ext.web.api.validation.ValidationException;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
+import java.util.List;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 import static toys.eve.tournmgmt.common.util.RenderHelper.*;
 
@@ -111,8 +115,9 @@ public class TeamsRouter {
     }
 
     private void teamsData(RoutingContext ctx) {
+        String tournamentUuid = ctx.request().getParam("tournamentUuid");
         dbClient.callDb(DbClient.DB_TEAMS_BY_TOURNAMENT,
-                new JsonObject().put("uuid", ctx.request().getParam("tournamentUuid")))
+                new JsonObject().put("uuid", tournamentUuid))
                 .onFailure(ctx::fail)
                 .onSuccess(result -> ctx.response().end(((JsonArray) result.body()).encode()));
     }
@@ -232,8 +237,19 @@ public class TeamsRouter {
     }
 
     private void lockTeamConfirm(RoutingContext ctx) {
-        dbClient.callDb(DbClient.DB_TOGGLE_LOCK_TEAM_BY_UUID,
-                ctx.request().getParam("teamUuid"))
+        String tournamentUuid = ctx.request().getParam("tournamentUuid");
+        String teamUuid = ctx.request().getParam("teamUuid");
+        dbClient.callDb(DbClient.DB_TOGGLE_LOCK_TEAM_BY_UUID, teamUuid)
+                .compose(v -> dbClient.callDb(DbClient.DB_PILOTS_AND_CAPTAIN_BY_TEAM, teamUuid))
+                .map(TeamsRouter::toListOfPilots)
+                .map(pilots -> pilots.stream()
+                        .map(pilot -> (Future) Future.future(promise ->
+                                dbClient.callDb(DbClient.DB_MAYBE_ALLOCATE_TD_ACCOUNT,
+                                        new JsonObject()
+                                                .put("tournamentUuid", tournamentUuid)
+                                                .put("pilot", pilot))))
+                        .collect(Collectors.toList()))
+                .map(CompositeFuture::all)
                 .onFailure(ctx::fail)
                 .onSuccess(result -> doRedirect(ctx.response(), teamUrl(ctx, "/edit")));
     }
@@ -278,6 +294,12 @@ public class TeamsRouter {
                 promise.fail(e);
             }
         });
+    }
+
+    private static List<String> toListOfPilots(Message<Object> msg) {
+        return ((JsonArray) msg.body()).stream()
+                .map(row -> ((JsonObject) row).getString("pilot"))
+                .collect(Collectors.toList());
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, Esi esi, DbClient dbClient, JobClient jobClient) {

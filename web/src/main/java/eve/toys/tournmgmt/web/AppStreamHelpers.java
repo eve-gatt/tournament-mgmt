@@ -6,7 +6,7 @@ import io.vertx.core.json.JsonObject;
 import java.util.stream.Stream;
 
 public class AppStreamHelpers {
-    public static Stream<JsonObject> toJsonObjects(CompositeFuture f) {
+    public static Stream<JsonObject> compositeFutureToJsonObjects(CompositeFuture f) {
         return f.list().stream().map(o -> (JsonObject) o);
     }
 }

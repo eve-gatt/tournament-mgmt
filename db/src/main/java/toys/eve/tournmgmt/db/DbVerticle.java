@@ -14,6 +14,7 @@ import io.vertx.ext.sql.SQLConnection;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -83,6 +84,9 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_RECORD_NAME_IN_USE, this::recordNameInUse);
         vertx.eventBus().consumer(DbClient.DB_CHECK_NAME_IN_USE_REPORTS, this::checkNameInUse);
         vertx.eventBus().consumer(DbClient.DB_TEAMS_BY_PILOT, this::teamsByPilot);
+        vertx.eventBus().consumer(DbClient.DB_PILOTS_AND_CAPTAIN_BY_TEAM, this::pilotsAndCaptainByTeam);
+        vertx.eventBus().consumer(DbClient.DB_MAYBE_ALLOCATE_TD_ACCOUNT, this::maybeAllocateTdAccount);
+        vertx.eventBus().consumer(DbClient.DB_SELECT_TD_BY_PILOT, this::tdByPilot);
 
         startPromise.complete();
     }
@@ -642,18 +646,19 @@ public class DbVerticle extends AbstractVerticle {
 
     private void teamsByPilot(Message<String> msg) {
         String pilotName = msg.body();
-        sqlClient.queryWithParams("select " +
-                        "team.name team_name, " +
-                        "team.uuid team_uuid, " +
-                        "t.name tournament_name, " +
-                        "t.uuid tournament_uuid " +
-                        "from team inner join tournament t on team.tournament_uuid = t.uuid " +
+        sqlClient.queryWithParams("select team.name team_name, " +
+                        "       team.uuid team_uuid, " +
+                        "       t.name    tournament_name, " +
+                        "       t.uuid    tournament_uuid " +
+                        "from team " +
+                        "         inner join tournament t on team.tournament_uuid = t.uuid " +
                         "where team.captain = ? " +
-                        "or exists(select 1 " +
-                        "  from team_member " +
-                        "  inner join team on team_member.team_uuid = team.uuid " +
-                        "  where team.tournament_uuid = t.uuid " +
-                        "  and team_member.name = ?)",
+                        "   or exists(select 1 " +
+                        "             from team_member " +
+                        "                      inner join team t2 on team_member.team_uuid = t2.uuid " +
+                        "             where team.tournament_uuid = t.uuid " +
+                        "               and team_member.name = ? " +
+                        "               and t2.uuid = team.uuid)",
                 new JsonArray().add(pilotName).add(pilotName),
                 ar -> {
                     if (ar.failed()) {
@@ -661,6 +666,73 @@ public class DbVerticle extends AbstractVerticle {
                         msg.fail(1, ar.cause().getMessage());
                     } else {
                         msg.reply(new JsonArray(ar.result().getRows()));
+                    }
+                });
+    }
+
+    private void pilotsAndCaptainByTeam(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.query("select captain as pilot " +
+                "from team " +
+                "where uuid = '" + uuid + "' " +
+                "union " +
+                "select name as pilot " +
+                "from team_member " +
+                "where team_uuid = '" + uuid + "' ", ar -> {
+            if (ar.failed()) {
+                ar.cause().printStackTrace();
+                msg.fail(1, ar.cause().getMessage());
+            } else {
+                msg.reply(new JsonArray(ar.result().getRows()));
+            }
+        });
+    }
+
+    private void maybeAllocateTdAccount(Message<JsonObject> msg) {
+        String tournamentUuid = msg.body().getString("tournamentUuid");
+        String pilot = msg.body().getString("pilot");
+        sqlClient.updateWithParams("update thunderdome " +
+                        "set allocated_to = ? " +
+                        "where tournament_uuid = ?::uuid " +
+                        "  and not exists(select 1 " +
+                        "                 from thunderdome " +
+                        "                 where tournament_uuid = ?::uuid " +
+                        "                   and allocated_to = ?) " +
+                        "  and id = (select min(id) " +
+                        "            from thunderdome " +
+                        "            where tournament_uuid = ?::uuid " +
+                        "              and allocated_to is null) ",
+                new JsonArray()
+                        .add(pilot)
+                        .add(tournamentUuid)
+                        .add(tournamentUuid)
+                        .add(pilot)
+                        .add(tournamentUuid),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(ar.result().toJson());
+                    }
+                });
+    }
+
+    private void tdByPilot(Message<String> msg) {
+        String characterName = msg.body();
+        sqlClient.queryWithParams("select username, password from thunderdome where allocated_to = ? ",
+                new JsonArray().add(characterName),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        List<JsonObject> rows = ar.result().getRows();
+                        if (rows.size() == 0) {
+                            msg.reply(new JsonObject());
+                        } else {
+                            msg.reply(rows.get(0));
+                        }
                     }
                 });
     }

@@ -38,6 +38,9 @@ public final class DbClient {
     public static final String DB_RECORD_NAME_IN_USE = "DB_RECORD_NAME_IN_USE";
     public static final String DB_CHECK_NAME_IN_USE_REPORTS = "DB_CHECK_NAME_IN_USE_REPORTS";
     public static final String DB_TEAMS_BY_PILOT = "DB_TEAMS_BY_PILOT";
+    public static final String DB_PILOTS_AND_CAPTAIN_BY_TEAM = "DB_PILOTS_AND_CAPTAIN_BY_TEAM";
+    public static final String DB_MAYBE_ALLOCATE_TD_ACCOUNT = "DB_MAYBE_ALLOCATE_TD_ACCOUNT";
+    public static final String DB_SELECT_TD_BY_PILOT = "DB_SELECT_TD_BY_PILOT";
 
     private final EventBus eventBus;
 

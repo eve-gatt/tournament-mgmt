@@ -85,6 +85,7 @@ public class WebVerticle extends AbstractVerticle {
                 .pathRegex("^(?!/js/|/css/|/assets/).+")
                 .handler(ctx -> addCharacterInfoToContext(ctx)
                         .compose(v -> addPilotsTeamsToContext(ctx))
+                        .compose(v -> addThunderdomeDeetsToContext(ctx))
                         .compose(v -> addTournamentInfoToContext(ctx))
                         .onSuccess(f -> ctx.next())
                         .onFailure(throwable -> {
@@ -162,6 +163,22 @@ public class WebVerticle extends AbstractVerticle {
                         .onSuccess(results -> {
                             JsonArray teams = (JsonArray) results.body();
                             ctx.data().put("pilotsTeams", teams);
+                            promise.complete();
+                        });
+            } else {
+                promise.complete();
+            }
+        });
+    }
+
+    private Future<Void> addThunderdomeDeetsToContext(RoutingContext ctx) {
+        return Future.future(promise -> {
+            if (ctx.user() != null) {
+                String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
+                dbClient.callDb(DbClient.DB_SELECT_TD_BY_PILOT, characterName)
+                        .onFailure(ctx::fail)
+                        .onSuccess(results -> {
+                            ctx.data().put("thunderdome", results.body());
                             promise.complete();
                         });
             } else {

@@ -51,7 +51,7 @@ public class JobVerticle extends AbstractVerticle {
                                     esi.lookupAlliance(row.getString("name")),
                                     esi.lookupCharacter(row.getString("captain"))))
                             .collect(Collectors.toList()))
-                            .map(AppStreamHelpers::toJsonObjects)
+                            .map(AppStreamHelpers::compositeFutureToJsonObjects)
                             .onFailure(Throwable::printStackTrace)
                             .onSuccess(teams ->
                                     teams.forEach(json -> {

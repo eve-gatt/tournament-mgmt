@@ -32,7 +32,7 @@ public class ValidatePilotNames {
         CompositeFuture.all(tsv.stream()
                 .map(this::lookupCharacter)
                 .collect(Collectors.toList()))
-                .map(AppStreamHelpers::toJsonObjects)
+                .map(AppStreamHelpers::compositeFutureToJsonObjects)
                 .map(this::filterForInvalidNames)
                 .map(this::joinErrors)
                 .map(msg -> {
