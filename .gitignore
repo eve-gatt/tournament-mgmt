@@ -5,3 +5,5 @@
 build/
 out/
 /.idea/libraries/
+/tools/backups/
+/tools/docker/postgres/env
