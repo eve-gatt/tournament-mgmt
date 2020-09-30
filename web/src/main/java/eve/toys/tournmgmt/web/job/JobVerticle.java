@@ -32,13 +32,14 @@ public class JobVerticle extends AbstractVerticle {
         this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
         this.esi = Esi.create(webClient, CircuitBreaker.create("esi-cb", vertx));
         this.dbClient = new DbClient(vertx.eventBus());
-        vertx.eventBus().consumer(JobClient.JOB_CHECK_ALLIANCE_MEMBERSHIP, this::checkAllianceMembership);
+        vertx.eventBus().consumer(JobClient.JOB_CHECK_CAPTAIN_ALLIANCE_MEMBERSHIP, this::checkCaptainAllianceMembership);
+        vertx.eventBus().consumer(JobClient.JOB_CHECK_PILOTS_ALLIANCE_MEMBERSHIP, this::checkPilotsAllianceMembership);
         vertx.eventBus().consumer(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, this::checkPilotsOnOneTeam);
         startPromise.complete();
     }
 
-    private void checkAllianceMembership(Message<String> msg) {
-        LOGGER.info("Checking alliance memberships");
+    private void checkCaptainAllianceMembership(Message<String> msg) {
+        LOGGER.info("Checking captains's alliance memberships");
         dbClient.callDb(DbClient.DB_ALL_TEAMS, new JsonObject())
                 .onFailure(t -> msg.fail(1, t.getMessage()))
                 .onSuccess(result -> {
@@ -72,6 +73,12 @@ public class JobVerticle extends AbstractVerticle {
                 });
     }
 
+    private void checkPilotsAllianceMembership(Message<String> msg) {
+        LOGGER.info("Checking pilot's alliance memberships");
+        dbClient.callDb(DbClient.DB_ALL_PILOTS, new JsonObject())
+                .onFailure(t -> msg.fail(1, t.getMessage()));
+    }
+
     private void checkPilotsOnOneTeam(Message<String> msg) {
         LOGGER.info("Checking pilots are only playing for one team");
         dbClient.callDb(DbClient.DB_CLEAR_ALL_TOURNAMENT_MSGS, new JsonObject())
@@ -81,7 +88,13 @@ public class JobVerticle extends AbstractVerticle {
                         .onFailure(t -> msg.fail(1, t.getMessage()))
                         .onSuccess(f -> {
                             JsonArray captains = ((Message<JsonArray>) f.resultAt(0)).body();
-                            JsonArray pilots = ((Message<JsonArray>) f.resultAt(1)).body();
+                            JsonArray pilotsWithTeams = ((Message<JsonArray>) f.resultAt(1)).body();
+                            JsonArray pilots = new JsonArray(pilotsWithTeams.stream()
+                                    .map(o -> (JsonObject) o)
+                                    .map(p -> new JsonObject()
+                                            .put("tournament_uuid", p.getString("tournament_uuid"))
+                                            .put("name", p.getString("pilot_name")))
+                                    .collect(Collectors.toList()));
                             pilots.addAll(captains);
                             Set<JsonObject> duplicates = findDuplicates(pilots.getList());
                             CompositeFuture.all(duplicates.stream().map(problem -> dbClient.callDb(DbClient.DB_UPDATE_TOURNAMENT_MESSAGE,

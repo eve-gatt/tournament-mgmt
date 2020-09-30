@@ -326,7 +326,7 @@ public class TournamentRouter {
 
                                             })
                                             .onSuccess(result -> {
-                                                jobClient.run(JobClient.JOB_CHECK_ALLIANCE_MEMBERSHIP, new JsonObject());
+                                                jobClient.run(JobClient.JOB_CHECK_CAPTAIN_ALLIANCE_MEMBERSHIP, new JsonObject());
                                                 doRedirect(ctx.response(), tournamentUrl(ctx, "/teams"));
                                             });
                                 });

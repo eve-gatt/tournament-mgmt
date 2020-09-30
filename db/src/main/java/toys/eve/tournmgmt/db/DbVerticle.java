@@ -582,7 +582,7 @@ public class DbVerticle extends AbstractVerticle {
     }
 
     private void allPilots(Message<Void> msg) {
-        sqlClient.query("select tournament_uuid, team_member.name " +
+        sqlClient.query("select tournament_uuid, team.name team_name, team_member.name pilot_name " +
                         "from team_member inner join team on team_member.team_uuid = team.uuid",
                 ar -> {
                     if (ar.failed()) {
