@@ -20,13 +20,28 @@ public class ValidatePilotNames {
         this.esi = esi;
     }
 
-    public void validate(TSV tsv, Handler<AsyncResult<String>> replyHandler) {
+    public void validate(TSV tsv, String captain, Handler<AsyncResult<String>> replyHandler) {
+        boolean tryingToImportCaptain = tsv.stream().anyMatch(row -> {
+            try {
+                return row.getCol(0).equalsIgnoreCase(captain);
+            } catch (TSVException e) {
+                e.printStackTrace();
+                return false;
+            }
+        });
         CompositeFuture.all(tsv.stream()
                 .map(this::lookupCharacter)
                 .collect(Collectors.toList()))
                 .map(AppStreamHelpers::toJsonObjects)
                 .map(this::filterForInvalidNames)
                 .map(this::joinErrors)
+                .map(msg -> {
+                    if (tryingToImportCaptain) {
+                        return captain + " is captain of this team\n" + msg;
+                    } else {
+                        return msg;
+                    }
+                })
                 .onSuccess(msg -> replyHandler.handle(Future.succeededFuture(msg)))
                 .onFailure(t -> replyHandler.handle(Future.failedFuture(t)));
     }

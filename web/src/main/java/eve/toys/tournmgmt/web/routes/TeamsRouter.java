@@ -151,8 +151,8 @@ public class TeamsRouter {
         RequestParameters params = ctx.get("parsedParameters");
         TSV tsv = new TSV(params.formParameter("tsv").getString(), 1)
                 .processor(this::pilotNameProcessor);
-
-        new ValidatePilotNames(esi).validate(tsv, ar -> {
+        String captain = ((JsonObject) ctx.data().get("team")).getString("captain");
+        new ValidatePilotNames(esi).validate(tsv, captain, ar -> {
             if (ar.failed()) {
                 ar.cause().printStackTrace();
                 doRedirect(ctx.response(), teamUrl(ctx, "/add-members"));
@@ -271,7 +271,6 @@ public class TeamsRouter {
                                     .onFailure(promise::fail)
                                     .onSuccess(json2 -> {
                                         String name = json2.containsKey("error") ? json2.getString("error") : json2.getString("name");
-                                        System.out.println(json2.encodePrettily());
                                         promise.complete(name);
                                     });
                         });

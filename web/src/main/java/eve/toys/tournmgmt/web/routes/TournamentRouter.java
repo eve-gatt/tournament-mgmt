@@ -383,7 +383,7 @@ public class TournamentRouter {
         RequestParameter type = params.formParameter("type");
         String tournamentUuid = ctx.request().getParam("tournamentUuid");
 
-        Future.<String>future(promise -> new ValidatePilotNames(esi).validate(tsv, promise))
+        Future.<String>future(promise -> new ValidatePilotNames(esi).validate(tsv, "", promise))
                 .onSuccess(validationMsg -> {
                     if (validationMsg.isEmpty()) {
                         dbClient.callDb(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT, new JsonObject()
