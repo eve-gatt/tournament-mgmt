@@ -56,14 +56,14 @@ jobs:
       - name: Verify deployment
         run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig rollout status -n tournmgmt deployment/tournmgmt
 
-#      - uses: actions/delete-package-versions@v1
-#        with:
-#          package-name: 'tournmgmt'
-#          num-old-versions-to-delete: 1
+      #      - uses: actions/delete-package-versions@v1
+      #        with:
+      #          package-name: 'tournmgmt'
+      #          num-old-versions-to-delete: 1
 
-#      - uses: sarisia/actions-status-discord@v1
-#        if: always()
-#        env:
-#          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-#        with:
-#          status: ${{ job.status }}
+      - uses: sarisia/actions-status-discord@v1
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          status: ${{ job.status }}
