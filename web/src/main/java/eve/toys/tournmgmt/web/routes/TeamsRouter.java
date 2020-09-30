@@ -7,6 +7,8 @@ import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
 import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.tsv.TSV;
+import eve.toys.tournmgmt.web.tsv.TSVException;
+import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
@@ -146,6 +148,20 @@ public class TeamsRouter {
     private void handleAddMembers(RoutingContext ctx) {
         RequestParameters params = ctx.get("parsedParameters");
         TSV tsv = new TSV(params.formParameter("tsv").getString(), 1);
+        tsv.processor(row -> Future.future(promise -> {
+            try {
+                esi.lookupCharacter(row.getCol(0))
+                        .onFailure(promise::fail)
+                        .onSuccess(json -> {
+                            int characterId = json.getJsonArray("result").getInteger(0);
+                            esi.fetchCharacter(characterId)
+                                    .onFailure(promise::fail)
+                                    .onSuccess(json2 -> promise.complete(json2.getString("name")));
+                        });
+            } catch (TSVException e) {
+                promise.fail(e);
+            }
+        }));
 
         new ValidatePilotNames(esi).validate(tsv, ar -> {
             if (ar.failed()) {
@@ -156,7 +172,10 @@ public class TeamsRouter {
             if (ar.result().isEmpty()) {
                 // TODO: check if too many members after import
                 // TODO: check members aren't in other teams
-                dbClient.callDb(DbClient.DB_WRITE_TEAM_MEMBERS_TSV,
+                tsv.validateAndProcess().onFailure(t -> {
+                    t.printStackTrace();
+                    doRedirect(ctx.response(), teamUrl(ctx, "/add-members"));
+                }).onSuccess(v -> dbClient.callDb(DbClient.DB_WRITE_TEAM_MEMBERS_TSV,
                         new JsonObject()
                                 .put("tsv", tsv.json())
                                 .put("addedBy", ((JsonObject) ctx.data().get("character")).getString("characterName"))
@@ -173,7 +192,7 @@ public class TeamsRouter {
                         .onSuccess(results -> {
                             jobClient.run(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, new JsonObject());
                             doRedirect(ctx.response(), teamUrl(ctx, "/edit"));
-                        });
+                        }));
             } else {
                 render.renderPage(ctx,
                         "/teams/addmembers",

@@ -142,5 +142,15 @@ public class Esi {
                     .onFailure(promise::fail)
                     .onSuccess(result -> promise.complete(result.bodyAsJsonObject()));
         });
+
+    }
+
+    public Future<JsonObject> fetchCharacter(int characterId) {
+        return Future.future(promise -> {
+            String url = "/characters/" + characterId;
+            etagCache.callApi(ESI_BASE + url)
+                    .onFailure(promise::fail)
+                    .onSuccess(result -> promise.complete(result.bodyAsJsonObject()));
+        });
     }
 }

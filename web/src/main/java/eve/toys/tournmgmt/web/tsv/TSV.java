@@ -1,5 +1,7 @@
 package eve.toys.tournmgmt.web.tsv;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.impl.StringEscapeUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.api.validation.HTTPRequestValidationHandler;
@@ -7,6 +9,7 @@ import io.vertx.ext.web.api.validation.ParameterTypeValidator;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -20,9 +23,10 @@ public class TSV {
 
     private static final String LINE_SPLIT = "[\\r\\n]+";
     private static final String COLUMN_SPLIT = "[\\t,]";
-
-    private final String tsv;
     private final int columnCount;
+    String tsv;
+    private Function<TSV, Future<TSV>> validator;
+    private Function<Row, Future<String>> processor;
 
     public TSV(String tsv, int columnCount) {
         this.tsv = tsv;
@@ -58,6 +62,31 @@ public class TSV {
         return tsv;
     }
 
+    public TSV validator(Function<TSV, Future<TSV>> validator) {
+        this.validator = validator;
+        return this;
+    }
+
+    public TSV processor(Function<Row, Future<String>> processor) {
+        this.processor = processor;
+        return this;
+    }
+
+    public Future<Object> validateAndProcess() {
+        Function<TSV, Future<TSV>> v = validator == null ? x -> Future.succeededFuture() : validator;
+        Function<Row, Future<String>> p = processor == null ? x -> Future.succeededFuture() : processor;
+        return v.apply(this)
+                .compose(validationResult -> CompositeFuture.all(this.stream()
+                        .map(p)
+                        .collect(Collectors.toList())))
+                .map(all -> {
+                    this.tsv = all.list().stream()
+                            .map(o -> (String) o)
+                            .collect(Collectors.joining("\n"));
+                    return this.tsv;
+                });
+    }
+
     public class Row {
         private final String row;
 
@@ -86,6 +115,11 @@ public class TSV {
                 throw new TSVException("Missing value in: " + row);
             }
             return columns;
+        }
+
+        @Override
+        public String toString() {
+            return row;
         }
     }
 }
