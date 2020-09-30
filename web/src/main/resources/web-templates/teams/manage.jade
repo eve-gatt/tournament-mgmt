@@ -27,6 +27,10 @@ block append styles
 
 block content
     - var uuid = tournament.getString("uuid")
+    - var isSuperuser = character.getBoolean("isSuperuser")
+    - var isCreator = tournament.getBoolean("is_creator")
+    - var roles = tournament.getString("roles") == null ? "" : tournament.getString("roles")
+    - var canImport = isSuperuser || isCreator || roles.contains("organiser")
 
     mixin subtitle("Teams")
 
@@ -41,8 +45,8 @@ block content
                 th Actions
                 th Problems
             tbody
-        a(href="/auth/tournament/" + uuid + "/teams/import") Import teams
-
+        if canImport
+            a(href="/auth/tournament/" + uuid + "/teams/import") Import teams
 
 block scripts
     script.
