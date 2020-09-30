@@ -156,7 +156,7 @@ html
             }
 
             .header .right {
-                padding: 12px 24px;
+                padding: 12px 12px;
                 display: grid;
                 grid-template-columns: auto 380px;
             }
@@ -281,9 +281,7 @@ html
 
             .section {
                 margin: 8px 0 12px 0;
-                display: flex;
-                flex-direction: column;
-
+                display: flow-root;
             }
 
             .section + .section {
@@ -358,7 +356,7 @@ html
                 a(target="_blank", href="https://www.patreon.com/eve_gatt")
                     i.fab.fa-patreon
                     | &nbsp;patreon
-                a(href="/support")
+                a(target="_blank", href="https://discord.gg/YPa965")
                     | &nbsp;support
 
         script(src='https://cdnjs.cloudflare.com/ajax/libs/d3/5.9.2/d3.js')
