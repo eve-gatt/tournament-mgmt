@@ -155,6 +155,7 @@ public class DbVerticle extends AbstractVerticle {
         sqlClient.queryWithParams("select uuid, name, start_date, created_by, practice_on_td, play_on_td, teams_locked, " +
                         "(created_by = ?) as is_creator, " +
                         "(select count(*) from team where tournament_uuid = '" + uuid + "') as team_count, " +
+                        "(select count(*) from team where tournament_uuid = '" + uuid + "' and locked = true) as team_locked_count, " +
                         "(select count(*) from team_member inner join team on team_member.team_uuid = team.uuid where team.tournament_uuid = '" + uuid + "') as pilot_count, " +
                         "exists(select 1 from team where team.tournament_uuid = tournament.uuid and captain = ?) as is_captain, " +
                         "exists(select 1 from team_member inner join team on team_member.team_uuid = team.uuid where team.tournament_uuid = tournament.uuid and team_member.name = ?) as is_pilot, " +
