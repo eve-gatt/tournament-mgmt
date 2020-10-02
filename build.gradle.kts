@@ -1,5 +1,13 @@
 plugins {
     `java-library`
+    `idea`
+}
+
+idea {
+    module {
+        isDownloadJavadoc = false
+        isDownloadSources = true
+    }
 }
 
 repositories {

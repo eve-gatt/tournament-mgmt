@@ -87,6 +87,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_PILOTS_AND_CAPTAIN_BY_TEAM, this::pilotsAndCaptainByTeam);
         vertx.eventBus().consumer(DbClient.DB_MAYBE_ALLOCATE_TD_ACCOUNT, this::maybeAllocateTdAccount);
         vertx.eventBus().consumer(DbClient.DB_SELECT_TD_BY_PILOT, this::tdByPilot);
+        vertx.eventBus().consumer(DbClient.DB_RECORD_REFTOOL_INPUTS, this::recordReftoolInputs);
 
         startPromise.complete();
     }
@@ -734,6 +735,24 @@ public class DbVerticle extends AbstractVerticle {
                         } else {
                             msg.reply(rows.get(0));
                         }
+                    }
+                });
+    }
+
+    private void recordReftoolInputs(Message<JsonObject> msg) {
+        JsonObject input = msg.body();
+        sqlClient.updateWithParams("insert into reftool_inputs (red, blue, added_by) " +
+                        "values (?, ?, ?)",
+                new JsonArray()
+                        .add(input.getString("red"))
+                        .add(input.getString("blue"))
+                        .add(input.getString("addedBy")),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(input);
                     }
                 });
     }
