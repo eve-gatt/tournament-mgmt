@@ -38,6 +38,7 @@ public class JobVerticle extends AbstractVerticle {
     }
 
     private void checkPilotsAllianceMembership(Message<String> msg) {
+        run(msg, new PilotAllianceMembershipValidation(dbClient, esi));
     }
 
     private void run(Message<String> msg, Validation validation) {

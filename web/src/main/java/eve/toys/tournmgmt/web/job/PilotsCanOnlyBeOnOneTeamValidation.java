@@ -26,8 +26,8 @@ public class PilotsCanOnlyBeOnOneTeamValidation implements Validation {
                 dbClient.callDb(DbClient.DB_ALL_CAPTAINS, new JsonObject()),
                 dbClient.callDb(DbClient.DB_ALL_PILOTS, new JsonObject()))
                 .map(f -> {
-                    JsonArray captains = ((Message<JsonArray>) f.resultAt(0)).body();
-                    JsonArray pilots = ((Message<JsonArray>) f.resultAt(1)).body();
+                    JsonArray captains = pluckTournamentAndName(((Message<JsonArray>) f.resultAt(0)).body());
+                    JsonArray pilots = pluckTournamentAndName(((Message<JsonArray>) f.resultAt(1)).body());
                     pilots.addAll(captains);
                     return findDuplicates(pilots.getList());
                 })
@@ -41,6 +41,15 @@ public class PilotsCanOnlyBeOnOneTeamValidation implements Validation {
                                                 .put("referencedEntity", problem.getString("tournament_uuid"))
                                                 .put("message", problem.getString("name") + " is in more than one team")))
                                 .collect(Collectors.toList())));
+    }
+
+    private JsonArray pluckTournamentAndName(JsonArray input) {
+        return new JsonArray(input.stream()
+                .map(o -> (JsonObject) o)
+                .map(p -> new JsonObject()
+                        .put("tournament_uuid", p.getString("tournament_uuid"))
+                        .put("name", p.getString("name"))
+                ).collect(Collectors.toList()));
     }
 
     private <T> Set<T> findDuplicates(Collection<T> collection) {

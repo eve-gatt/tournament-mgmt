@@ -285,7 +285,7 @@ public class DbVerticle extends AbstractVerticle {
     private void teamsByTournament(Message<JsonObject> msg) {
         String uuid = msg.body().getString("uuid");
         sqlClient.query("select name, logo, uuid, captain, locked, " +
-                        "(select string_agg(message, ',') from problems where type = 'team' and referenced_entity = team.uuid) as message, " +
+                        "(select string_agg(message, ', ') from problems where type = 'team' and referenced_entity = team.uuid) as message, " +
                         "(select count(*) from team_member where team.uuid = team_uuid) as member_count " +
                         "from team " +
                         "where tournament_uuid = '" + uuid + "'",
@@ -556,7 +556,7 @@ public class DbVerticle extends AbstractVerticle {
     }
 
     private void allCaptains(Message<Void> msg) {
-        sqlClient.query("select tournament_uuid, captain as name from team",
+        sqlClient.query("select tournament_uuid, uuid as team_uuid, captain as name from team",
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
@@ -568,7 +568,11 @@ public class DbVerticle extends AbstractVerticle {
     }
 
     private void allPilots(Message<Void> msg) {
-        sqlClient.query("select tournament_uuid, team_member.name as name " +
+        sqlClient.query("select " +
+                        "tournament_uuid, " +
+                        "team.uuid as team_uuid, " +
+                        "team.name as team_name, " +
+                        "team_member.name as name " +
                         "from team_member inner join team on team_member.team_uuid = team.uuid",
                 ar -> {
                     if (ar.failed()) {
