@@ -1,6 +1,5 @@
 package eve.toys.tournmgmt.web.job;
 
-import eve.toys.tournmgmt.web.AppStreamHelpers;
 import eve.toys.tournmgmt.web.esi.Esi;
 import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.core.AbstractVerticle;
@@ -39,38 +38,7 @@ public class JobVerticle extends AbstractVerticle {
     }
 
     private void checkCaptainAllianceMembership(Message<String> msg) {
-        LOGGER.info("Checking captains's alliance memberships");
-        dbClient.callDb(DbClient.DB_ALL_TEAMS, new JsonObject())
-                .onFailure(t -> msg.fail(1, t.getMessage()))
-                .onSuccess(result -> {
-                    JsonArray body = (JsonArray) result.body();
-                    CompositeFuture.all(body.stream()
-                            .map(o -> (JsonObject) o)
-                            .map(row -> esi.checkMembership(
-                                    row.getString("uuid"),
-                                    esi.lookupAlliance(row.getString("name")),
-                                    esi.lookupCharacter(row.getString("captain"))))
-                            .collect(Collectors.toList()))
-                            .map(AppStreamHelpers::compositeFutureToJsonObjects)
-                            .onFailure(Throwable::printStackTrace)
-                            .onSuccess(teams ->
-                                    teams.forEach(json -> {
-                                        String uuid = json.getString("uuid");
-                                        JsonArray expected = json.getJsonObject("expectedAlliance").getJsonArray("result");
-                                        String error = "";
-                                        if (expected != null && !expected.getInteger(0).equals(json.getInteger("actualAlliance"))) {
-                                            error = json.getJsonObject("character").getString("character")
-                                                    + " is not in "
-                                                    + json.getJsonObject("expectedAlliance").getString("alliance");
-                                        }
-                                        dbClient.callDb(DbClient.DB_UPDATE_TEAM_MESSAGE,
-                                                new JsonObject().put("message", error).put("uuid", uuid))
-                                                .onFailure(Throwable::printStackTrace)
-                                                .onSuccess(v -> {
-                                                });
-                                    }));
-                    LOGGER.info("Checking alliance memberships completed");
-                });
+        run(msg, new CaptainAllianceMembershipValidation(dbClient, esi));
     }
 
     private void checkPilotsAllianceMembership(Message<String> msg) {
@@ -107,6 +75,23 @@ public class JobVerticle extends AbstractVerticle {
                         }));
     }
 
+    private void run(Message<String> msg, Validation validation) {
+        LOGGER.info("Cleaning " + validation.getName());
+        dbClient.callDb(DbClient.DB_CLEAR_PROBLEMS,
+                new JsonObject()
+                        .put("type", validation.getProblemType().name())
+                        .put("name", validation.getName()))
+                .compose(v -> {
+                    LOGGER.info("Starting " + validation.getName());
+                    return validation.run();
+                })
+                .onFailure(t -> {
+                    LOGGER.error(validation.getName(), t);
+                    msg.fail(1, validation.getName() + " - " + t.getMessage());
+                })
+                .onSuccess(v -> LOGGER.info("Completed " + validation.getName()));
+    }
+
     private <T> Set<T> findDuplicates(Collection<T> collection) {
         Set<T> duplicates = new LinkedHashSet<>();
         Set<T> uniques = new HashSet<>();
@@ -119,5 +104,4 @@ public class JobVerticle extends AbstractVerticle {
 
         return duplicates;
     }
-
 }

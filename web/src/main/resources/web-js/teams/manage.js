@@ -22,7 +22,7 @@
             entering.append('td').text(d => d.locked ? 'yes' : 'no');
             entering.append('td').text(d => d.member_count > 0 ? d.member_count : '-');
             entering.append('td').call(actions)
-            entering.append('td').text(d => d.msg);
+            entering.append('td').text(d => d.message);
         } else {
             d3.select('.teams table').style('display', 'none');
         }

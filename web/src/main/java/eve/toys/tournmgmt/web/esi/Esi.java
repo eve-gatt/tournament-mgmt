@@ -85,7 +85,8 @@ public class Esi {
         });
     }
 
-    public Future<JsonObject> checkMembership(String uuid,
+    public Future<JsonObject> checkMembership(String teamUuid,
+                                              String tournamentUuid,
                                               Future<JsonObject> checkAlliance,
                                               Future<JsonObject> checkCharacter) {
         return Future.future(promise ->
@@ -95,7 +96,8 @@ public class Esi {
                             JsonObject character = f.resultAt(1);
 
                             JsonObject out = new JsonObject()
-                                    .put("uuid", uuid)
+                                    .put("uuid", teamUuid)
+                                    .put("tournamentUuid", tournamentUuid)
                                     .put("expectedAlliance", alliance)
                                     .put("character", character);
                             if (alliance.getJsonArray("result") != null && character.getJsonArray("result") != null) {

@@ -63,7 +63,8 @@ public class RefereeRouter {
                 .onSuccess(msg -> {
                     RenderHelper.doRedirect(ctx.response(), "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/referee");
                 });
-
+        // TODO: validate rule adhere, e.g. max 3x frigates, logi exempt but different rules
+        // TODO: validate pilots are all in the same team
     }
 
     private void fail(RoutingContext ctx) {

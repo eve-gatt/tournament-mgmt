@@ -42,6 +42,8 @@ public final class DbClient {
     public static final String DB_MAYBE_ALLOCATE_TD_ACCOUNT = "DB_MAYBE_ALLOCATE_TD_ACCOUNT";
     public static final String DB_SELECT_TD_BY_PILOT = "DB_SELECT_TD_BY_PILOT";
     public static final String DB_RECORD_REFTOOL_INPUTS = "DB_RECORD_REFTOOL_INPUTS";
+    public static final String DB_CLEAR_PROBLEMS = "DB_CLEAR_PROBLEMS";
+    public static final String DB_ADD_PROBLEM = "DB_ADD_PROBLEM";
 
     private final EventBus eventBus;
 

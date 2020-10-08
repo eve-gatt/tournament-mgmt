@@ -88,6 +88,8 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_MAYBE_ALLOCATE_TD_ACCOUNT, this::maybeAllocateTdAccount);
         vertx.eventBus().consumer(DbClient.DB_SELECT_TD_BY_PILOT, this::tdByPilot);
         vertx.eventBus().consumer(DbClient.DB_RECORD_REFTOOL_INPUTS, this::recordReftoolInputs);
+        vertx.eventBus().consumer(DbClient.DB_CLEAR_PROBLEMS, this::clearProblems);
+        vertx.eventBus().consumer(DbClient.DB_ADD_PROBLEM, this::addProblem);
 
         startPromise.complete();
     }
@@ -283,7 +285,8 @@ public class DbVerticle extends AbstractVerticle {
 
     private void teamsByTournament(Message<JsonObject> msg) {
         String uuid = msg.body().getString("uuid");
-        sqlClient.query("select name, logo, uuid, captain, locked, msg, " +
+        sqlClient.query("select name, logo, uuid, captain, locked, " +
+                        "(select string_agg(message, ',') from problems where type = 'team' and referenced_entity = team.uuid) as message, " +
                         "(select count(*) from team_member where team.uuid = team_uuid) as member_count " +
                         "from team " +
                         "where tournament_uuid = '" + uuid + "'",
@@ -510,15 +513,9 @@ public class DbVerticle extends AbstractVerticle {
 
     private void problemsByTournament(Message<String> msg) {
         String uuid = msg.body();
-        sqlClient.query("select msg " +
-                        "from team " +
-                        "where tournament_uuid = '" + uuid + "' " +
-                        "  and (msg <> '') is true " +
-                        "union " +
-                        "select msg " +
-                        "from tournament " +
-                        "where uuid = '" + uuid + "' " +
-                        "  and (msg <> '') is true ",
+        sqlClient.query("select message " +
+                        "from problems " +
+                        "where tournament_uuid = '" + uuid + "'",
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
@@ -753,6 +750,49 @@ public class DbVerticle extends AbstractVerticle {
                         msg.fail(1, ar.cause().getMessage());
                     } else {
                         msg.reply(input);
+                    }
+                });
+    }
+
+    private void clearProblems(Message<JsonObject> msg) {
+        String problemType = msg.body().getString("type");
+        String validationIdentifier = msg.body().getString("name");
+        sqlClient.updateWithParams("delete from problems " +
+                        "where type = ?::problem_type " +
+                        "and validation_identifier = ?",
+                new JsonArray().add(problemType).add(validationIdentifier),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(msg.body());
+                    }
+                });
+    }
+
+    private void addProblem(Message<JsonObject> msg) {
+        String problemType = msg.body().getString("type");
+        String tournamentUuid = msg.body().getString("tournamentUuid");
+        String validationIdentifier = msg.body().getString("validationIdentifier");
+        String referencedEntity = msg.body().getString("referencedEntity");
+        String message = msg.body().getString("message");
+        sqlClient.updateWithParams("insert into problems " +
+                        "(type, tournament_uuid, validation_identifier, referenced_entity, message, created_by) " +
+                        "values(?::problem_type, ?::uuid, ?, ?::uuid, ?, ?)",
+                new JsonArray()
+                        .add(problemType)
+                        .add(tournamentUuid)
+                        .add(validationIdentifier)
+                        .add(referencedEntity)
+                        .add(message)
+                        .add("system"),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(msg.body());
                     }
                 });
     }
