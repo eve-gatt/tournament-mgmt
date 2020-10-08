@@ -16,3 +16,6 @@ create table problems
 
 alter table team
     drop column msg;
+
+alter table tournament
+    drop column msg;

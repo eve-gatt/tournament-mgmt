@@ -72,7 +72,6 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_ALL_TEAMS, this::allTeams);
         vertx.eventBus().consumer(DbClient.DB_CLEAR_ALL_TOURNAMENT_MSGS, this::clearAllTournamentMsgs);
         vertx.eventBus().consumer(DbClient.DB_UPDATE_TEAM_MESSAGE, this::updateTeamMessage);
-        vertx.eventBus().consumer(DbClient.DB_UPDATE_TOURNAMENT_MESSAGE, this::updateTournamentMessage);
         vertx.eventBus().consumer(DbClient.DB_ROLES_BY_TOURNAMENT, this::rolesByTournament);
         vertx.eventBus().consumer(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT, this::replaceRolesByTypeAndTournament);
         vertx.eventBus().consumer(DbClient.DB_HAS_ROLE, this::hasRole);
@@ -412,22 +411,6 @@ public class DbVerticle extends AbstractVerticle {
                 });
     }
 
-    private void updateTournamentMessage(Message<JsonObject> msg) {
-        String message = msg.body().getString("message");
-        String uuid = msg.body().getString("uuid");
-        sqlClient.updateWithParams("update tournament set msg = ? " +
-                        "where uuid = '" + uuid + "'",
-                new JsonArray().add(message),
-                ar -> {
-                    if (ar.failed()) {
-                        ar.cause().printStackTrace();
-                        msg.fail(1, ar.cause().getMessage());
-                    } else {
-                        msg.reply(null);
-                    }
-                });
-    }
-
     private void rolesByTournament(Message<String> msg) {
         String uuid = msg.body();
         sqlClient.query("select * from tournament_role where tournament_uuid = '" + uuid + "'",
@@ -585,7 +568,7 @@ public class DbVerticle extends AbstractVerticle {
     }
 
     private void allPilots(Message<Void> msg) {
-        sqlClient.query("select tournament_uuid, team.name team_name, team_member.name pilot_name " +
+        sqlClient.query("select tournament_uuid, team_member.name as name " +
                         "from team_member inner join team on team_member.team_uuid = team.uuid",
                 ar -> {
                     if (ar.failed()) {
