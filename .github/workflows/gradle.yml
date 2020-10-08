@@ -21,11 +21,10 @@ jobs:
           java-version: 1.8
 
       - name: Save DigitalOcean kubeconfig
-        uses: digitalocean/action-doctl@v1
-        env:
-          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+        uses: digitalocean/action-doctl@v2
         with:
-          args: kubernetes cluster kubeconfig show gskillfarm-cluster > $GITHUB_WORKSPACE/.kubeconfig
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+        run: doctl kubernetes cluster kubeconfig show gskillfarm-cluster > $GITHUB_WORKSPACE/.kubeconfig
 
       - name: Cache Gradle packages
         uses: actions/cache@v1
