@@ -35,6 +35,12 @@ block append styles
 
         .legend div {
             padding: 4px 8px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .legend .count {
+            font-weight: bold;
         }
 
         .green {
@@ -76,9 +82,15 @@ block content
     .teams
         p.no-teams This tournament doesn't have any teams registered.
         .legend
-            .green locked
-            .yellow not locked or rule violations
-            .red no activity
+            .green
+                span.count
+                | locked
+            .yellow
+                span.count
+                | not locked or rule violations
+            .red
+                span.count
+                | no activity
         table.pure-table
             thead
                 th Name
