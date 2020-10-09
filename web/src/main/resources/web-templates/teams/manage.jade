@@ -26,6 +26,44 @@ block append styles
             margin: 0 6px;
         }
 
+        .legend {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin: 8px;
+        }
+
+        .legend div {
+            padding: 4px 8px;
+        }
+
+        .green {
+            background-color: lightgreen;
+            color: black;
+        }
+
+        .green a {
+            color: #07425d
+        }
+
+        .yellow {
+            background-color: lightgoldenrodyellow;
+            color: black;
+        }
+
+        .yellow a {
+            color: #07425d
+        }
+
+        .red {
+            background-color: lightcoral;
+            color: black;
+        }
+
+        .red a {
+            color: #07425d
+        }
+
 block content
     - var uuid = tournament.getString("uuid")
     - var isSuperuser = character.getBoolean("isSuperuser")
@@ -37,6 +75,10 @@ block content
 
     .teams
         p.no-teams This tournament doesn't have any teams registered.
+        .legend
+            .green locked
+            .yellow members but not locked
+            .red no activity
         table.pure-table
             thead
                 th Name
