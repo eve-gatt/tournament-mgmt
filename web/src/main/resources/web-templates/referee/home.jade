@@ -3,8 +3,8 @@ extends ../../layout/tournament-layout
 block append styles
     style.
         textarea {
-            width: 400px;
-            height: 300px;
+            width: 640px;
+            height: 260px;
         }
 
         textarea#red {
@@ -32,6 +32,7 @@ block content
                 label(for="blue") Blue Team
                 textarea(name="blue", placeholder="paste from ref tool")#blue
                 span.pure-form-message-inline(class=errorField.equals("name") ? "error" : null)= errorField.equals("name") ? "min length 3, ascii characters only" : ""
+            .pure-control-group
                 label(for="red") Red Team
                 textarea(name="red", placeholder="paste from ref tool")#red
                 span.pure-form-message-inline(class=errorField.equals("name") ? "error" : null)= errorField.equals("name") ? "min length 3, ascii characters only" : ""
