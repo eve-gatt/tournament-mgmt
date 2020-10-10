@@ -18,7 +18,8 @@ jib {
         ports = listOf("6070")
         mainClass = "toys.eve.tournmgmt.deploy.SingleProcessMain"
         jvmFlags = listOf(
-                "-Dhttp.agent=Gatt2111@tweetfleet"
+                "-Dhttp.agent=Gatt2111@tweetfleet",
+                "-Xmx256m"
 //                "-Dsun.net.inetaddr.ttl=0"
         )
     }
