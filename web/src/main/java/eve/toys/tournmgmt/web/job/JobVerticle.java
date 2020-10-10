@@ -12,6 +12,8 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import toys.eve.tournmgmt.db.DbClient;
 
+import java.util.concurrent.TimeUnit;
+
 public class JobVerticle extends AbstractVerticle {
     private static final Logger LOGGER = LoggerFactory.getLogger(JobVerticle.class.getName());
     private WebClient webClient;
@@ -26,6 +28,11 @@ public class JobVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(JobClient.JOB_CHECK_CAPTAIN_ALLIANCE_MEMBERSHIP, this::checkCaptainAllianceMembership);
         vertx.eventBus().consumer(JobClient.JOB_CHECK_PILOTS_ALLIANCE_MEMBERSHIP, this::checkPilotsAllianceMembership);
         vertx.eventBus().consumer(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, this::checkPilotsOnOneTeam);
+
+        delayThenEveryHour(10, JobClient.JOB_CHECK_CAPTAIN_ALLIANCE_MEMBERSHIP);
+        delayThenEveryHour(20, JobClient.JOB_CHECK_PILOTS_ALLIANCE_MEMBERSHIP);
+        delayThenEveryHour(30, JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM);
+
         startPromise.complete();
     }
 
@@ -33,12 +40,21 @@ public class JobVerticle extends AbstractVerticle {
         run(msg, new CaptainAllianceMembershipValidation(dbClient, esi));
     }
 
+    private void checkPilotsAllianceMembership(Message<String> msg) {
+        run(msg, new PilotAllianceMembershipValidation(dbClient, esi));
+    }
+
     private void checkPilotsOnOneTeam(Message<String> msg) {
         run(msg, new PilotsCanOnlyBeOnOneTeamValidation(dbClient));
     }
 
-    private void checkPilotsAllianceMembership(Message<String> msg) {
-        run(msg, new PilotAllianceMembershipValidation(dbClient, esi));
+    private void delayThenEveryHour(int minutes, String job) {
+        vertx.setTimer(TimeUnit.MINUTES.toMillis(minutes),
+                id -> {
+                    vertx.eventBus().send(job, null);
+                    vertx.setPeriodic(TimeUnit.HOURS.toMillis(1),
+                            id2 -> vertx.eventBus().send(job, null));
+                });
     }
 
     private void run(Message<String> msg, Validation validation) {
