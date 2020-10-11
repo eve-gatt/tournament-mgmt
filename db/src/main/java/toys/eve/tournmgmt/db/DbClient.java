@@ -45,6 +45,7 @@ public class DbClient {
     public static final String DB_ADD_PROBLEM = "DB_ADD_PROBLEM";
     public static final String DB_PILOT_NAMES_IN_USE = "DB_PILOT_NAMES_IN_USE";
     public static final String DB_TEAMS_FOR_PILOT_LIST = "DB_TEAMS_FOR_PILOT_LIST";
+    public static final String DB_WRITE_LOGIN = "DB_WRITE_LOGIN";
 
     private final EventBus eventBus;
 

@@ -64,7 +64,7 @@ public class Esi {
         });
     }
 
-    public Future<JsonObject> getSkills(AccessToken user, int characterId) {
+    public Future<JsonObject> fetchCharacterSkills(AccessToken user, int characterId) {
         return Future.future(promise -> {
             AppRBAC.refreshIfNeeded(user, v -> {
                 String url = "/characters/" + characterId + "/skills/";

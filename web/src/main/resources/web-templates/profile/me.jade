@@ -120,7 +120,7 @@ block content
                                 tr
                                     td= req.getString("skill")
                                     td= req.getInteger("level")
-                                    - var clazz = req.getInteger("toonLevel") < req.getInteger("level") ? "error" : ""
+                                    - var clazz = req.getInteger("toonLevel") < req.getInteger("level") ? "error" : "good"
                                     td(class=clazz)= req.getInteger("toonLevel")
 
 block scripts

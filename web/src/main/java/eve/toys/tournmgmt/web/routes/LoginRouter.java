@@ -5,11 +5,15 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.oauth2.AccessToken;
+import io.vertx.ext.auth.oauth2.KeycloakHelper;
 import io.vertx.ext.auth.oauth2.OAuth2Auth;
 import io.vertx.ext.auth.oauth2.impl.OAuth2TokenImpl;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.common.util.RenderHelper;
+import toys.eve.tournmgmt.db.DbClient;
+
+import java.time.Instant;
 
 public class LoginRouter {
     public static final String CODE = "a56hfg2";
@@ -18,18 +22,16 @@ public class LoginRouter {
     private final Router router;
     private final RenderHelper render;
     private final OAuth2Auth oauth2;
+    private final DbClient dbClient;
 
-    public LoginRouter(Vertx vertx, RenderHelper render, OAuth2Auth oauth2) {
+    public LoginRouter(Vertx vertx, RenderHelper render, OAuth2Auth oauth2, DbClient dbClient) {
         router = Router.router(vertx);
         this.render = render;
         this.oauth2 = oauth2;
+        this.dbClient = dbClient;
         router.get("/start").handler(this::start);
         router.get("/callback").handler(this::callback);
         router.get("/logout").handler(this::logout);
-    }
-
-    public static Router routes(Vertx vertx, RenderHelper render, OAuth2Auth oauth2) {
-        return new LoginRouter(vertx, render, oauth2).router();
     }
 
     private void start(RoutingContext ctx) {
@@ -75,15 +77,6 @@ public class LoginRouter {
         });
     }
 
-    private void doSuccess(RoutingContext ctx, User user) {
-        ctx.setUser(user);
-        ctx.session().regenerateId();
-        String returnURL = ctx.session().remove("return_url");
-        render.renderPage(ctx,
-                "/login/redirect",
-                new JsonObject().put("return_url", returnURL == null ? "/" : returnURL));
-    }
-
     private void logout(RoutingContext ctx) {
         ctx.clearUser();
         ctx.session().destroy();
@@ -91,6 +84,35 @@ public class LoginRouter {
         render.renderPage(ctx,
                 "/login/redirect",
                 new JsonObject().put("return_url", "/"));
+    }
+
+    public static Router routes(Vertx vertx, RenderHelper render, OAuth2Auth oauth2, DbClient dbClient) {
+        return new LoginRouter(vertx, render, oauth2, dbClient).router();
+    }
+
+    private void doSuccess(RoutingContext ctx, User user) {
+
+        JsonObject parsed = KeycloakHelper.parseToken(((AccessToken) user).opaqueAccessToken());
+        String scopes = parsed.getString("scp");
+        int characterId = Integer.parseInt(parsed.getString("sub").split(":")[2]);
+        String characterName = parsed.getString("name");
+        String refreshToken = ((AccessToken) user).opaqueRefreshToken();
+        dbClient.callDb(DbClient.DB_WRITE_LOGIN,
+                new JsonObject()
+                        .put("characterId", characterId)
+                        .put("characterName", characterName)
+                        .put("scopes", scopes)
+                        .put("lastSeen", Instant.now())
+                        .put("refreshToken", refreshToken))
+                .onFailure(ctx::fail)
+                .onSuccess(v -> {
+                    ctx.setUser(user);
+                    ctx.session().regenerateId();
+                    String returnURL = ctx.session().remove("return_url");
+                    render.renderPage(ctx,
+                            "/login/redirect",
+                            new JsonObject().put("return_url", returnURL == null ? "/" : returnURL));
+                });
     }
 
     private Router router() {

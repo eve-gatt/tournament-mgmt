@@ -92,6 +92,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_ADD_PROBLEM, this::addProblem);
         vertx.eventBus().consumer(DbClient.DB_PILOT_NAMES_IN_USE, this::pilotNamesInUse);
         vertx.eventBus().consumer(DbClient.DB_TEAMS_FOR_PILOT_LIST, this::teamsForPilotList);
+        vertx.eventBus().consumer(DbClient.DB_WRITE_LOGIN, this::writeLogin);
 
         startPromise.complete();
     }
@@ -831,6 +832,37 @@ public class DbVerticle extends AbstractVerticle {
                         msg.fail(1, ar.cause().getMessage());
                     } else {
                         msg.reply(new JsonArray(ar.result().getRows()));
+                    }
+                });
+    }
+
+    private void writeLogin(Message<JsonObject> msg) {
+        sqlClient.updateWithParams("insert into logins " +
+                        "(character_id, character_name, scopes, refresh_token, last_seen) " +
+                        "values(?, ?, ?, ?, ?) " +
+                        "on conflict (character_id) " +
+                        "do update set " +
+                        "   character_name = ?, " +
+                        "   scopes = ?, " +
+                        "   refresh_token = ?, " +
+                        "   last_seen = ? ",
+                new JsonArray()
+                        .add(msg.body().getInteger("characterId"))
+                        .add(msg.body().getString("characterName"))
+                        .add(msg.body().getString("scopes"))
+                        .add(msg.body().getString("refreshToken"))
+                        .add(msg.body().getInstant("lastSeen"))
+                        // update
+                        .add(msg.body().getString("characterName"))
+                        .add(msg.body().getString("scopes"))
+                        .add(msg.body().getString("refreshToken"))
+                        .add(msg.body().getInstant("lastSeen")),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(null);
                     }
                 });
     }
