@@ -70,7 +70,7 @@ spec:
               cpu: "100m"
             limits:
               memory: "500Mi"
-              cpu: "250m"
+              cpu: "2"
           readinessProbe:
             httpGet:
               port: 6070
