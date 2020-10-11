@@ -2,7 +2,6 @@ package eve.toys.tournmgmt.web.esi;
 
 import eve.toys.tournmgmt.web.AppStreamHelpers;
 import eve.toys.tournmgmt.web.tsv.TSV;
-import eve.toys.tournmgmt.web.tsv.TSVException;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -21,14 +20,7 @@ public class ValidatePilotNames {
     }
 
     public void validate(TSV tsv, String captain, Handler<AsyncResult<String>> replyHandler) {
-        boolean tryingToImportCaptain = tsv.stream().anyMatch(row -> {
-            try {
-                return row.getCol(0).equalsIgnoreCase(captain);
-            } catch (TSVException e) {
-                e.printStackTrace();
-                return false;
-            }
-        });
+        boolean tryingToImportCaptain = tsv.stream().anyMatch(row -> row.getCol(0).equalsIgnoreCase(captain));
         CompositeFuture.all(tsv.stream()
                 .map(this::lookupCharacter)
                 .collect(Collectors.toList()))
@@ -47,12 +39,8 @@ public class ValidatePilotNames {
     }
 
     private Future<JsonObject> lookupCharacter(TSV.Row row) {
-        try {
-            String name = row.getCol(0);
-            return esi.lookupCharacter(name);
-        } catch (TSVException e) {
-            return Future.failedFuture(e);
-        }
+        String name = row.getCol(0);
+        return esi.lookupCharacter(name);
     }
 
     private Stream<String> filterForInvalidNames(Stream<JsonObject> results) {

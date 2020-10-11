@@ -29,7 +29,7 @@ subprojects {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
     dependencies {
-        testCompile("junit:junit:4.12")
+        testCompile("junit:junit:4.+")
     }
 }
 

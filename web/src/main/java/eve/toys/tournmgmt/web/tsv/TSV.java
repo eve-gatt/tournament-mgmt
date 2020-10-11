@@ -39,12 +39,8 @@ public class TSV {
                 (a, r) -> {
                     JsonArray row = new JsonArray();
                     IntStream.range(0, columnCount).forEach(i -> {
-                        try {
-                            String val = r.getCol(i);
-                            row.add(val);
-                        } catch (TSVException e) {
-                            row.add(e.getMessage());
-                        }
+                        String val = r.getCol(i);
+                        row.add(val);
                     });
                     a.add(row);
                 },
@@ -113,7 +109,7 @@ public class TSV {
                     .map(String::trim)
                     .collect(Collectors.toList());
             if (columns.size() != columnCount) {
-                throw new TSVException("Expected " + columnCount + " columns in: " + row);
+                throw new TSVException("Expected " + columnCount + " columns in: " + row + ", found " + columns.size());
             }
             if (columns.stream().anyMatch(String::isEmpty)) {
                 throw new TSVException("Missing value in: " + row);

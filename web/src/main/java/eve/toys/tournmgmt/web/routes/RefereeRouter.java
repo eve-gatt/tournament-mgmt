@@ -1,5 +1,7 @@
 package eve.toys.tournmgmt.web.routes;
 
+import eve.toys.tournmgmt.web.match.RefToolInput;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
@@ -45,6 +47,7 @@ public class RefereeRouter {
                     .put("blue", "");
             ctx.put("errorField", "");
             ctx.put("errorMessage", "");
+            ctx.put("results", new JsonObject());
         }
 
         render.renderPage(ctx, "/referee/home",
@@ -55,13 +58,23 @@ public class RefereeRouter {
     }
 
     private void success(RoutingContext ctx) {
+        String tournamentUuid = ctx.request().getParam("tournamentUuid");
         RequestParameters params = ctx.get("parsedParameters");
         JsonObject form = params.toJson().getJsonObject("form");
         form.put("addedBy", ((JsonObject) ctx.data().get("character")).getString("characterName"));
         dbClient.callDb(DbClient.DB_RECORD_REFTOOL_INPUTS, form)
+                .compose(v -> CompositeFuture.all(
+                        new RefToolInput(dbClient).validateTeamMembership(tournamentUuid, form.getString("red")),
+                        new RefToolInput(dbClient).validateTeamMembership(tournamentUuid, form.getString("blue"))))
                 .onFailure(ctx::fail)
-                .onSuccess(msg -> {
-                    RenderHelper.doRedirect(ctx.response(), "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/referee");
+                .onSuccess(f -> {
+                    ctx.put("form", form)
+                            .put("errorField", "")
+                            .put("errorMessage", "")
+                            .put("results", new JsonObject()
+                                    .put("red", f.list().get(0))
+                                    .put("blue", f.list().get(1)));
+                    ctx.reroute(HttpMethod.GET, "/auth/tournament/" + tournamentUuid + "/referee");
                 });
         // TODO: validate rule adhere, e.g. max 3x frigates, logi exempt but different rules
         // TODO: validate pilots are all in the same team

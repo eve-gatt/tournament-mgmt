@@ -32,5 +32,6 @@ dependencies {
     implementation("org.jgrapht:jgrapht-io:1.4.0")
 
     testCompile("io.vertx:vertx-unit:$vertxVersion")
+    testCompile("org.mockito:mockito-core:2.+")
 }
 

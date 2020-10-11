@@ -1,6 +1,6 @@
 package eve.toys.tournmgmt.web.tsv;
 
-public class TSVException extends Exception {
+public class TSVException extends RuntimeException {
     public TSVException(String msg) {
         super(msg);
     }

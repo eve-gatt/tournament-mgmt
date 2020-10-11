@@ -7,7 +7,6 @@ import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
 import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.tsv.TSV;
-import eve.toys.tournmgmt.web.tsv.TSVException;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -290,23 +289,17 @@ public class TeamsRouter {
     }
 
     private Future<String> pilotNameProcessor(TSV.Row row) {
-        return Future.future(promise -> {
-            try {
-                esi.lookupCharacter(row.getCol(0))
-                        .onFailure(promise::fail)
-                        .onSuccess(json -> {
-                            int characterId = json.getJsonArray("result").getInteger(0);
-                            esi.fetchCharacter(characterId)
-                                    .onFailure(promise::fail)
-                                    .onSuccess(json2 -> {
-                                        String name = json2.containsKey("error") ? json2.getString("error") : json2.getString("name");
-                                        promise.complete(name);
-                                    });
-                        });
-            } catch (TSVException e) {
-                promise.fail(e);
-            }
-        });
+        return Future.future(promise -> esi.lookupCharacter(row.getCol(0))
+                .onFailure(promise::fail)
+                .onSuccess(json -> {
+                    int characterId = json.getJsonArray("result").getInteger(0);
+                    esi.fetchCharacter(characterId)
+                            .onFailure(promise::fail)
+                            .onSuccess(json2 -> {
+                                String name = json2.containsKey("error") ? json2.getString("error") : json2.getString("name");
+                                promise.complete(name);
+                            });
+                }));
     }
 
     private static List<String> toListOfPilots(Message<Object> msg) {

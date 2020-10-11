@@ -46,13 +46,7 @@ public class TSVTest {
     @Test
     public void workingProcessorWorks(TestContext context) {
         TSV tsv = new TSV("gatt2111\nanother guy", 1)
-                .processor(row -> {
-                    try {
-                        return Future.succeededFuture(toUpperCase(row));
-                    } catch (TSVException e) {
-                        return Future.failedFuture(e);
-                    }
-                });
+                .processor(row -> Future.succeededFuture(toUpperCase(row)));
         tsv.validateAndProcess()
                 .onComplete(context.asyncAssertSuccess(t -> context.assertEquals("GATT2111\nANOTHER GUY", tsv.text())));
     }

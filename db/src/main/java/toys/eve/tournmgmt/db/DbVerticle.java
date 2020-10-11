@@ -14,6 +14,7 @@ import io.vertx.ext.sql.SQLConnection;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -90,6 +91,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_CLEAR_PROBLEMS, this::clearProblems);
         vertx.eventBus().consumer(DbClient.DB_ADD_PROBLEM, this::addProblem);
         vertx.eventBus().consumer(DbClient.DB_PILOT_NAMES_IN_USE, this::pilotNamesInUse);
+        vertx.eventBus().consumer(DbClient.DB_TEAMS_FOR_PILOT_LIST, this::teamsForPilotList);
 
         startPromise.complete();
     }
@@ -803,11 +805,45 @@ public class DbVerticle extends AbstractVerticle {
                 });
     }
 
+    private void teamsForPilotList(Message<JsonObject> msg) {
+        String tournamentUuid = msg.body().getString("tournamentUuid");
+        JsonArray pilots = msg.body().getJsonArray("pilots");
+        sqlClient.queryWithParams("select captain as pilot_name, team.name as team_name " +
+                        "from team " +
+                        "where " +
+                        "tournament_uuid = ?::uuid " +
+                        "and captain in (" + placeholders(pilots.size()) + ") " +
+                        "union " +
+                        "select team_member.name as pilot_name, team.name as team_name " +
+                        "from team " +
+                        "         left join team_member on team_member.team_uuid = team.uuid " +
+                        "where " +
+                        "tournament_uuid = ?::uuid " +
+                        "and team_member.name in (" + placeholders(pilots.size()) + ")",
+                new JsonArray()
+                        .add(tournamentUuid)
+                        .addAll(pilots)
+                        .add(tournamentUuid)
+                        .addAll(pilots),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(new JsonArray(ar.result().getRows()));
+                    }
+                });
+    }
+
     private void rollback(SQLConnection conn) {
         conn.rollback(ar -> {
             if (ar.failed()) {
                 ar.cause().printStackTrace();
             }
         });
+    }
+
+    private String placeholders(int count) {
+        return String.join(",", Collections.nCopies(count, "?"));
     }
 }

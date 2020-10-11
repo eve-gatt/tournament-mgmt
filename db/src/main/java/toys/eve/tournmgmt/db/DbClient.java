@@ -6,7 +6,7 @@ import io.vertx.core.eventbus.Message;
 
 import java.util.regex.Pattern;
 
-public final class DbClient {
+public class DbClient {
 
     public static final Pattern DUPE_REGEX = Pattern.compile(".*Detail: Key \\([^=]+=\\(([^,]+), ([^\\)]+)\\) already exists\\.");
 
@@ -44,6 +44,7 @@ public final class DbClient {
     public static final String DB_CLEAR_PROBLEMS = "DB_CLEAR_PROBLEMS";
     public static final String DB_ADD_PROBLEM = "DB_ADD_PROBLEM";
     public static final String DB_PILOT_NAMES_IN_USE = "DB_PILOT_NAMES_IN_USE";
+    public static final String DB_TEAMS_FOR_PILOT_LIST = "DB_TEAMS_FOR_PILOT_LIST";
 
     private final EventBus eventBus;
 

@@ -9,7 +9,6 @@ import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.esi.ValidatePilotNames;
 import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.tsv.TSV;
-import eve.toys.tournmgmt.web.tsv.TSVException;
 import io.vertx.core.*;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpMethod;
@@ -263,40 +262,24 @@ public class TournamentRouter {
         TSV tsv = new TSV(params.formParameter("tsv").getString(), 2);
 
         CompositeFuture.all(tsv.stream()
-                .flatMap(row -> {
-                    try {
-                        return Stream.of(
-                                esi.lookupAlliance(row.getCol(0)),
-                                esi.lookupCharacter(row.getCol(1)));
-                    } catch (TSVException e) {
-                        return Stream.of(Future.failedFuture(e));
-                    }
-                })
+                .flatMap(row -> Stream.of(
+                        esi.lookupAlliance(row.getCol(0)),
+                        esi.lookupCharacter(row.getCol(1))))
                 .collect(Collectors.toList()))
                 .map(AppStreamHelpers::compositeFutureToJsonObjects)
                 .map(this::checkForTeamImportErrors)
                 .onSuccess(msg -> {
                     if (msg.isEmpty()) {
-                        CompositeFuture.all(tsv.stream().map(row -> Future.future(promise -> {
-                            try {
-                                esi.lookupAlliance(row.getCol(0))
-                                        .onFailure(promise::fail)
-                                        .onSuccess(result -> {
-                                            try {
-                                                Integer allianceId = result.getJsonArray("result").getInteger(0);
-                                                promise.complete(result.getJsonObject("lookup").getString("name")
-                                                        + ","
-                                                        + "https://images.evetech.net/alliances/" + allianceId + "/logo"
-                                                        + ","
-                                                        + row.getCol(1));
-                                            } catch (TSVException e) {
-                                                promise.fail(e);
-                                            }
-                                        });
-                            } catch (TSVException e) {
-                                promise.fail(e);
-                            }
-                        })).collect(Collectors.toList()))
+                        CompositeFuture.all(tsv.stream().map(row -> Future.future(promise -> esi.lookupAlliance(row.getCol(0))
+                                .onFailure(promise::fail)
+                                .onSuccess(result -> promise.complete(
+                                        result.getJsonObject("lookup").getString("name")
+                                                + ","
+                                                + "https://images.evetech.net/alliances/"
+                                                + result.getJsonArray("result").getInteger(0)
+                                                + "/logo"
+                                                + ","
+                                                + row.getCol(1))))).collect(Collectors.toList()))
                                 .map(f -> f.list().stream()
                                         .map(s -> (String) s)
                                         .collect(Collectors.joining("\n")))
