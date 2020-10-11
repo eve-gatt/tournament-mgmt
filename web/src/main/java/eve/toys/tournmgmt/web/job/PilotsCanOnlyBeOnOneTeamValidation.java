@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PilotsCanOnlyBeOnOneTeamValidation implements Validation {
     private final DbClient dbClient;
@@ -21,7 +22,7 @@ public class PilotsCanOnlyBeOnOneTeamValidation implements Validation {
     }
 
     @Override
-    public Future<?> run() {
+    public Future<JsonArray> run() {
         return CompositeFuture.all(
                 dbClient.callDb(DbClient.DB_ALL_CAPTAINS, new JsonObject()),
                 dbClient.callDb(DbClient.DB_ALL_PILOTS, new JsonObject()))
@@ -31,15 +32,14 @@ public class PilotsCanOnlyBeOnOneTeamValidation implements Validation {
                     pilots.addAll(captains);
                     return findDuplicates(pilots.getList());
                 })
-                .compose(duplicates ->
-                        CompositeFuture.all(((Set<JsonObject>) duplicates).stream()
-                                .map(problem -> dbClient.callDb(DbClient.DB_ADD_PROBLEM,
-                                        new JsonObject()
-                                                .put("type", getProblemType().name())
-                                                .put("tournamentUuid", problem.getString("tournament_uuid"))
-                                                .put("validationIdentifier", getName())
-                                                .put("referencedEntity", problem.getString("tournament_uuid"))
-                                                .put("message", problem.getString("name") + " is in more than one team")))
+                .map(duplicates ->
+                        new JsonArray(((Set<JsonObject>) duplicates).stream()
+                                .flatMap(problem -> Stream.of(new JsonObject()
+                                        .put("type", getProblemType().name())
+                                        .put("tournamentUuid", problem.getString("tournament_uuid"))
+                                        .put("validationIdentifier", getName())
+                                        .put("referencedEntity", problem.getString("tournament_uuid"))
+                                        .put("message", problem.getString("name") + " is in more than one team")))
                                 .collect(Collectors.toList())));
     }
 

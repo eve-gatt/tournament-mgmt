@@ -3,6 +3,8 @@ package eve.toys.tournmgmt.web.job;
 import eve.toys.tournmgmt.web.esi.Esi;
 import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonObject;
@@ -13,6 +15,7 @@ import io.vertx.ext.web.client.WebClientOptions;
 import toys.eve.tournmgmt.db.DbClient;
 
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class JobVerticle extends AbstractVerticle {
     private static final Logger LOGGER = LoggerFactory.getLogger(JobVerticle.class.getName());
@@ -58,20 +61,29 @@ public class JobVerticle extends AbstractVerticle {
     }
 
     private void run(Message<String> msg, Validation validation) {
-        LOGGER.info("Cleaning " + validation.getName());
-        dbClient.callDb(DbClient.DB_CLEAR_PROBLEMS,
-                new JsonObject()
-                        .put("type", validation.getProblemType().name())
-                        .put("name", validation.getName()))
-                .compose(v -> {
-                    LOGGER.info("Starting " + validation.getName());
-                    return validation.run();
+        LOGGER.info("Running " + validation.getName());
+        validation.run()
+                .compose(records -> {
+                    LOGGER.info("Cleaning " + validation.getName());
+                    return doClean(validation).map(v -> records);
                 })
+                .compose(records -> {
+                    LOGGER.info("Writing problems to db for " + validation.getName());
+                    return CompositeFuture.all(records.stream()
+                            .map(record -> dbClient.callDb(DbClient.DB_ADD_PROBLEM, record))
+                            .collect(Collectors.toList()));
+                })
+                .onSuccess(v -> LOGGER.info("Completed " + validation.getName()))
                 .onFailure(t -> {
                     LOGGER.error(validation.getName(), t);
                     msg.fail(1, validation.getName() + " - " + t.getMessage());
-                })
-                .onSuccess(v -> LOGGER.info("Completed " + validation.getName()));
+                });
     }
 
+    private Future<Message<Object>> doClean(Validation validation) {
+        return dbClient.callDb(DbClient.DB_CLEAR_PROBLEMS,
+                new JsonObject()
+                        .put("type", validation.getProblemType().name())
+                        .put("name", validation.getName()));
+    }
 }

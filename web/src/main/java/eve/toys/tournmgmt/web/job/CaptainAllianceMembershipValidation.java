@@ -9,6 +9,7 @@ import io.vertx.core.json.JsonObject;
 import toys.eve.tournmgmt.db.DbClient;
 
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CaptainAllianceMembershipValidation implements Validation {
     private final DbClient dbClient;
@@ -20,7 +21,7 @@ public class CaptainAllianceMembershipValidation implements Validation {
     }
 
     @Override
-    public Future<?> run() {
+    public Future<JsonArray> run() {
         return dbClient.callDb(DbClient.DB_ALL_TEAMS, new JsonObject())
                 .map(result -> (JsonArray) result.body())
                 .compose(body -> CompositeFuture.all(body.stream()
@@ -28,7 +29,7 @@ public class CaptainAllianceMembershipValidation implements Validation {
                         .map(this::buildAsyncCalls)
                         .collect(Collectors.toList())))
                 .map(AppStreamHelpers::compositeFutureToJsonObjects)
-                .map(teams -> CompositeFuture.all(teams.map(json -> {
+                .map(teams -> new JsonArray(teams.flatMap(json -> {
                     String uuid = json.getString("uuid");
                     String tournamentUuid = json.getString("tournamentUuid");
                     JsonArray expected = json.getJsonObject("expectedAlliance").getJsonArray("result");
@@ -39,14 +40,13 @@ public class CaptainAllianceMembershipValidation implements Validation {
                                 + json.getJsonObject("expectedAlliance").getString("alliance");
                     }
                     return error.isEmpty() ?
-                            Future.succeededFuture() :
-                            dbClient.callDb(DbClient.DB_ADD_PROBLEM,
-                                    new JsonObject()
-                                            .put("type", getProblemType().name())
-                                            .put("tournamentUuid", tournamentUuid)
-                                            .put("validationIdentifier", getName())
-                                            .put("referencedEntity", uuid)
-                                            .put("message", error));
+                            Stream.empty() :
+                            Stream.of(new JsonObject()
+                                    .put("type", getProblemType().name())
+                                    .put("tournamentUuid", tournamentUuid)
+                                    .put("validationIdentifier", getName())
+                                    .put("referencedEntity", uuid)
+                                    .put("message", error));
                 }).collect(Collectors.toList())));
     }
 
