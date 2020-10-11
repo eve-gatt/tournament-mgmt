@@ -2,7 +2,6 @@ package eve.toys.tournmgmt.web.routes;
 
 import eve.toys.tournmgmt.web.job.JobClient;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -11,7 +10,6 @@ import toys.eve.tournmgmt.db.DbClient;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.stream.Collectors;
 
 public class SuperuserRouter {
 
@@ -28,26 +26,11 @@ public class SuperuserRouter {
         this.jobClient = jobClient;
         this.dbClient = dbClient;
         router.get("/home").handler(this::home);
-        router.get("/ccp").handler(this::ccp);
         router.get("/job/:jobName").handler(this::job);
     }
 
     private void home(RoutingContext ctx) {
         render.renderPage(ctx, "/superuser/home", new JsonObject());
-    }
-
-    private void ccp(RoutingContext ctx) {
-        dbClient.callDb(DbClient.DB_PILOT_NAMES_IN_USE, new JsonObject())
-                .onFailure(ctx::fail)
-                .onSuccess(msg -> {
-                    JsonArray reports = new JsonArray(((JsonArray) msg.body()).stream()
-                            .map(o -> (JsonObject) o)
-                            .map(r -> r.put("reportedAtFormatted", DATE_FORMAT.format(r.getInstant("reported_at"))))
-                            .collect(Collectors.toList()));
-                    render.renderPage(ctx, "/superuser/ccp",
-                            new JsonObject()
-                                    .put("reports", reports));
-                });
     }
 
     private void job(RoutingContext ctx) {
