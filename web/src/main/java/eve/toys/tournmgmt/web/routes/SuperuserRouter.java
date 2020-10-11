@@ -45,6 +45,9 @@ public class SuperuserRouter {
             case "check-pilots-on-one-team":
                 jobClient.run(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, new JsonObject());
                 break;
+            case "ping-discord-rename-requests":
+                jobClient.run(JobClient.JOB_PING_DISCORD_RENAME_REQUESTS, new JsonObject());
+                break;
         }
         RenderHelper.doRedirect(ctx.response(), "/auth/superuser/home");
     }

@@ -7,6 +7,7 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.eventbus.Message;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 public class JobVerticle extends AbstractVerticle {
     private static final Logger LOGGER = LoggerFactory.getLogger(JobVerticle.class.getName());
+    private static final String WEBHOOK = "https://discordapp.com/api/webhooks/764837845532672050/a-ZCY7CQd2yNU1HNV4uWbwniS_CGm9llQNYYLaXVox8F81Dd38ePfQs2hLq0FzfZdmRE";
     private WebClient webClient;
     private Esi esi;
     private DbClient dbClient;
@@ -31,12 +33,42 @@ public class JobVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(JobClient.JOB_CHECK_CAPTAIN_ALLIANCE_MEMBERSHIP, this::checkCaptainAllianceMembership);
         vertx.eventBus().consumer(JobClient.JOB_CHECK_PILOTS_ALLIANCE_MEMBERSHIP, this::checkPilotsAllianceMembership);
         vertx.eventBus().consumer(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, this::checkPilotsOnOneTeam);
+        vertx.eventBus().consumer(JobClient.JOB_PING_DISCORD_RENAME_REQUESTS, this::pingDiscordRenameRequests);
 
-        delayThenEveryHour(10, JobClient.JOB_CHECK_CAPTAIN_ALLIANCE_MEMBERSHIP);
-        delayThenEveryHour(20, JobClient.JOB_CHECK_PILOTS_ALLIANCE_MEMBERSHIP);
-        delayThenEveryHour(30, JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM);
+        delayNMinutesThenEveryMHours(10, 1, JobClient.JOB_CHECK_CAPTAIN_ALLIANCE_MEMBERSHIP);
+        delayNMinutesThenEveryMHours(20, 1, JobClient.JOB_CHECK_PILOTS_ALLIANCE_MEMBERSHIP);
+        delayNMinutesThenEveryMHours(30, 1, JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM);
+        delayNMinutesThenEveryMHours(40, 6, JobClient.JOB_PING_DISCORD_RENAME_REQUESTS);
 
         startPromise.complete();
+    }
+
+    private void pingDiscordRenameRequests(Message<String> msg) {
+        dbClient.callDb(DbClient.DB_PILOT_NAMES_IN_USE, new JsonObject())
+                .onFailure(t -> msg.fail(1, t.getMessage()))
+                .onSuccess(msg2 -> {
+                    JsonArray outstanding = new JsonArray(((JsonArray) msg2.body()).stream()
+                            .map(o -> (JsonObject) o)
+                            .filter(r -> !r.getBoolean("resolved"))
+                            .collect(Collectors.toList()));
+                    if (outstanding.size() > 0) {
+                        String content = "There are outstanding requests for pilot name changes on Thunderdome:\n\n" +
+                                "```" +
+                                outstanding.stream().map(o -> (JsonObject) o).map(r -> r.getString("name") + " at " + r.getString("reported_at")).collect(Collectors.joining("\n")) +
+                                "```" +
+                                "\nhttps://tournmgmt.eve.toys/auth/ccp/home";
+                        JsonObject payload = new JsonObject()
+                                .put("content", content);
+                        webClient.postAbs(WEBHOOK)
+                                .sendJson(payload, ar -> {
+                                    if (ar.failed()) {
+                                        msg.fail(2, ar.cause().getMessage());
+                                    } else {
+                                        System.out.println("Successfully pinged discord");
+                                    }
+                                });
+                    }
+                });
     }
 
     private void checkCaptainAllianceMembership(Message<String> msg) {
@@ -51,11 +83,11 @@ public class JobVerticle extends AbstractVerticle {
         run(msg, new PilotsCanOnlyBeOnOneTeamValidation(dbClient));
     }
 
-    private void delayThenEveryHour(int minutes, String job) {
+    private void delayNMinutesThenEveryMHours(int minutes, int hours, String job) {
         vertx.setTimer(TimeUnit.MINUTES.toMillis(minutes),
                 id -> {
                     vertx.eventBus().send(job, null);
-                    vertx.setPeriodic(TimeUnit.HOURS.toMillis(1),
+                    vertx.setPeriodic(TimeUnit.HOURS.toMillis(hours),
                             id2 -> vertx.eventBus().send(job, null));
                 });
     }
