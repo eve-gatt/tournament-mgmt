@@ -789,7 +789,10 @@ public class DbVerticle extends AbstractVerticle {
         sqlClient.query("select reported_at, name, username, resolved " +
                         "from name_in_use_reports " +
                         "         inner join thunderdome on name_in_use_reports.name = thunderdome.allocated_to " +
-                        "order by resolved, reported_at",
+                        "where not resolved " +
+                        "   or resolved_at > CURRENT_DATE - interval '1 month' " +
+                        "order by resolved, reported_at desc " +
+                        "limit 100",
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
