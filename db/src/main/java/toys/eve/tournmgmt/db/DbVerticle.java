@@ -89,6 +89,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_RECORD_REFTOOL_INPUTS, this::recordReftoolInputs);
         vertx.eventBus().consumer(DbClient.DB_CLEAR_PROBLEMS, this::clearProblems);
         vertx.eventBus().consumer(DbClient.DB_ADD_PROBLEM, this::addProblem);
+        vertx.eventBus().consumer(DbClient.DB_PILOT_NAMES_IN_USE, this::pilotNamesInUse);
 
         startPromise.complete();
     }
@@ -780,6 +781,21 @@ public class DbVerticle extends AbstractVerticle {
                         msg.fail(1, ar.cause().getMessage());
                     } else {
                         msg.reply(msg.body());
+                    }
+                });
+    }
+
+    private void pilotNamesInUse(Message<JsonObject> msg) {
+        sqlClient.query("select reported_at, name, username, resolved " +
+                        "from name_in_use_reports " +
+                        "         inner join thunderdome on name_in_use_reports.name = thunderdome.allocated_to " +
+                        "order by resolved, reported_at",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(new JsonArray(ar.result().getRows()));
                     }
                 });
     }

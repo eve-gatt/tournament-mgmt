@@ -1,0 +1,31 @@
+extends ../../layout/default-layout
+
+block append styles
+    style.
+        .green {
+            color: green
+        }
+
+block content
+    h2 CCP
+
+    h3 Pilot rename requests
+
+    table.pure-table
+        thead
+            th Reported
+            th Name
+            th Assigned TD account
+            th Resolved
+        tbody
+            each report in reports
+                tr
+                    td= report.getString("reportedAtFormatted")
+                    td= report.getString("name")
+                    td= report.getString("username")
+                    td
+                        if report.getBoolean("resolved")
+                            i.fas.fa-check.green
+
+block scripts
+

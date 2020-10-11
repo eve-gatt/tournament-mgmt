@@ -111,7 +111,7 @@ public class WebVerticle extends AbstractVerticle {
         router.route("/auth/superuser/*")
                 .handler(RedirectAuthHandler.create(oauth2, "/login/start")
                         .addAuthority("isSuperuser"));
-        router.mountSubRouter("/auth/superuser", SuperuserRouter.routes(vertx, render, jobClient));
+        router.mountSubRouter("/auth/superuser", SuperuserRouter.routes(vertx, render, jobClient, dbClient));
 
         SockJSHandler sockJSHandler = SockJSHandler.create(vertx, new SockJSHandlerOptions());
         sockJSHandler.bridge(new BridgeOptions()
@@ -138,6 +138,9 @@ public class WebVerticle extends AbstractVerticle {
                             .put("characterId", Integer.parseInt(parsed.getString("sub").split(":")[2]));
                     ctx.data().put("character", character);
 
+                    if (parsed.getString("name").startsWith("CCP ")) {
+                        character.put("isCCP", true);
+                    }
                     ctx.user().isAuthorised("isSuperuser", ar -> {
                         if (ar.failed()) {
                             ar.cause().printStackTrace();

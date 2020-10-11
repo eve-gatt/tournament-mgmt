@@ -314,6 +314,8 @@ html
                             if character
                                 if character.getBoolean("isSuperuser")
                                     a(href="/auth/superuser/home") Superuser
+                                if character.getBoolean("isSuperuser") || character.getBoolean("isCCP")
+                                    a(href="/auth/superuser/ccp") CCP
                         //
                             .top-menu
                                 a(href="/involved") Get Involved
