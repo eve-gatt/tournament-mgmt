@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public class JobVerticle extends AbstractVerticle {
     private static final Logger LOGGER = LoggerFactory.getLogger(JobVerticle.class.getName());
     private static final String WEBHOOK = "https://discordapp.com/api/webhooks/764837845532672050/a-ZCY7CQd2yNU1HNV4uWbwniS_CGm9llQNYYLaXVox8F81Dd38ePfQs2hLq0FzfZdmRE";
-    private static final boolean IS_DEV = Boolean.parseBoolean(System.getenv().getOrDefault("isDev", "false"));
+    private static final boolean IS_DEV = Boolean.parseBoolean(System.getProperty("isDev", "false"));
     private WebClient webClient;
     private Esi esi;
     private DbClient dbClient;
@@ -41,6 +41,8 @@ public class JobVerticle extends AbstractVerticle {
             delayNMinutesThenEveryMHours(20, 1, JobClient.JOB_CHECK_PILOTS_ALLIANCE_MEMBERSHIP);
             delayNMinutesThenEveryMHours(30, 1, JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM);
             delayNMinutesThenEveryMHours(40, 6, JobClient.JOB_PING_DISCORD_RENAME_REQUESTS);
+        } else {
+            LOGGER.info("Not running batch job due to dev mode");
         }
 
         startPromise.complete();
