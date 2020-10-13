@@ -1,5 +1,8 @@
 package eve.toys.tournmgmt.web.routes;
 
+import eve.toys.tournmgmt.web.authn.AppRBAC;
+import eve.toys.tournmgmt.web.authn.AuthnRule;
+import eve.toys.tournmgmt.web.authn.Role;
 import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.match.RefToolInput;
 import io.vertx.core.CompositeFuture;
@@ -34,12 +37,17 @@ public class RefereeRouter {
         this.esi = esi;
         this.oauth2 = oauth2;
 
+        AuthnRule isOrganiserOrReferee = AuthnRule.create().role(Role.ORGANISER, Role.REFEREE).isSuperuser();
+
         HTTPRequestValidationHandler refinputs = HTTPRequestValidationHandler.create()
                 .addFormParam("red", ParameterType.GENERIC_STRING, true)
                 .addFormParam("blue", ParameterType.GENERIC_STRING, true);
 
-        router.get("/:tournamentUuid/referee").handler(this::home);
+        router.get("/:tournamentUuid/referee")
+                .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiserOrReferee))
+                .handler(this::home);
         router.post("/:tournamentUuid/referee")
+                .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiserOrReferee))
                 .handler(refinputs)
                 .handler(this::success)
                 .blockingHandler(this::fail);
@@ -55,16 +63,12 @@ public class RefereeRouter {
             form = new JsonObject()
                     .put("red", "")
                     .put("blue", "");
-            ctx.put("errorField", "");
-            ctx.put("errorMessage", "");
             ctx.put("results", new JsonObject());
         }
 
         render.renderPage(ctx, "/referee/home",
                 new JsonObject()
-                        .put("form", form)
-                        .put("errorField", (String) ctx.get("errorField"))
-                        .put("errorMessage", (String) ctx.get("errorMessage")));
+                        .put("form", form));
     }
 
     private void success(RoutingContext ctx) {
@@ -79,20 +83,17 @@ public class RefereeRouter {
                             refToolInput.validateTeamMembership(tournamentUuid, form.getString("red")),
                             refToolInput.validateTeamMembership(tournamentUuid, form.getString("blue")),
                             refToolInput.validatePilotsCanFlyShips(form.getString("red")),
-                            refToolInput.validatePilotsCanFlyShips(form.getString("blue")));
+                            refToolInput.validatePilotsCanFlyShips(form.getString("blue"))
+                            // TODO: validate rule adhere, e.g. max 3x frigates, logi exempt but different rules
+                    );
                 })
                 .onFailure(ctx::fail)
                 .onSuccess(f -> {
-                    ctx.put("form", form)
-                            .put("errorField", "")
-                            .put("errorMessage", "")
-                            .put("results", new JsonObject()
-                                    .put("red", f.list().get(0).toString() + "\n" + f.list().get(2).toString())
-                                    .put("blue", f.list().get(1).toString() + "\n" + f.list().get(3).toString()));
-                    ctx.reroute(HttpMethod.GET, "/auth/tournament/" + tournamentUuid + "/referee");
+                    JsonObject json = new JsonObject()
+                            .put("red", f.list().get(0).toString() + "\n" + f.list().get(2).toString())
+                            .put("blue", f.list().get(1).toString() + "\n" + f.list().get(3).toString());
+                    render.renderPage(ctx, "/referee/results", json);
                 });
-        // TODO: validate rule adhere, e.g. max 3x frigates, logi exempt but different rules
-        // TODO: validate pilots are all in the same team
     }
 
     private void fail(RoutingContext ctx) {
@@ -100,9 +101,7 @@ public class RefereeRouter {
         Throwable failure = ctx.failure();
         if (failure instanceof ValidationException) {
             JsonObject form = ctx.request().formAttributes().entries().stream().collect(formEntriesToJson());
-            ctx.put("form", form)
-                    .put("errorField", ((ValidationException) failure).parameterName())
-                    .put("errorMessage", failure.getMessage());
+            ctx.put("form", form);
         } else {
             failure.printStackTrace();
         }

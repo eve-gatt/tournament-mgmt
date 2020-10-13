@@ -1,0 +1,33 @@
+extends ../../layout/tournament-layout
+
+block append styles
+    style.
+        textarea {
+            width: 100%;
+            height: 200px;
+            font-size: 80%;
+        }
+
+        textarea#red {
+            border: 3px solid red;
+            -webkit-box-shadow: inset 0 1px 3px red;
+            box-shadow: inset 0 1px 3px red;
+        }
+
+        textarea#blue {
+            border: 3px solid blue;
+            -webkit-box-shadow: inset 0 1px 3px blue;
+            box-shadow: inset 0 1px 3px blue;
+        }
+
+block content
+    - var uuid = tournament.getString("uuid")
+
+    mixin subtitle("Referee")
+
+    pre.blue= results.blue
+    pre.red= results.red
+
+
+block scripts
+
