@@ -34,7 +34,7 @@ html
                 height: 1080px;
                 display: grid;
                 grid-template-columns: 1fr;
-                grid-template-rows: 120px 1fr 40px;
+                grid-template-rows: 130px 1fr 40px;
             }
 
             .header, .body {
@@ -63,11 +63,27 @@ html
                 width: 256px;
                 height: 256px;
                 display: grid;
+                grid: 1fr 1fr / auto 1fr;
+                grid-template-areas:
+                    "ship ship"
+                    "char pic";
+            }
+
+            .pilot h2 {
+                grid-area: ship;
+            }
+
+            .pilot h4 {
+                grid-area: char;
+                justify-self: start;
+                align-self: end;
+                margin: 4px 6px;
             }
 
             .pilot img {
-                align-self: end;
+                grid-area: pic;
                 justify-self: end;
+                align-self: end;
             }
 
             .teamname {
