@@ -1,0 +1,98 @@
+doctype html
+html
+    head
+        script(async, src="https://www.googletagmanager.com/gtag/js?id=UA-159453647-3")
+        script.
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag('js', new Date());
+            gtag('config', 'UA-159453647-3');
+        meta(charset='utf-8')
+        meta(name='viewport', content='width=1920,height=1080,initial-scale=1.0')
+        meta(name="google" content="notranslate")
+        title Tournament Management
+        link(rel="stylesheet",
+            href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap")
+        style.
+            body {
+                font-family: 'Poppins', sans-serif;
+                padding: 0;
+                margin: 0;
+                background-color: lightgray;
+            }
+
+            a {
+                color: white !important;
+            }
+
+            .display {
+                /*background-color: white;*/
+                border: 1px solid black;
+                width: 1920px;
+                height: 1080px;
+                display: grid;
+                grid-template-columns: 1fr;
+                grid-template-rows: 120px 1fr 40px;
+            }
+
+            .header, .body {
+                place-self: center;
+                text-align: center;
+            }
+
+            .body {
+                color: white;
+                display: grid;
+                grid: auto 1fr / 1fr;
+                row-gap: 24px;
+            }
+
+            .body .pilots {
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 40px;
+            }
+
+            .pilot {
+                border: 3px solid #f99e00;
+                border-radius: 3px;
+                background-repeat: no-repeat;
+                background-size: 256px 256px;
+                width: 256px;
+                height: 256px;
+                display: grid;
+            }
+
+            .pilot img {
+                align-self: end;
+                justify-self: end;
+            }
+
+            .teamname {
+                font-size: 2em;
+            }
+
+            .orange {
+                color: orange;
+            }
+
+            .white {
+                color: white;
+            }
+    body
+        .display
+            .header
+                h1.orange Creating overlays for eve.toys
+                h1.white https://tournmgmt.eve.toys
+                a(href="javascript:location.reload()") reload
+            .body
+                .teamname
+                .pilots
+            .footer
+
+
+        script(src='https://cdnjs.cloudflare.com/ajax/libs/d3/5.9.2/d3.js')
+        script(src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.23.0/moment.min.js')
+        script(src='/js/stream/home.js')
