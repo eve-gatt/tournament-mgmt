@@ -67,6 +67,12 @@ html
                 grid-template-areas:
                     "ship ship"
                     "char pic";
+                transition: transform 0.25s;
+                transition-timing-function: ease-in-out;
+            }
+
+            .pilot:hover {
+                transform: scale(3.0);
             }
 
             .pilot h2 {
@@ -84,6 +90,7 @@ html
                 grid-area: pic;
                 justify-self: end;
                 align-self: end;
+                width: 64px;
             }
 
             .teamname {
