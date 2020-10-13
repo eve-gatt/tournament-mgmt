@@ -13,13 +13,18 @@ import io.vertx.ext.auth.oauth2.OAuth2RBAC;
 import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.db.DbClient;
 
+import java.util.Objects;
+
 public class AppRBAC implements OAuth2RBAC {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AppRBAC.class.getName());
+    private static final String SUPERUSER = System.getenv("SUPERUSER");
 
     private final EventBus eventBus;
 
     public AppRBAC(EventBus eventBus) {
+        Objects.requireNonNull(SUPERUSER, "Please provide a SUPERUSER");
+
         this.eventBus = eventBus;
     }
 
@@ -93,7 +98,7 @@ public class AppRBAC implements OAuth2RBAC {
     }
 
     public static boolean isSuperuser(String characterName) {
-        return characterName.equals(System.getenv("SUPERUSER"));
+        return characterName.equals(SUPERUSER);
     }
 
 }

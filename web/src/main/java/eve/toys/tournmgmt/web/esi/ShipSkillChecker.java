@@ -26,22 +26,14 @@ public class ShipSkillChecker {
         this.esi = esi;
     }
 
-    public Future<JsonArray> check(User user, Integer characterId, String shipName) {
-        return esi.lookupShip(shipName)
-                .compose(this::fetchShipDetails)
-                .map(this::fetchSkillRequirements)
-                .compose(skillsAndLevels -> fetchUsersSkills(user, characterId, skillsAndLevels))
-                .compose(this::resolveSkillNames);
-    }
-
-    private Future<JsonObject> fetchShipDetails(JsonObject json) {
+    public static Future<JsonObject> fetchShipDetails(Esi esi, JsonObject json) {
         if (json.getJsonArray("result") == null) {
             return Future.failedFuture(json.getString("inventory_type") + " doesn't exist");
         }
         return esi.fetchType(json.getJsonArray("result").getInteger(0));
     }
 
-    private Tuple2<List<JsonObject>, List<JsonObject>> fetchSkillRequirements(JsonObject shipType) {
+    public static Tuple2<List<JsonObject>, List<JsonObject>> fetchSkillRequirements(JsonObject shipType) {
         JsonArray attrs = shipType.getJsonObject("result").getJsonArray("dogma_attributes");
         List<JsonObject> skills = attrs.stream()
                 .map(o -> (JsonObject) o)
@@ -54,7 +46,7 @@ public class ShipSkillChecker {
         return Tuple.of(skills, levels);
     }
 
-    private Future<Tuple3<List<JsonObject>, List<JsonObject>, Map<Integer, Integer>>> fetchUsersSkills(User user, Integer characterId, Tuple2<List<JsonObject>, List<JsonObject>> shipSkillRequirements) {
+    public static Future<Tuple3<List<JsonObject>, List<JsonObject>, Map<Integer, Integer>>> fetchUsersSkills(Esi esi, User user, Integer characterId, Tuple2<List<JsonObject>, List<JsonObject>> shipSkillRequirements) {
         List<Integer> requiredSkillIds = shipSkillRequirements._1().stream().map(skill -> skill.getInteger("value")).collect(Collectors.toList());
         return esi.fetchCharacterSkills((AccessToken) user, characterId)
                 .map(json -> {
@@ -70,19 +62,27 @@ public class ShipSkillChecker {
                 .onFailure(Throwable::printStackTrace);
     }
 
-    private Future<JsonArray> resolveSkillNames(Tuple3<List<JsonObject>, List<JsonObject>, Map<Integer, Integer>> tuple) {
-        return CompositeFuture.all(tuple._1().stream()
+    public static Future<JsonArray> resolveSkillNames(Esi esi, Tuple3<List<JsonObject>, List<JsonObject>, Map<Integer, Integer>> skills) {
+        return CompositeFuture.all(skills._1().stream()
                 .map(skillId -> esi.fetchType(skillId.getInteger("value")))
                 .collect(Collectors.toList()))
-                .compose(f -> Future.succeededFuture(new JsonArray(IntStream.range(0, tuple._1().size())
+                .compose(f -> Future.succeededFuture(new JsonArray(IntStream.range(0, skills._1().size())
                         .mapToObj(i -> {
                             JsonObject result = ((JsonObject) f.resultAt(i)).getJsonObject("result");
                             return new JsonObject()
                                     .put("skill", result.getString("name"))
-                                    .put("level", tuple._2().get(i).getInteger("value"))
-                                    .put("toonLevel", tuple._3().getOrDefault(result.getInteger("type_id"), 0));
+                                    .put("level", skills._2().get(i).getInteger("value"))
+                                    .put("toonLevel", skills._3().getOrDefault(result.getInteger("type_id"), 0));
                         })
                         .collect(Collectors.toList()))));
+    }
+
+    public Future<JsonArray> check(User user, Integer characterId, String shipName) {
+        return esi.lookupShip(shipName)
+                .compose(json -> fetchShipDetails(esi, json))
+                .map(ShipSkillChecker::fetchSkillRequirements)
+                .compose(skillsAndLevels -> fetchUsersSkills(esi, user, characterId, skillsAndLevels))
+                .compose(tuple -> resolveSkillNames(esi, tuple));
     }
 
 }

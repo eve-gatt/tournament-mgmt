@@ -10,12 +10,15 @@ import toys.eve.tournmgmt.db.DbVerticle;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class SingleProcessMain {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SingleProcessMain.class.getName());
 
     public static void main(String[] args) {
+        Objects.requireNonNull(System.getProperty("http.agent"), "Please set -Dhttp.agent=xxx");
+
         LOGGER.info("http.agent=" + System.getProperty("http.agent"));
         VertxOptions vertxOptions = GlobalOptions.vertxOptions(9092);
         Vertx vertx = Vertx.vertx(vertxOptions);

@@ -29,6 +29,7 @@ import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public class WebVerticle extends AbstractVerticle {
@@ -42,6 +43,9 @@ public class WebVerticle extends AbstractVerticle {
 
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
+
+        Objects.requireNonNull(ESI_CLIENT, "Please supply ESI_CLIENT");
+        Objects.requireNonNull(ESI_SECRET, "Please supply ESI_SECRET");
 
         this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
         Esi esi = Esi.create(webClient, CircuitBreaker.create("esi-cb", vertx));
@@ -106,7 +110,7 @@ public class WebVerticle extends AbstractVerticle {
         router.mountSubRouter("/auth/tournament", TournamentRouter.routes(vertx, render, webClient, esi, dbClient, jobClient));
         router.mountSubRouter("/auth/profile", ProfileRouter.routes(vertx, render, esi, dbClient));
         router.mountSubRouter("/auth/tournament", TeamsRouter.routes(vertx, render, esi, dbClient, jobClient));
-        router.mountSubRouter("/auth/tournament", RefereeRouter.routes(vertx, render, dbClient));
+        router.mountSubRouter("/auth/tournament", RefereeRouter.routes(vertx, render, dbClient, esi, oauth2));
         router.mountSubRouter("/auth/tournament", ThunderdomeRouter.routes(vertx, render, dbClient));
         router.route("/auth/superuser/*")
                 .handler(RedirectAuthHandler.create(oauth2, "/login/start")

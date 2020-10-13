@@ -14,6 +14,7 @@ import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
 import java.time.Instant;
+import java.util.Objects;
 
 public class LoginRouter {
     public static final String CODE = "a56hfg2";
@@ -25,6 +26,8 @@ public class LoginRouter {
     private final DbClient dbClient;
 
     public LoginRouter(Vertx vertx, RenderHelper render, OAuth2Auth oauth2, DbClient dbClient) {
+        Objects.requireNonNull(ESI_CALLBACK_URL, "Please supply ESI_CALLBACK_URL");
+
         router = Router.router(vertx);
         this.render = render;
         this.oauth2 = oauth2;
