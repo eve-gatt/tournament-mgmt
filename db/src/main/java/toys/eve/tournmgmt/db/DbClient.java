@@ -23,8 +23,6 @@ public class DbClient {
     public static final String DB_MEMBERS_BY_TEAM = "DB_MEMBERS_BY_TEAM";
     public static final String DB_TOGGLE_LOCK_TEAM_BY_UUID = "DB_LOCK_TEAM_BY_UUID";
     public static final String DB_ALL_TEAMS = "DB_ALL_TEAMS";
-    public static final String DB_CLEAR_ALL_TOURNAMENT_MSGS = "DB_CLEAR_ALL_TOURNAMENT_MSGS";
-    public static final String DB_UPDATE_TEAM_MESSAGE = "DB_UPDATE_TEAM_MESSAGE";
     public static final String DB_ROLES_BY_TOURNAMENT = "DB_ROLES_BY_TOURNAMENT";
     public static final String DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT = "DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT";
     public static final String DB_HAS_ROLE = "DB_HAS_ROLE";
@@ -47,6 +45,7 @@ public class DbClient {
     public static final String DB_TEAMS_FOR_PILOT_LIST = "DB_TEAMS_FOR_PILOT_LIST";
     public static final String DB_WRITE_LOGIN = "DB_WRITE_LOGIN";
     public static final String DB_FETCH_REFRESH_TOKEN = "DB_FETCH_REFRESH_TOKEN";
+    public static final String DB_TOGGLE_RESOLVED = "DB_TOGGLE_RESOLVED";
 
     private final EventBus eventBus;
 

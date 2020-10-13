@@ -33,6 +33,10 @@ public class RefToolInput {
         this.oauth2 = oauth2;
     }
 
+    private static List<Tuple3<String, String, String>> resultsToTuples(CompositeFuture f) {
+        return f.list().stream().map(o -> (Tuple3<String, String, String>) o).collect(Collectors.toList());
+    }
+
     public Future<String> validateTeamMembership(String tournamentUuid, String input) {
         if (input.trim().isEmpty()) return Future.succeededFuture("");
 
@@ -77,48 +81,54 @@ public class RefToolInput {
                 .collect(Collectors.toSet());
 
         return CompositeFuture.all(nameAndShip.stream()
-                .map(ns -> dbClient.callDb(DbClient.DB_FETCH_REFRESH_TOKEN, ns._1()).map(msg -> ns.append(msg.body())))
+                .map(this::addRefreshToken)
                 .collect(Collectors.toList()))
-                .map(f -> f.list().stream().map(o -> (Tuple3<String, String, String>) o).collect(Collectors.toList()))
-                .compose(nameShipAndRefreshTokens -> {
-                    String cantDo = nameShipAndRefreshTokens.stream()
-                            .filter(t -> t._3() == null)
-                            .map(t -> t._1() + " needs to login so eve.toys can fetch skills")
-                            .collect(Collectors.joining("\n"));
-                    return CompositeFuture.all(nameShipAndRefreshTokens.stream()
-                            .filter(t -> t._3() != null)
-                            .map(t -> {
-                                String shipName = t._2();
-                                OAuth2TokenImpl token = new OAuth2TokenImpl(oauth2, new JsonObject().put("refresh_token", t._3()));
-                                return Future.future(token::refresh)
-                                        .compose(v -> {
-                                            JsonObject parsed = KeycloakHelper.parseToken(((AccessToken) token).opaqueAccessToken());
-                                            int characterId = Integer.parseInt(parsed.getString("sub").split(":")[2]);
-                                            return esi.lookupShip(shipName)
-                                                    .compose(json -> ShipSkillChecker.fetchShipDetails(esi, json))
-                                                    .map(ShipSkillChecker::fetchSkillRequirements)
-                                                    .compose(skillsAndLevels -> ShipSkillChecker.fetchUsersSkills(esi, token, characterId, skillsAndLevels))
-                                                    .compose(skillsAndLevels -> ShipSkillChecker.resolveSkillNames(esi, skillsAndLevels))
-                                                    .map(skillsAndLevels -> skillsAndLevels.stream()
-                                                            .map(o -> (JsonObject) o)
-                                                            .filter(sl -> sl.getInteger("toonLevel") < sl.getInteger("level"))
-                                                            .map(sl -> {
-                                                                int requiredLevel = sl.getInteger("level");
-                                                                int toonLevel = sl.getInteger("toonLevel");
-                                                                return t._1() + " needs " + sl.getString("skill") + " to " + requiredLevel
-                                                                       + " to fly a " + t._2()
-                                                                       + " but it is " +
-                                                                       (toonLevel == 0 ? "untrained" : "only " + toonLevel);
-                                                            })
-                                                            .collect(Collectors.joining("\n")));
-                                        });
-                            })
-                            .collect(Collectors.toList()))
-                            .map(f -> {
-                                List<String> list = f.list();
-                                return cantDo + "\n" + list.stream()
-                                        .collect(Collectors.joining("\n"));
+                .map(RefToolInput::resultsToTuples)
+                .compose(this::fetchSkillsAndCreateResponse);
+    }
+
+    private Future<Tuple3<String, String, Object>> addRefreshToken(Tuple2<String, String> ns) {
+        return dbClient.callDb(DbClient.DB_FETCH_REFRESH_TOKEN, ns._1()).map(msg -> ns.append(msg.body()));
+    }
+
+    private Future<String> fetchSkillsAndCreateResponse(List<Tuple3<String, String, String>> nameShipAndRefreshTokens) {
+        String cantDo = nameShipAndRefreshTokens.stream()
+                .filter(t -> t._3() == null)
+                .map(t -> t._1() + " needs to login so eve.toys can fetch skills")
+                .collect(Collectors.joining("\n"));
+        return CompositeFuture.all(nameShipAndRefreshTokens.stream()
+                .filter(t -> t._3() != null)
+                .map(t -> {
+                    String shipName = t._2();
+                    OAuth2TokenImpl token = new OAuth2TokenImpl(oauth2, new JsonObject().put("refresh_token", t._3()));
+                    return Future.future(token::refresh)
+                            .compose(v -> {
+                                JsonObject parsed = KeycloakHelper.parseToken(((AccessToken) token).opaqueAccessToken());
+                                int characterId = Integer.parseInt(parsed.getString("sub").split(":")[2]);
+                                return esi.lookupShip(shipName)
+                                        .compose(json -> ShipSkillChecker.fetchShipDetails(esi, json))
+                                        .map(ShipSkillChecker::fetchSkillRequirements)
+                                        .compose(skillsAndLevels -> ShipSkillChecker.fetchUsersSkills(esi, token, characterId, skillsAndLevels))
+                                        .compose(skillsAndLevels -> ShipSkillChecker.resolveSkillNames(esi, skillsAndLevels))
+                                        .map(skillsAndLevels -> skillsAndLevels.stream()
+                                                .map(o -> (JsonObject) o)
+                                                .filter(sl -> sl.getInteger("toonLevel") < sl.getInteger("level"))
+                                                .map(sl -> {
+                                                    int requiredLevel = sl.getInteger("level");
+                                                    int toonLevel = sl.getInteger("toonLevel");
+                                                    return t._1() + " needs " + sl.getString("skill") + " to " + requiredLevel
+                                                           + " to fly a " + t._2()
+                                                           + " but it is " +
+                                                           (toonLevel == 0 ? "untrained" : "only " + toonLevel);
+                                                })
+                                                .collect(Collectors.joining("\n")));
                             });
+                })
+                .collect(Collectors.toList()))
+                .map(f -> {
+                    List<String> list = f.list();
+                    return cantDo + "\n" + list.stream()
+                            .collect(Collectors.joining("\n"));
                 });
     }
 }

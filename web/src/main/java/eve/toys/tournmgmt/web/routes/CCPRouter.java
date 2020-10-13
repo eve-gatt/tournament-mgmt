@@ -25,17 +25,34 @@ public class CCPRouter {
         this.render = render;
         this.dbClient = dbClient;
         router.get("/home")
-                .handler(ctx -> {
-                    JsonObject character = (JsonObject) ctx.data().get("character");
-                    String characterName = character.getString("characterName");
-                    boolean isSuperuser = character.getBoolean("isSuperuser");
-                    if (!characterName.startsWith("CCP ") && !isSuperuser) {
-                        ctx.fail(403);
-                    } else {
-                        ctx.next();
-                    }
-                })
+                .handler(CCPRouter::isCCPOrSuperuser)
                 .handler(this::home);
+        router.get("/rename/:uuid/resolve")
+                .handler(CCPRouter::isCCPOrSuperuser)
+                .handler(this::toggleResolved);
+    }
+
+    private static void isCCPOrSuperuser(RoutingContext ctx) {
+        JsonObject character = (JsonObject) ctx.data().get("character");
+        String characterName = character.getString("characterName");
+        boolean isSuperuser = character.getBoolean("isSuperuser");
+        if (!characterName.startsWith("CCP ") && !isSuperuser) {
+            ctx.fail(403);
+        } else {
+            ctx.next();
+        }
+    }
+
+    public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient) {
+        return new CCPRouter(vertx, render, dbClient).router();
+    }
+
+    private void toggleResolved(RoutingContext ctx) {
+        String uuid = ctx.request().getParam("uuid");
+        String resolvedBy = ((JsonObject) ctx.data().get("character")).getString("characterName");
+        dbClient.callDb(DbClient.DB_TOGGLE_RESOLVED, new JsonObject().put("uuid", uuid).put("resolvedBy", resolvedBy))
+                .onFailure(ctx::fail)
+                .onSuccess(v -> RenderHelper.doRedirect(ctx.response(), "/auth/ccp/home"));
     }
 
     private void home(RoutingContext ctx) {
@@ -50,10 +67,6 @@ public class CCPRouter {
                             new JsonObject()
                                     .put("reports", reports));
                 });
-    }
-
-    public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient) {
-        return new CCPRouter(vertx, render, dbClient).router();
     }
 
     private Router router() {

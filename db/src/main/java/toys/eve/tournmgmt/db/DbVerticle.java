@@ -77,8 +77,6 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_WRITE_TEAM_MEMBERS_TSV, this::writeTeamMembersTsv);
         vertx.eventBus().consumer(DbClient.DB_MEMBERS_BY_TEAM, this::membersByTeam);
         vertx.eventBus().consumer(DbClient.DB_ALL_TEAMS, this::allTeams);
-        vertx.eventBus().consumer(DbClient.DB_CLEAR_ALL_TOURNAMENT_MSGS, this::clearAllTournamentMsgs);
-        vertx.eventBus().consumer(DbClient.DB_UPDATE_TEAM_MESSAGE, this::updateTeamMessage);
         vertx.eventBus().consumer(DbClient.DB_ROLES_BY_TOURNAMENT, this::rolesByTournament);
         vertx.eventBus().consumer(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT, this::replaceRolesByTypeAndTournament);
         vertx.eventBus().consumer(DbClient.DB_HAS_ROLE, this::hasRole);
@@ -100,8 +98,30 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_TEAMS_FOR_PILOT_LIST, this::teamsForPilotList);
         vertx.eventBus().consumer(DbClient.DB_WRITE_LOGIN, this::writeLogin);
         vertx.eventBus().consumer(DbClient.DB_FETCH_REFRESH_TOKEN, this::fetchRefreshToken);
+        vertx.eventBus().consumer(DbClient.DB_TOGGLE_RESOLVED, this::toggleResolved);
 
         startPromise.complete();
+    }
+
+    private void toggleResolved(Message<JsonObject> msg) {
+        String uuid = msg.body().getString("uuid");
+        String resolvedBy = msg.body().getString("resolvedBy");
+        sqlClient.updateWithParams("update name_in_use_reports " +
+                                   "set resolved    = not resolved, " +
+                                   "    resolved_at = case when not resolved then now() else null end, " +
+                                   "    resolved_by = case when not resolved then ? else null end " +
+                                   "where uuid = ?::uuid ",
+                new JsonArray()
+                        .add(resolvedBy)
+                        .add(uuid),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(null);
+                    }
+                });
     }
 
     private void fetchRefreshToken(Message<String> msg) {
@@ -411,34 +431,6 @@ public class DbVerticle extends AbstractVerticle {
                 msg.reply(new JsonArray(ar.result().getRows()));
             }
         });
-    }
-
-    private void clearAllTournamentMsgs(Message<Void> msg) {
-        sqlClient.update("update tournament set msg = null",
-                ar -> {
-                    if (ar.failed()) {
-                        ar.cause().printStackTrace();
-                        msg.fail(1, ar.cause().getMessage());
-                    } else {
-                        msg.reply(null);
-                    }
-                });
-    }
-
-    private void updateTeamMessage(Message<JsonObject> msg) {
-        String message = msg.body().getString("message");
-        String uuid = msg.body().getString("uuid");
-        sqlClient.updateWithParams("update team set msg = ? " +
-                                   "where uuid = '" + uuid + "'",
-                new JsonArray().add(message),
-                ar -> {
-                    if (ar.failed()) {
-                        ar.cause().printStackTrace();
-                        msg.fail(1, ar.cause().getMessage());
-                    } else {
-                        msg.reply(null);
-                    }
-                });
     }
 
     private void rolesByTournament(Message<String> msg) {
@@ -815,7 +807,7 @@ public class DbVerticle extends AbstractVerticle {
     }
 
     private void pilotNamesInUse(Message<JsonObject> msg) {
-        sqlClient.query("select reported_at, name, username, resolved " +
+        sqlClient.query("select uuid, reported_at, name, username, resolved " +
                         "from name_in_use_reports " +
                         "         inner join thunderdome on name_in_use_reports.name = thunderdome.allocated_to " +
                         "where not resolved " +

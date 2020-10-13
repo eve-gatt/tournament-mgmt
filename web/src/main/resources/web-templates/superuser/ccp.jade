@@ -17,6 +17,7 @@ block content
             th Name
             th Assigned TD account
             th Resolved
+            th Actions
         tbody
             each report in reports
                 tr
@@ -26,6 +27,9 @@ block content
                     td
                         if report.getBoolean("resolved")
                             i.fas.fa-check.green
+                    td
+                        if !report.getBoolean("resolved")
+                            a(href="/auth/ccp/rename/" + report.getString("uuid") + "/resolve") resolve
 
 block scripts
 

@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 public class JobVerticle extends AbstractVerticle {
     private static final Logger LOGGER = LoggerFactory.getLogger(JobVerticle.class.getName());
     private static final String WEBHOOK = "https://discordapp.com/api/webhooks/764837845532672050/a-ZCY7CQd2yNU1HNV4uWbwniS_CGm9llQNYYLaXVox8F81Dd38ePfQs2hLq0FzfZdmRE";
+    private static final boolean IS_DEV = Boolean.parseBoolean(System.getenv().getOrDefault("isDev", "false"));
     private WebClient webClient;
     private Esi esi;
     private DbClient dbClient;
@@ -35,10 +36,12 @@ public class JobVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM, this::checkPilotsOnOneTeam);
         vertx.eventBus().consumer(JobClient.JOB_PING_DISCORD_RENAME_REQUESTS, this::pingDiscordRenameRequests);
 
-        delayNMinutesThenEveryMHours(10, 1, JobClient.JOB_CHECK_CAPTAIN_ALLIANCE_MEMBERSHIP);
-        delayNMinutesThenEveryMHours(20, 1, JobClient.JOB_CHECK_PILOTS_ALLIANCE_MEMBERSHIP);
-        delayNMinutesThenEveryMHours(30, 1, JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM);
-        delayNMinutesThenEveryMHours(40, 6, JobClient.JOB_PING_DISCORD_RENAME_REQUESTS);
+        if (!IS_DEV) {
+            delayNMinutesThenEveryMHours(10, 1, JobClient.JOB_CHECK_CAPTAIN_ALLIANCE_MEMBERSHIP);
+            delayNMinutesThenEveryMHours(20, 1, JobClient.JOB_CHECK_PILOTS_ALLIANCE_MEMBERSHIP);
+            delayNMinutesThenEveryMHours(30, 1, JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM);
+            delayNMinutesThenEveryMHours(40, 6, JobClient.JOB_PING_DISCORD_RENAME_REQUESTS);
+        }
 
         startPromise.complete();
     }
@@ -53,10 +56,10 @@ public class JobVerticle extends AbstractVerticle {
                             .collect(Collectors.toList()));
                     if (outstanding.size() > 0) {
                         String content = "There are outstanding requests for pilot name changes on Thunderdome:\n\n" +
-                                "```" +
-                                outstanding.stream().map(o -> (JsonObject) o).map(r -> r.getString("name") + " at " + r.getString("reported_at")).collect(Collectors.joining("\n")) +
-                                "```" +
-                                "\nhttps://tournmgmt.eve.toys/auth/ccp/home";
+                                         "```" +
+                                         outstanding.stream().map(o -> (JsonObject) o).map(r -> r.getString("name") + " at " + r.getString("reported_at")).collect(Collectors.joining("\n")) +
+                                         "```" +
+                                         "\nhttps://tournmgmt.eve.toys/auth/ccp/home";
                         JsonObject payload = new JsonObject()
                                 .put("content", content);
                         webClient.postAbs(WEBHOOK)
