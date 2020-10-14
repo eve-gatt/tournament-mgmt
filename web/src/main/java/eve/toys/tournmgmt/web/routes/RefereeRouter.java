@@ -87,7 +87,12 @@ public class RefereeRouter {
                             // TODO: validate rule adhere, e.g. max 3x frigates, logi exempt but different rules
                     );
                 })
-                .onFailure(ctx::fail)
+                .onFailure(t -> {
+                    t.printStackTrace();
+                    render.renderPage(ctx, "/referee/results", new JsonObject()
+                            .put("red", t.getMessage())
+                            .put("blue", t.getMessage()));
+                })
                 .onSuccess(f -> {
                     JsonObject json = new JsonObject()
                             .put("red", f.list().get(0).toString() + "\n" + f.list().get(2).toString())

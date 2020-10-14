@@ -125,10 +125,6 @@ public class RefToolInput {
                             });
                 })
                 .collect(Collectors.toList()))
-                .map(f -> {
-                    List<String> list = f.list();
-                    return cantDo + "\n" + list.stream()
-                            .collect(Collectors.joining("\n"));
-                });
+                .map(f -> cantDo + "\n" + String.join("\n", f.<String>list()));
     }
 }
