@@ -117,7 +117,7 @@ public class WebVerticle extends AbstractVerticle {
                         .addAuthority("isSuperuser"));
         router.mountSubRouter("/auth/superuser", SuperuserRouter.routes(vertx, render, jobClient, dbClient));
         router.mountSubRouter("/auth/ccp", CCPRouter.routes(vertx, render, dbClient));
-        router.mountSubRouter("/stream", StreamRouter.routes(vertx, render, dbClient, esi));
+        router.mountSubRouter("/", StreamRouter.routes(vertx, render, dbClient, esi));
 
         SockJSHandler sockJSHandler = SockJSHandler.create(vertx, new SockJSHandlerOptions());
         sockJSHandler.bridge(new BridgeOptions()

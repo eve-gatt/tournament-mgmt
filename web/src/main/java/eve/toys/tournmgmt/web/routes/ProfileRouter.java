@@ -2,6 +2,7 @@ package eve.toys.tournmgmt.web.routes;
 
 import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.esi.ShipSkillChecker;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -13,11 +14,14 @@ import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static toys.eve.tournmgmt.common.util.RenderHelper.doRedirect;
@@ -25,7 +29,7 @@ import static toys.eve.tournmgmt.common.util.RenderHelper.doRedirect;
 public class ProfileRouter {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneId.of("UTC"));
-
+    private static final String BASE_URL = System.getenv("BASE_URL");
     private final RenderHelper render;
     private final Router router;
     private final DbClient dbClient;
@@ -33,6 +37,8 @@ public class ProfileRouter {
     private Esi esi;
 
     public ProfileRouter(Vertx vertx, RenderHelper render, Esi esi, DbClient dbClient) {
+        Objects.requireNonNull(BASE_URL, "Please provide BASE_URL");
+
         router = Router.router(vertx);
         this.render = render;
         this.esi = esi;
@@ -47,12 +53,39 @@ public class ProfileRouter {
         router.get("/name-in-use/:characterId/confirm").handler(this::nameInUseConfirm);
     }
 
+    public static Router routes(Vertx vertx, RenderHelper render, Esi esi, DbClient dbClient) {
+        return new ProfileRouter(vertx, render, esi, dbClient).router();
+    }
+
     private void me(RoutingContext ctx) {
-        checkNameInUseReports(ctx.data())
+        CompositeFuture.all(checkNameInUseReports(ctx.data()), checkStreamerAccess(ctx.data()))
                 .onFailure(ctx::fail)
                 .onSuccess(v -> {
                     render.renderPage(ctx, "/profile/me", new JsonObject());
                 });
+    }
+
+    private Future<Void> checkStreamerAccess(Map<String, Object> data) {
+        return Future.future(promise -> {
+            JsonObject character = (JsonObject) data.get("character");
+            String characterName = character.getString("characterName");
+            Boolean isSuperuser = character.getBoolean("isSuperuser");
+            if (isSuperuser
+                || characterName.equals("Bei ArtJay")
+                || characterName.equals("Kei Hazard")) {
+                dbClient.callDb(DbClient.DB_FETCH_REFRESH_TOKEN, characterName)
+                        .onFailure(promise::fail)
+                        .onSuccess(msg -> {
+                            String refreshToken = (String) msg.body();
+                            String encoded = Base64.getEncoder().encodeToString(refreshToken.getBytes(StandardCharsets.UTF_8));
+                            data.put("streamerOverlayUrl", System.getenv("BASE_URL") + "/stream/" + encoded + "/overlay");
+                            data.put("streamerMgmtUrl", System.getenv("BASE_URL") + "/auth/stream/manage");
+                            promise.complete();
+                        });
+            } else {
+                promise.complete();
+            }
+        });
     }
 
     private void tournamentsJson(RoutingContext ctx) {
@@ -123,10 +156,6 @@ public class ProfileRouter {
                         promise.complete();
                     });
         });
-    }
-
-    public static Router routes(Vertx vertx, RenderHelper render, Esi esi, DbClient dbClient) {
-        return new ProfileRouter(vertx, render, esi, dbClient).router();
     }
 
     private Router router() {

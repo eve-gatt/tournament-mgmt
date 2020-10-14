@@ -1,0 +1,32 @@
+extends ../../layout/streamer-layout
+
+block styles
+    style.
+        .block {
+            text-align: left;
+            width: 960px;
+            background-color: rgba(110, 110, 110, 0.85);
+            padding: 24px;
+        }
+
+block content
+    .block
+        h2 Instructions
+        ol
+            li.
+                On your profile page you will find two urls, one for managing your overlay called the management URL
+                and the overlay URL which will be used as a source in OBS.
+
+            li Add your stream url from your profile page as a browser source
+                .screenshot
+                    img(src="/assets/streamerinstructions/2020-10-14_23-19-59.png")
+            li Set the resolution to 1920x1080, leave all other settings as default
+                .screenshot
+                    img(src="/assets/streamerinstructions/obs64_2020-10-14_23-35-03.png")
+            li Open the management url to change the overlay content
+                .screenshot
+                    img(src="/assets/streamerinstructions/brave_2020-10-14_23-25-48.png")
+
+
+block scripts
+

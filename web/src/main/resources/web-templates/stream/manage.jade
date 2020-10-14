@@ -1,0 +1,26 @@
+extends ../../layout/default-layout
+
+block styles
+    style.
+
+block content
+    h2 Overlay mode
+
+    ul
+        li: a(href="#", onclick="javascript:send(1)") OBS Instructions
+        li: a(href="#", onclick="javascript:send(2)") Blue Team lineup
+        li: a(href="#", onclick="javascript:send(3)") Red Team lineup
+
+block scripts
+    script.
+        function send(num) {
+            d3.json('/auth/stream/manage/' + num, {
+                method: 'POST',
+                headers: {
+                    "Content-type": "application/json; charset=UTF-8"
+                },
+                body: {}
+            }).then(json => {
+                console.log('sent');
+            });
+        }

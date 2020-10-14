@@ -67,6 +67,21 @@ block content
                             else
                                 i pending
 
+    if streamerOverlayUrl
+        .section
+            h2 Streamer settings
+            p.
+                The following urls allow you to access stream overlays. Use the mgmt url to control the overlay. Do not
+                share these urls with anyone as they are unique to you and may allow organiser access to the tournament.
+            table.pure-table
+                tbody
+                    tr
+                        td Stream management URL
+                        td: a(target="_blank", href=streamerMgmtUrl)= streamerMgmtUrl
+                    tr
+                        td Stream overlay URL
+                        td: a(target="_blank", href=streamerOverlayUrl)= streamerOverlayUrl
+
     .section
         h2 Name in use on Thunderdome
 
