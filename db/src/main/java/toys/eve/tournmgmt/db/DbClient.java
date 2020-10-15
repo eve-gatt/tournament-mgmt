@@ -27,6 +27,7 @@ public class DbClient {
     public static final String DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT = "DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT";
     public static final String DB_HAS_ROLE = "DB_HAS_ROLE";
     public static final String DB_PROBLEMS_BY_TOURNAMENT = "DB_PROBLEMS_BY_TOURNAMENT";
+    public static final String DB_PROBLEMS_BY_TEAM = "DB_PROBLEMS_BY_TEAM";
     public static final String DB_PILOT_BY_UUID = "DB_PILOT_BY_UUID";
     public static final String DB_KICK_PILOT_BY_UUID = "DB_KICK_PILOT_BY_UUID";
     public static final String DB_ALL_CAPTAINS = "DB_ALL_CAPTAINS";

@@ -95,6 +95,16 @@ public class TeamsRouter {
                 .handler(this::confirmKickMember);
     }
 
+    private static List<String> toListOfPilots(Message<Object> msg) {
+        return ((JsonArray) msg.body()).stream()
+                .map(row -> ((JsonObject) row).getString("pilot"))
+                .collect(Collectors.toList());
+    }
+
+    public static Router routes(Vertx vertx, RenderHelper render, Esi esi, DbClient dbClient, JobClient jobClient) {
+        return new TeamsRouter(vertx, render, esi, dbClient, jobClient).router();
+    }
+
     private void loadTeam(RoutingContext ctx) {
         String uuid = ctx.request().getParam("teamUuid");
         String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
@@ -122,7 +132,13 @@ public class TeamsRouter {
     }
 
     private void editTeam(RoutingContext ctx) {
-        render.renderPage(ctx, "/teams/edit", new JsonObject());
+        String teamUuid = ctx.request().getParam("teamUuid");
+        dbClient.callDb(DbClient.DB_PROBLEMS_BY_TEAM, teamUuid)
+                .onFailure(ctx::fail)
+                .onSuccess(msg -> {
+                    render.renderPage(ctx, "/teams/edit", new JsonObject()
+                            .put("problems", msg.body()));
+                });
     }
 
     private void removeTeam(RoutingContext ctx) {
@@ -146,9 +162,9 @@ public class TeamsRouter {
                         .put("tsv", "")
                         .put("placeholder",
                                 "One pilot name per line, e.g.\n\n" +
-                                        "Jack Spratt\n" +
-                                        "John Pilot\n" +
-                                        "Josie Tackle\n"));
+                                "Jack Spratt\n" +
+                                "John Pilot\n" +
+                                "Josie Tackle\n"));
     }
 
     private void handleAddMembers(RoutingContext ctx) {
@@ -300,16 +316,6 @@ public class TeamsRouter {
                                 promise.complete(name);
                             });
                 }));
-    }
-
-    private static List<String> toListOfPilots(Message<Object> msg) {
-        return ((JsonArray) msg.body()).stream()
-                .map(row -> ((JsonObject) row).getString("pilot"))
-                .collect(Collectors.toList());
-    }
-
-    public static Router routes(Vertx vertx, RenderHelper render, Esi esi, DbClient dbClient, JobClient jobClient) {
-        return new TeamsRouter(vertx, render, esi, dbClient, jobClient).router();
     }
 
     private Router router() {

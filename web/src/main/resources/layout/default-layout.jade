@@ -314,7 +314,8 @@ html
                             a(href="/") Home
                             if tournaments
                                 each t in tournaments
-                                    a(href="/auth/tournament/" + t.getString("uuid") + "/home")= t.getString("name")
+                                    if (t.getInteger("team_count") > 0)
+                                        a(href="/auth/tournament/" + t.getString("uuid") + "/home")= t.getString("name")
                             if character
                                 if character.getBoolean("isSuperuser")
                                     a(href="/auth/superuser/home") Superuser

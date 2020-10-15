@@ -81,6 +81,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_REPLACE_ROLES_BY_TYPE_AND_TOURNAMENT, this::replaceRolesByTypeAndTournament);
         vertx.eventBus().consumer(DbClient.DB_HAS_ROLE, this::hasRole);
         vertx.eventBus().consumer(DbClient.DB_PROBLEMS_BY_TOURNAMENT, this::problemsByTournament);
+        vertx.eventBus().consumer(DbClient.DB_PROBLEMS_BY_TEAM, this::problemsByTeam);
         vertx.eventBus().consumer(DbClient.DB_TOURNAMENTS_CHARACTER_CAN_VIEW, this::tournamentsCharacterCanView);
         vertx.eventBus().consumer(DbClient.DB_ALL_CAPTAINS, this::allCaptains);
         vertx.eventBus().consumer(DbClient.DB_ALL_PILOTS, this::allPilots);
@@ -531,9 +532,30 @@ public class DbVerticle extends AbstractVerticle {
                 });
     }
 
+    private void problemsByTeam(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.queryWithParams("select message " +
+                                  "from problems " +
+                                  "where " +
+                                  "type = ?::problem_type " +
+                                  " and referenced_entity = ?::uuid",
+                new JsonArray()
+                        .add("team")
+                        .add(uuid),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                        return;
+                    }
+                    msg.reply(new JsonArray(ar.result().getRows()));
+                });
+    }
+
     private void tournamentsCharacterCanView(Message<String> msg) {
         String characterName = msg.body();
         sqlClient.queryWithParams("select uuid, name, start_date, created_by, practice_on_td, play_on_td, teams_locked, " +
+                                  "(select count(*) from team where team.tournament_uuid = tournament.uuid) as team_count, " +
                                   "(created_by = ?) as is_creator, " +
                                   "exists(select 1 from team where team.tournament_uuid = tournament.uuid and captain = ?) as is_captain, " +
                                   "exists(select 1 from team_member inner join team on team_member.team_uuid = team.uuid where team.tournament_uuid = tournament.uuid and team_member.name = ?) as is_pilot, " +

@@ -9,6 +9,7 @@ import {tournamentActions} from '../modules/actions.js'
             var entering = tournaments.enter().append('tr');
             entering.append('td').text(d => d.name);
             entering.append('td').text(d => d.created_by);
+            entering.append('td').text(d => d.team_count);
             entering.append('td').text(d => d.teams_locked);
             entering.append('td').call(tournamentActions)
         } else {
