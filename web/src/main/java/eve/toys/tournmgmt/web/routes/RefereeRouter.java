@@ -96,15 +96,15 @@ public class RefereeRouter {
                 .onFailure(t -> {
                     t.printStackTrace();
                     render.renderPage(ctx, "/referee/results", new JsonObject()
-                            .put("red", t.getMessage())
-                            .put("blue", t.getMessage()));
+                            .put("red", new JsonObject().put("error", t.getMessage()))
+                            .put("blue", new JsonObject().put("error", t.getMessage())));
                 })
                 .onSuccess(f -> {
                     System.out.println(red.encodePrettily());
                     System.out.println(blue.encodePrettily());
                     JsonObject json = new JsonObject()
-                            .put("red", f.list().get(2).toString() + "\n" + f.list().get(4).toString())
-                            .put("blue", f.list().get(3).toString() + "\n" + f.list().get(5).toString());
+                            .put("red", red)
+                            .put("blue", blue);
                     render.renderPage(ctx, "/referee/results", json);
                 });
     }
