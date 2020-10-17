@@ -164,11 +164,11 @@ public class RefToolInput {
                             comp(input).compose(comp -> {
                                 output.put("comp", comp);
                                 String mainTeam = output.getJsonArray("teams").getJsonObject(0).getString("team_name");
-                                forEachPilot(comp, pilotAndShip -> pilotIsOnTeam(pilotAndShip.getString("pilot"), mainTeam, tournamentUuid)
-                                        .onSuccess(isOnTeam -> pilotAndShip.put("onTeam", isOnTeam)));
                                 return CompositeFuture.all(
-                                        Future.succeededFuture(),
-                                        Future.succeededFuture()
+                                        forEachPilot(comp, pilotAndShip -> pilotIsOnTeam(pilotAndShip.getString("pilot"), mainTeam, tournamentUuid)
+                                                .onSuccess(isOnTeam -> pilotAndShip.put("onTeam", isOnTeam))),
+                                        forEachPilot(comp, pilotAndShip -> canPilotFlyShip(pilotAndShip)
+                                                .onSuccess(msg -> pilotAndShip.put("skillsMessage", msg)))
                                 );
                             }))
                     .onFailure(promise::fail)
@@ -178,8 +178,47 @@ public class RefToolInput {
         });
     }
 
-    private void forEachPilot(JsonArray comp, Function<JsonObject, Future<?>> fn) {
-        CompositeFuture.all(comp.stream()
+    private Future<String> canPilotFlyShip(JsonObject pilotAndShip) {
+        Tuple2<String, String> tuple = Tuple.of(pilotAndShip.getString("pilot"), pilotAndShip.getString("ship"));
+        return addRefreshToken(tuple)
+                .compose(t3 -> {
+                    if (t3._3() == null) {
+                        return Future.succeededFuture("(no ESI)");
+                    } else {
+                        return doSkillsThing(t3);
+                    }
+                });
+    }
+
+    private Future<String> doSkillsThing(Tuple3<String, String, Object> t) {
+        String shipName = t._2();
+        OAuth2TokenImpl token = new OAuth2TokenImpl(oauth2, new JsonObject().put("refresh_token", t._3()));
+        return Future.future(token::refresh)
+                .compose(v -> {
+                    JsonObject parsed = KeycloakHelper.parseToken(((AccessToken) token).opaqueAccessToken());
+                    int characterId = Integer.parseInt(parsed.getString("sub").split(":")[2]);
+                    return esi.lookupShip(shipName)
+                            .compose(json -> ShipSkillChecker.fetchShipDetails(esi, json))
+                            .map(ShipSkillChecker::fetchSkillRequirements)
+                            .compose(skillsAndLevels -> ShipSkillChecker.fetchUsersSkills(esi, token, characterId, skillsAndLevels))
+                            .compose(skillsAndLevels -> ShipSkillChecker.resolveSkillNames(esi, skillsAndLevels))
+                            .map(skillsAndLevels -> skillsAndLevels.stream()
+                                    .map(o -> (JsonObject) o)
+                                    .filter(sl -> sl.getInteger("toonLevel") < sl.getInteger("level"))
+                                    .map(sl -> {
+                                        int requiredLevel = sl.getInteger("level");
+                                        int toonLevel = sl.getInteger("toonLevel");
+                                        return t._1() + " needs " + sl.getString("skill") + " to " + requiredLevel
+                                               + " to fly a " + t._2()
+                                               + " but it is " +
+                                               (toonLevel == 0 ? "untrained" : "only " + toonLevel);
+                                    })
+                                    .collect(Collectors.joining("\n")));
+                });
+    }
+
+    private CompositeFuture forEachPilot(JsonArray comp, Function<JsonObject, Future<?>> fn) {
+        return CompositeFuture.all(comp.stream()
                 .map(o -> (JsonObject) o)
                 .map(fn)
                 .collect(Collectors.toList()));

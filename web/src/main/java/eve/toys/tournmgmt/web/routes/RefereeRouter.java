@@ -10,8 +10,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.oauth2.OAuth2Auth;
-import io.vertx.ext.auth.oauth2.OAuth2ClientOptions;
-import io.vertx.ext.auth.oauth2.OAuth2FlowType;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.api.RequestParameters;
@@ -85,11 +83,7 @@ public class RefereeRouter {
                     RefToolInput refToolInput = new RefToolInput(dbClient, esi, oauth2);
                     return CompositeFuture.all(
                             refToolInput.process(form.getString("red"), red, tournamentUuid),
-                            refToolInput.process(form.getString("blue"), blue, tournamentUuid),
-                            refToolInput.validateTeamMembership(tournamentUuid, form.getString("red")),
-                            refToolInput.validateTeamMembership(tournamentUuid, form.getString("blue")),
-                            refToolInput.validatePilotsCanFlyShips(form.getString("red")),
-                            refToolInput.validatePilotsCanFlyShips(form.getString("blue"))
+                            refToolInput.process(form.getString("blue"), blue, tournamentUuid)
                             // TODO: validate rule adhere, e.g. max 3x frigates, logi exempt but different rules
                     );
                 })
