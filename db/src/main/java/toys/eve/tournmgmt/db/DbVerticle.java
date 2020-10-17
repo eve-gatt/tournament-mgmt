@@ -127,7 +127,7 @@ public class DbVerticle extends AbstractVerticle {
 
     private void fetchRefreshToken(Message<String> msg) {
         String user = msg.body();
-        sqlClient.queryWithParams("select refresh_token from logins where character_name = ?",
+        sqlClient.queryWithParams("select character_name, refresh_token from logins where character_name = ?",
                 new JsonArray().add(user),
                 ar -> {
                     if (ar.failed()) {
@@ -136,9 +136,9 @@ public class DbVerticle extends AbstractVerticle {
                     } else {
                         ResultSet result = ar.result();
                         if (result.getNumRows() == 1) {
-                            msg.reply(result.getResults().get(0).getString(0));
+                            msg.reply(result.getRows().get(0));
                         } else {
-                            msg.reply(null);
+                            msg.reply(new JsonObject().put("character_name", user));
                         }
                     }
                 });

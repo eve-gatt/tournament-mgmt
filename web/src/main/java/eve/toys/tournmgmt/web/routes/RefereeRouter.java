@@ -10,6 +10,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.oauth2.OAuth2Auth;
+import io.vertx.ext.auth.oauth2.OAuth2ClientOptions;
+import io.vertx.ext.auth.oauth2.OAuth2FlowType;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.api.RequestParameters;
@@ -76,10 +78,14 @@ public class RefereeRouter {
         RequestParameters params = ctx.get("parsedParameters");
         JsonObject form = params.toJson().getJsonObject("form");
         form.put("addedBy", ((JsonObject) ctx.data().get("character")).getString("characterName"));
+        JsonObject red = new JsonObject();
+        JsonObject blue = new JsonObject();
         dbClient.callDb(DbClient.DB_RECORD_REFTOOL_INPUTS, form)
                 .compose(v -> {
                     RefToolInput refToolInput = new RefToolInput(dbClient, esi, oauth2);
                     return CompositeFuture.all(
+                            refToolInput.process(form.getString("red"), red, tournamentUuid),
+                            refToolInput.process(form.getString("blue"), blue, tournamentUuid),
                             refToolInput.validateTeamMembership(tournamentUuid, form.getString("red")),
                             refToolInput.validateTeamMembership(tournamentUuid, form.getString("blue")),
                             refToolInput.validatePilotsCanFlyShips(form.getString("red")),
@@ -94,9 +100,11 @@ public class RefereeRouter {
                             .put("blue", t.getMessage()));
                 })
                 .onSuccess(f -> {
+                    System.out.println(red.encodePrettily());
+                    System.out.println(blue.encodePrettily());
                     JsonObject json = new JsonObject()
-                            .put("red", f.list().get(0).toString() + "\n" + f.list().get(2).toString())
-                            .put("blue", f.list().get(1).toString() + "\n" + f.list().get(3).toString());
+                            .put("red", f.list().get(2).toString() + "\n" + f.list().get(4).toString())
+                            .put("blue", f.list().get(3).toString() + "\n" + f.list().get(5).toString());
                     render.renderPage(ctx, "/referee/results", json);
                 });
     }

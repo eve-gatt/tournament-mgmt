@@ -76,7 +76,7 @@ public class ProfileRouter {
                 dbClient.callDb(DbClient.DB_FETCH_REFRESH_TOKEN, characterName)
                         .onFailure(promise::fail)
                         .onSuccess(msg -> {
-                            String refreshToken = (String) msg.body();
+                            String refreshToken = ((JsonObject) msg.body()).getString("refresh_token");
                             String encoded = Base64.getEncoder().encodeToString(refreshToken.getBytes(StandardCharsets.UTF_8));
                             data.put("streamerOverlayUrl", System.getenv("BASE_URL") + "/stream/" + encoded + "/overlay");
                             data.put("streamerMgmtUrl", System.getenv("BASE_URL") + "/auth/stream/manage");

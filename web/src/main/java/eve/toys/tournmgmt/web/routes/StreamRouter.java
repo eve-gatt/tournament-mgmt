@@ -53,7 +53,7 @@ public class StreamRouter {
         dbClient.callDb(DbClient.DB_FETCH_REFRESH_TOKEN, characterName)
                 .onFailure(ctx::fail)
                 .onSuccess(msg -> {
-                    String refreshToken = (String) msg.body();
+                    String refreshToken = ((JsonObject) msg.body()).getString("refresh_token");
                     String encoded = Base64.getEncoder().encodeToString(refreshToken.getBytes(StandardCharsets.UTF_8));
                     eventBus.publish("do-reload",
                             new JsonObject()
