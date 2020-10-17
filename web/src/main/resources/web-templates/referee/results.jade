@@ -52,6 +52,11 @@ block append styles
             background: -webkit-linear-gradient(left, darkred 0%, #8b000020 30%, rgba(222, 222, 222, 0) 100%);
         }
 
+        .comp .skills-are-good:not(.not-on-team) {
+            background: -webkit-linear-gradient(left, darkgreen 0%, #00640020 30%, rgba(222, 222, 222, 0) 100%);
+        }
+
+
 mixin results(json)
     if json.getString("error") != null
         p= json.getString("error")
@@ -85,7 +90,8 @@ mixin results(json)
                     table.pure-table
                         tbody
                             each pilot in comp
-                                tr(class=pilot.getBoolean("onTeam") ? "" : "not-on-team")
+                                tr(class=pilot.getBoolean("onTeam") ? "" : "not-on-team",
+                                    class=pilot.getString("skillsMessage").isEmpty() ? "skills-are-good" : "")
                                     td= pilot.getString("pilot")
                                     td= pilot.getString("ship")
                                     td= pilot.getString("skillsMessage")
