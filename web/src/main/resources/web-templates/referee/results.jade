@@ -7,10 +7,21 @@ block append styles
         .teams {
             display: grid;
             grid: auto-flow / 1fr 1fr;
+            gap: 24px;
         }
 
-        .team + .team {
-            margin-left: 24px;
+        .teams > .team {
+            border: 3px solid;
+            border-radius: 5px;
+            padding: 12px;
+        }
+
+        .team.blue {
+            border-color: blue;
+        }
+
+        .team.red {
+            border-color: red;
         }
 
         .team h2 {
@@ -101,7 +112,8 @@ mixin results(json)
                                 tr(class=(pilot.getBoolean("onTeam") ? "" : "not-on-team"),
                                     class=(pilot.getString("skillsMessage").isEmpty() ? "" : "skills-not-good"))
                                     td= pilot.getString("pilot")
-                                    td= pilot.getString("class") + " (" + pilot.getString("category") + ")"
+                                    td= pilot.getString("class")
+                                        small= " (" + pilot.getString("category") + ")"
                                     td= pilot.getString("ship")
                                     td= (!pilot.getBoolean("onTeam") ? "Not on team. " : "") + pilot.getString("skillsMessage")
 
