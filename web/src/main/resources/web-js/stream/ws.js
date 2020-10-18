@@ -8,7 +8,8 @@
     }
 
     eb.onopen = function () {
-        eb.registerHandler('do-reload', function (err, msg) {
+        console.log('eb.onopen()');
+        eb.registerHandler('streamer.do-reload', function (err, msg) {
             let location = msg.body.location;
             console.log("Navigating to", location);
             window.location = location;
@@ -16,3 +17,4 @@
     }
 
 })();
+

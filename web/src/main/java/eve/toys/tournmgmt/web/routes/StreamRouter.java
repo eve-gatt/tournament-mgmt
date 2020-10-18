@@ -68,10 +68,9 @@ public class StreamRouter {
                 .onSuccess(msg -> {
                     String refreshToken = ((JsonObject) msg.body()).getString("refresh_token");
                     String encoded = Base64.getEncoder().encodeToString(refreshToken.getBytes(StandardCharsets.UTF_8));
-                    eventBus.publish("do-reload",
+                    eventBus.publish("streamer.do-reload",
                             new JsonObject()
                                     .put("location", "/stream/" + encoded + "/overlay/" + number));
-                    System.out.println("Sent do-reload: " + number);
                     ctx.response().end("{}");
                 });
     }
