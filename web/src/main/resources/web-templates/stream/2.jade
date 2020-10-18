@@ -1,27 +1,58 @@
 extends ../../layout/streamer-layout
 
-block styles.
+block styles
+    style.
+        .fixture {
+            display: grid;
+            grid: auto-flow / 1fr 1fr 1fr;
+            place-items: center;
+        }
+
+        .pilots {
+            display: flex;
+            flex-wrap: wrap;
+            width: 500px;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .pilot {
+            margin: 2px 12px;
+        }
+
+        .team img {
+            width: 360px;
+            height: 360px;
+        }
+
+        .team div {
+            color: #f99e00;
+            text-align: center;
+            font-size: 3em;
+        }
+
+        .vs {
+            opacity: 0.6;
+            font-size: 4em;
+            text-align: center;
+            border-radius: 50%;
+            width: 140px;
+            height: 140px;
+            line-height: 132px;
+            border: 10px solid #f99e00;
+            background-color: #3a3a3a;
+        }
 
 
 block content
-    .teamname
-    .pilots
+    .fixture
+        .pilots.blue
+        .space
+        .pilots.red
+
+        .team.blue
+        .vs vs
+        .team.red
 
 block scripts
-    script.
-        const team = {
-            name: 'Blue Team',
-            pilots: [
-                {name: 'Levi Nineveh', char_id: 624049117, ship: 'Hecate', ship_id: 35683},
-                {name: 'Rixx Javix', char_id: 95308308, ship: 'Rokh', ship_id: 24688},
-                {name: 'Eargonall Kaundur', char_id: 90308296, ship: 'Loki', ship_id: 29990},
-                {name: 'Xoorauch Destroyer', char_id: 90781655, ship: 'Megathron', ship_id: 641},
-                {name: 'Ithugor Wells', char_id: 1001131163, ship: 'Daredevil', ship_id: 17928},
-                {name: 'Stowesh', char_id: 2115931058, ship: 'Sleipnir', ship_id: 22444},
-                {name: 'TheLastSparton', char_id: 96552886, ship: 'Sleipnir', ship_id: 22444},
-                {name: 'Tyrion Hekki', char_id: 1783706639, ship: 'Sleipnir', ship_id: 22444},
-                {name: 'dexter xio', char_id: 1737852458, ship: 'Griffin', ship_id: 584},
-                {name: 'Mira Chieve', char_id: 2117448845, ship: 'Griffin', ship_id: 584}
-            ]
-        }
-    script(src='/js/stream/home.js')
+    script(src='/js/stream/match.js')

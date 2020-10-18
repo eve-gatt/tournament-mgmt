@@ -33,17 +33,22 @@ public class MatchRouter {
         return new MatchRouter(vertx, render, dbClient, esi).router();
     }
 
+    private static JsonObject formatCreatedAt(JsonObject m) {
+        return m.put("created_at_formatted", DATE_FORMAT.format(m.getInstant("created_at")));
+    }
+
     private void matchesByTeam(RoutingContext ctx) {
         String teamUuid = ctx.request().getParam("teamUuid");
         dbClient.callDb(DbClient.DB_MATCHES_FOR_TEAM, teamUuid)
                 .map(msg -> (JsonArray) msg.body())
                 .map(arr -> new JsonArray(arr.stream()
                         .map(o -> (JsonObject) o)
-                        .map(m -> m.put("created_at_formatted", DATE_FORMAT.format(m.getInstant("created_at"))))
+                        .map(MatchRouter::formatCreatedAt)
                         .collect(Collectors.toList())))
                 .onFailure(ctx::fail)
                 .onSuccess(arr -> ctx.response().end(arr.encode()));
     }
+
 
     private Router router() {
         return router;

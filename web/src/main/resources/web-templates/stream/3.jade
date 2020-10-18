@@ -1,5 +1,63 @@
 extends ../../layout/streamer-layout
 
+block styles
+    style.
+        .body .pilots {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 40px;
+        }
+
+        .pilot {
+            border: 3px solid #f99e00;
+            border-radius: 3px;
+            background-repeat: no-repeat;
+            background-size: 210px 210px;
+            width: 210px;
+            height: 210px;
+            display: grid;
+            grid: 1fr 1fr / auto 1fr;
+            grid-template-areas:
+                "ship ship"
+                "char pic";
+            transition: transform 0.25s;
+            transition-timing-function: ease-in-out;
+        }
+
+        .zoomed {
+            transform: scale(3.0);
+        }
+
+        .pilot h2 {
+            grid-area: ship;
+        }
+
+        .pilot h4 {
+            grid-area: char;
+            justify-self: start;
+            align-self: end;
+            margin: 2px 4px;
+        }
+
+        .pilot img {
+            grid-area: pic;
+            justify-self: end;
+            align-self: end;
+            width: 64px;
+        }
+
+        .teamname {
+            font-size: 2em;
+        }
+
+        .orange {
+            color: orange;
+        }
+
+        .white {
+            color: white;
+        }
+
 block content
     .teamname
     .pilots

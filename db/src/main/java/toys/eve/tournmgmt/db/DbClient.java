@@ -50,6 +50,7 @@ public class DbClient {
     public static final String DB_TEAM_UUID_FOR_NAME = "DB_TEAM_UUID_FOR_NAME";
     public static final String DB_CREATE_MATCH = "DB_CREATE_MATCH";
     public static final String DB_MATCHES_FOR_TEAM = "DB_MATCHES_FOR_TEAM";
+    public static final String DB_LATEST_MATCH = "DB_LATEST_MATCH";
 
     private final EventBus eventBus;
 

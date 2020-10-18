@@ -55,9 +55,10 @@ block content
                 tbody
         .matches
         .problems
-            h3 Problems
-            each problem in problems
-                div= problem.getString("message")
+            if problems.size() > 0
+                h3 Problems
+                each problem in problems
+                    div= problem.getString("message")
 
     - var isLocked = team.getBoolean("locked")
     - var canAlwaysMaintain = isSuperuser || isCreator || roles.contains("organiser")

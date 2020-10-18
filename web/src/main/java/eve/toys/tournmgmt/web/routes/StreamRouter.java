@@ -16,7 +16,7 @@ import java.util.Base64;
 
 public class StreamRouter {
 
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneId.of("UTC"));
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM K:mm a").withZone(ZoneId.of("UTC"));
 
     private final RenderHelper render;
     private final DbClient dbClient;
@@ -34,10 +34,25 @@ public class StreamRouter {
         router.get("/stream/:code/overlay/:number").handler(this::overlayNumber);
         router.get("/auth/stream/manage").handler(this::manage);
         router.post("/auth/stream/manage/:number").handler(this::switchTo);
+
+        router.get("/stream/:tournamentUuid/matches/latest-match/data").handler(this::latestMatch);
+
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient, Esi esi) {
         return new StreamRouter(vertx, render, dbClient, esi).router();
+    }
+
+    private static JsonObject formatCreatedAt(JsonObject m) {
+        return m.put("created_at_formatted", DATE_FORMAT.format(m.getInstant("created_at")));
+    }
+
+    private void latestMatch(RoutingContext ctx) {
+        dbClient.callDb(DbClient.DB_LATEST_MATCH, null)
+                .map(msg -> (JsonObject) msg.body())
+                .map(StreamRouter::formatCreatedAt)
+                .onFailure(ctx::fail)
+                .onSuccess(match -> ctx.response().end(match.encode()));
     }
 
     private void overlayNumber(RoutingContext ctx) {
