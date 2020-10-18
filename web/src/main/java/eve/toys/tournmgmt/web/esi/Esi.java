@@ -24,6 +24,15 @@ public class Esi {
         return new Esi(webClient, circuitBreaker);
     }
 
+    private static String encode(String string) {
+        try {
+            return URLEncoder.encode(string, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return string;
+        }
+    }
+
     public Future<JsonObject> lookupShip(String shipName) {
         return lookupByType(shipName, "inventory_type");
     }
@@ -43,18 +52,21 @@ public class Esi {
         });
     }
 
-    private static String encode(String string) {
-        try {
-            return URLEncoder.encode(string, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-            return string;
-        }
-    }
-
     public Future<JsonObject> fetchType(Integer typeId) {
         return Future.future(promise -> {
             String url = "/universe/types/" + typeId;
+            etagCache.callApi(ESI_BASE + url)
+                    .onFailure(promise::fail)
+                    .onSuccess(result -> {
+                        JsonObject json = result.body().toJsonObject();
+                        promise.complete(new JsonObject().put("result", json));
+                    });
+        });
+    }
+
+    public Future<JsonObject> fetchGroup(Integer groupId) {
+        return Future.future(promise -> {
+            String url = "/universe/groups/" + groupId;
             etagCache.callApi(ESI_BASE + url)
                     .onFailure(promise::fail)
                     .onSuccess(result -> {
@@ -75,7 +87,7 @@ public class Esi {
                     }
                     if (ar.result().statusCode() != 200) {
                         promise.fail(ar.result().statusCode()
-                                + "\n" + url);
+                                     + "\n" + url);
                         return;
                     }
                     promise.complete(ar.result().jsonObject());

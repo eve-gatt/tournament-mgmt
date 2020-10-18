@@ -10,6 +10,8 @@ import io.vertx.core.Future;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.auth.oauth2.AccessToken;
 import io.vertx.ext.auth.oauth2.KeycloakHelper;
 import io.vertx.ext.auth.oauth2.OAuth2Auth;
@@ -22,6 +24,34 @@ import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
+/*
+    int[] categories = {25, 26, 27, 28, 29, 30, 31, 237, 324, 358, 380, 381, 419, 420, 463, 485, 513, 540, 541, 543, 547, 659, 830, 831, 832, 833, 834, 883, 893, 894, 898, 900, 902, 906, 941, 963, 1022, 1201, 1202, 1283, 1305, 1527, 1534, 1538, 1972, 2001};
+    Arrays.stream(categories).forEach(c -> esi.fetchGroup(c)
+        .map(esiResult -> esiResult.getJsonObject("result").getString("name"))
+        .onSuccess(name -> System.out.println(name)));
+
+ */
+/*
+Prototype Exploration Ship
+Blockade Runner
+Capital Industrial Ship
+Capsule
+Carrier
+Citizen Ships
+Deep Space Transport
+Dreadnought
+Exhumer
+Flag Cruiser
+Force Auxiliary
+Freighter
+Industrial Command Ship
+Jump Freighter
+Mining Barge
+Shuttle
+Supercarrier
+Titan
+
+ */
 /*
 {
     red; {
@@ -48,6 +78,37 @@ import static java.util.stream.Collectors.toList;
  */
 public class RefToolInput {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(RefToolInput.class.getName());
+
+    private static final List<Tuple2<String, ShipClass>> CATEGORIES = Arrays.asList(
+            Tuple.of("Elite Battleship", ShipClass.Battleship),
+            Tuple.of("Marauder", ShipClass.Battleship),
+            Tuple.of("Battleship", ShipClass.Battleship),
+            Tuple.of("Black Ops", ShipClass.Battleship),
+            Tuple.of("Command Ship", ShipClass.Battlecruiser),
+            Tuple.of("Logistics", ShipClass.Logistics),
+            Tuple.of("Combat Battlecruiser", ShipClass.Battlecruiser),
+            Tuple.of("Strategic Cruiser", ShipClass.Cruiser),
+            Tuple.of("Heavy Assault Cruiser", ShipClass.Cruiser),
+            Tuple.of("Heavy Interdiction Cruiser", ShipClass.Cruiser),
+            Tuple.of("Attack Battlecruiser", ShipClass.Battlecruiser),
+            Tuple.of("Combat Recon Ship", ShipClass.Cruiser),
+            Tuple.of("Force Recon Ship", ShipClass.Cruiser),
+            Tuple.of("Cruiser", ShipClass.Cruiser),
+            Tuple.of("Command Destroyer", ShipClass.Destroyer),
+            Tuple.of("Electronic Attack Ship", ShipClass.Frigate),
+            Tuple.of("Tactical Destroyer", ShipClass.Destroyer),
+            Tuple.of("Covert Ops", ShipClass.Frigate),
+            Tuple.of("Interdictor", ShipClass.Destroyer),
+            Tuple.of("Assault Frigate", ShipClass.Frigate),
+            Tuple.of("Logistics Frigate", ShipClass.Logistics),
+            Tuple.of("Stealth Bomber", ShipClass.Frigate),
+            Tuple.of("Destroyer", ShipClass.Destroyer),
+            Tuple.of("Industrial", ShipClass.Industrial),
+            Tuple.of("Interceptor", ShipClass.Frigate),
+            Tuple.of("Expedition Frigate", ShipClass.Frigate),
+            Tuple.of("Frigate", ShipClass.Frigate),
+            Tuple.of("Corvette", ShipClass.Corvette));
     private final DbClient dbClient;
     private final Esi esi;
     private final OAuth2Auth oauth2;
@@ -56,101 +117,6 @@ public class RefToolInput {
         this.dbClient = dbClient;
         this.esi = esi;
         this.oauth2 = oauth2;
-    }
-
-    private static List<Tuple3<String, String, String>> resultsToTuples(CompositeFuture f) {
-        return f.list().stream().map(o -> (Tuple3<String, String, String>) o).collect(toList());
-    }
-
-    public Future<String> validateTeamMembership(String tournamentUuid, String input) {
-        if (input.trim().isEmpty()) return Future.succeededFuture("");
-
-        List<String> nameColumn = Arrays.stream(input.split("\n")).map(row -> row.split("\t")[0]).collect(toList());
-        return dbClient.callDb(DbClient.DB_TEAMS_FOR_PILOT_LIST, new JsonObject()
-                .put("tournamentUuid", tournamentUuid)
-                .put("pilots", nameColumn))
-                .map(msg -> {
-                    JsonArray result = (JsonArray) msg.body();
-                    List<String> distinctTeams = result.stream()
-                            .map(o -> (JsonObject) o)
-                            .map(o -> o.getString("team_name"))
-                            .distinct()
-                            .collect(toList());
-                    List<String> knownPilots = result.stream()
-                            .map(o -> (JsonObject) o)
-                            .map(o -> o.getString("pilot_name"))
-                            .collect(toList());
-                    if (result.size() == nameColumn.size() && distinctTeams.size() == 1) {
-                        return "All pilots are on the same team: " + distinctTeams.get(0);
-                    } else if (distinctTeams.size() > 1) {
-                        return "Pilots come from more than one team:\n" +
-                               result.stream()
-                                       .map(o -> (JsonObject) o)
-                                       .map(o -> o.getString("pilot_name") + " -> " + o.getString("team_name"))
-                                       .collect(Collectors.joining("\n"));
-                    } else {
-                        HashSet<String> whoDis = new HashSet<>(nameColumn);
-                        whoDis.removeAll(knownPilots);
-                        return "Some pilots aren't on any team in this tournament:\n"
-                               + String.join(", ", whoDis);
-                    }
-                });
-    }
-
-    public Future<String> validatePilotsCanFlyShips(String input) {
-        if (input.trim().isEmpty()) return Future.succeededFuture("");
-
-        Set<Tuple2<String, String>> nameAndShip = Arrays.stream(input.split("\n"))
-                .map(row -> row.split("\t"))
-                .map(row -> Tuple.of(row[0], row[1]))
-                .collect(Collectors.toSet());
-
-        return CompositeFuture.all(nameAndShip.stream()
-                .map(this::addRefreshToken)
-                .collect(toList()))
-                .map(RefToolInput::resultsToTuples)
-                .compose(this::fetchSkillsAndCreateResponse);
-    }
-
-    private Future<Tuple3<String, String, Object>> addRefreshToken(Tuple2<String, String> ns) {
-        return dbClient.callDb(DbClient.DB_FETCH_REFRESH_TOKEN, ns._1()).map(msg -> ns.append(((JsonObject) msg.body()).getString("refresh_token")));
-    }
-
-    private Future<String> fetchSkillsAndCreateResponse(List<Tuple3<String, String, String>> nameShipAndRefreshTokens) {
-        String cantDo = nameShipAndRefreshTokens.stream()
-                .filter(t -> t._3() == null)
-                .map(t -> t._1() + " needs to login so eve.toys can fetch skills")
-                .collect(Collectors.joining("\n"));
-        return CompositeFuture.all(nameShipAndRefreshTokens.stream()
-                .filter(t -> t._3() != null)
-                .map(t -> {
-                    String shipName = t._2();
-                    OAuth2TokenImpl token = new OAuth2TokenImpl(oauth2, new JsonObject().put("refresh_token", t._3()));
-                    return Future.future(token::refresh)
-                            .compose(v -> {
-                                JsonObject parsed = KeycloakHelper.parseToken(((AccessToken) token).opaqueAccessToken());
-                                int characterId = Integer.parseInt(parsed.getString("sub").split(":")[2]);
-                                return esi.lookupShip(shipName)
-                                        .compose(json -> ShipSkillChecker.fetchShipDetails(esi, json))
-                                        .map(ShipSkillChecker::fetchSkillRequirements)
-                                        .compose(skillsAndLevels -> ShipSkillChecker.fetchUsersSkills(esi, token, characterId, skillsAndLevels))
-                                        .compose(skillsAndLevels -> ShipSkillChecker.resolveSkillNames(esi, skillsAndLevels))
-                                        .map(skillsAndLevels -> skillsAndLevels.stream()
-                                                .map(o -> (JsonObject) o)
-                                                .filter(sl -> sl.getInteger("toonLevel") < sl.getInteger("level"))
-                                                .map(sl -> {
-                                                    int requiredLevel = sl.getInteger("level");
-                                                    int toonLevel = sl.getInteger("toonLevel");
-                                                    return t._1() + " needs " + sl.getString("skill") + " to " + requiredLevel
-                                                           + " to fly a " + t._2()
-                                                           + " but it is " +
-                                                           (toonLevel == 0 ? "untrained" : "only " + toonLevel);
-                                                })
-                                                .collect(Collectors.joining("\n")));
-                            });
-                })
-                .collect(toList()))
-                .map(f -> cantDo + "\n" + String.join("\n", f.<String>list()));
     }
 
     public Future<JsonObject> process(String input, JsonObject output, String tournamentUuid) {
@@ -165,11 +131,22 @@ public class RefToolInput {
                                 output.put("comp", comp);
                                 String mainTeam = output.getJsonArray("teams").getJsonObject(0).getString("team_name");
                                 return CompositeFuture.all(
+                                        forEachPilot(comp, pilotAndShip -> getCategory(pilotAndShip.getString("ship"))
+                                                .onSuccess(category -> pilotAndShip
+                                                        .put("category", category)
+                                                        .put("class", classOf(category)))),
                                         forEachPilot(comp, pilotAndShip -> pilotIsOnTeam(pilotAndShip.getString("pilot"), mainTeam, tournamentUuid)
                                                 .onSuccess(isOnTeam -> pilotAndShip.put("onTeam", isOnTeam))),
                                         forEachPilot(comp, pilotAndShip -> canPilotFlyShip(pilotAndShip)
                                                 .onSuccess(msg -> pilotAndShip.put("skillsMessage", msg)))
                                 );
+                            }).onSuccess(v -> {
+                                JsonArray ordered = new JsonArray(output.getJsonArray("comp").stream()
+                                        .map(o -> (JsonObject) o)
+                                        .sorted(Comparator.comparing(p -> classIndex(((JsonObject) p).getString("category")))
+                                                .thenComparing(p -> categoryIndex(((JsonObject) p).getString("category"))))
+                                        .collect(toList()));
+                                output.put("comp", ordered);
                             }))
                     .onFailure(promise::fail)
                     .onSuccess(f -> {
@@ -178,12 +155,52 @@ public class RefToolInput {
         });
     }
 
+    private int classIndex(String category) {
+        return CATEGORIES.stream()
+                .filter(t -> t._1().equals(category))
+                .findFirst()
+                .map(t -> t._2().ordinal())
+                .orElse(ShipClass.values().length + 1);
+    }
+
+    private int categoryIndex(String category) {
+        return CATEGORIES.indexOf(CATEGORIES.stream()
+                .filter(t -> t._1().equals(category))
+                .findFirst()
+                .orElse(null));
+    }
+
+    private String classOf(String category) {
+        return CATEGORIES.stream()
+                .filter(t -> t._1().equals(category))
+                .findFirst()
+                .map(t -> t._2().name())
+                .orElse("unknown");
+    }
+
+    private Future<String> getCategory(String ship) {
+        return esi.lookupShip(ship)
+                .map(esiResult -> esiResult.getJsonArray("result").getInteger(0))
+                .compose(esi::fetchType)
+                .map(esiResult -> esiResult.getJsonObject("result").getInteger("group_id"))
+                .compose(esi::fetchGroup)
+                .map(esiResult -> esiResult.getJsonObject("result").getString("name"))
+                .recover(t -> {
+                    LOGGER.error("Looking up category for ship: " + ship, t);
+                    return Future.succeededFuture("unknown");
+                });
+    }
+
+    private Future<Tuple3<String, String, Object>> addRefreshToken(Tuple2<String, String> ns) {
+        return dbClient.callDb(DbClient.DB_FETCH_REFRESH_TOKEN, ns._1()).map(msg -> ns.append(((JsonObject) msg.body()).getString("refresh_token")));
+    }
+
     private Future<String> canPilotFlyShip(JsonObject pilotAndShip) {
         Tuple2<String, String> tuple = Tuple.of(pilotAndShip.getString("pilot"), pilotAndShip.getString("ship"));
         return addRefreshToken(tuple)
                 .compose(t3 -> {
                     if (t3._3() == null) {
-                        return Future.succeededFuture("(no ESI)");
+                        return Future.succeededFuture("No ESI.");
                     } else {
                         return doSkillsThing(t3);
                     }
@@ -211,9 +228,9 @@ public class RefToolInput {
                                         return t._1() + " needs " + sl.getString("skill") + " to " + requiredLevel
                                                + " to fly a " + t._2()
                                                + " but it is " +
-                                               (toonLevel == 0 ? "untrained" : "only " + toonLevel);
+                                               (toonLevel == 0 ? "untrained" : "only " + toonLevel + ".");
                                     })
-                                    .collect(Collectors.joining("\n")));
+                                    .collect(Collectors.joining(" ")));
                 });
     }
 

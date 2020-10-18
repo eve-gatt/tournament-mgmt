@@ -94,8 +94,6 @@ public class RefereeRouter {
                             .put("blue", new JsonObject().put("error", t.getMessage())));
                 })
                 .onSuccess(f -> {
-                    System.out.println(red.encodePrettily());
-                    System.out.println(blue.encodePrettily());
                     JsonObject json = new JsonObject()
                             .put("red", red)
                             .put("blue", blue);

@@ -9,8 +9,12 @@ block append styles
             grid: auto-flow / 1fr 1fr;
         }
 
-        .team {
-            padding: 12px;
+        .team + .team {
+            margin-left: 24px;
+        }
+
+        .team h2 {
+            margin-top: 2px;
         }
 
         .blue h2 {
@@ -56,6 +60,10 @@ block append styles
             background: -webkit-linear-gradient(left, darkgreen 0%, #00640020 30%, rgba(222, 222, 222, 0) 100%);
         }
 
+        .comp td:nth-child(1), .comp td:nth-child(2), .comp td:nth-child(3) {
+            white-space: nowrap;
+        }
+
 
 mixin results(json)
     if json.getString("error") != null
@@ -93,8 +101,9 @@ mixin results(json)
                                 tr(class=(pilot.getBoolean("onTeam") ? "" : "not-on-team"),
                                     class=(pilot.getString("skillsMessage").isEmpty() ? "" : "skills-not-good"))
                                     td= pilot.getString("pilot")
+                                    td= pilot.getString("class") + " (" + pilot.getString("category") + ")"
                                     td= pilot.getString("ship")
-                                    td= pilot.getString("skillsMessage")
+                                    td= (!pilot.getBoolean("onTeam") ? "Not on team. " : "") + pilot.getString("skillsMessage")
 
 
 block content
