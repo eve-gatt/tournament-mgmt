@@ -7,7 +7,29 @@ block append styles
         }
 
         .main {
-            display: flex;
+            display: grid;
+            grid: auto 1fr / auto 1fr;
+            grid-template-areas:
+                    "roster matches"
+                    "roster problems";
+            gap: 24px;
+        }
+
+        .main .teammembers {
+            grid-area: roster
+        }
+
+        .main .matches {
+            grid-area: matches
+        }
+
+        .main .problems {
+            grid-area: problems
+        }
+
+        .match {
+            display: grid;
+            grid: auto-flow / 160px auto;
         }
 
 block content
@@ -31,10 +53,11 @@ block content
                     th Name
                     th Actions
                 tbody
+        .matches
         .problems
-            ul
-                each problem in problems
-                    li= problem.getString("message")
+            h3 Problems
+            each problem in problems
+                div= problem.getString("message")
 
     - var isLocked = team.getBoolean("locked")
     - var canAlwaysMaintain = isSuperuser || isCreator || roles.contains("organiser")

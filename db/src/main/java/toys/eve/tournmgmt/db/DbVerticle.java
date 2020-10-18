@@ -102,7 +102,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_TOGGLE_RESOLVED, this::toggleResolved);
         vertx.eventBus().consumer(DbClient.DB_TEAM_UUID_FOR_NAME, this::teamUuidForName);
         vertx.eventBus().consumer(DbClient.DB_CREATE_MATCH, this::createMatch);
-
+        vertx.eventBus().consumer(DbClient.DB_MATCHES_FOR_TEAM, this::matchesForTeam);
         startPromise.complete();
     }
 
@@ -952,6 +952,30 @@ public class DbVerticle extends AbstractVerticle {
                         msg.fail(1, ar.cause().getMessage());
                     } else {
                         msg.reply(null);
+                    }
+                });
+    }
+
+    private void matchesForTeam(Message<String> msg) {
+        String teamUuid = msg.body();
+        sqlClient.queryWithParams("select " +
+                                  "match.id, " +
+                                  "match.created_by as ref, " +
+                                  "match.created_at, " +
+                                  "blue.name as blue_team_name, " +
+                                  "red.name as red_team_name " +
+                                  "from match " +
+                                  "inner join team as blue on match.blueteam = blue.uuid " +
+                                  "inner join team as red on match.redteam = red.uuid " +
+                                  "where blueteam = ?::uuid or redteam = ?::uuid " +
+                                  "order by created_at",
+                new JsonArray().add(teamUuid).add(teamUuid),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(new JsonArray(ar.result().getRows()));
                     }
                 });
     }

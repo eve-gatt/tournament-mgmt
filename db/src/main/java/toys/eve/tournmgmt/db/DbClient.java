@@ -49,6 +49,7 @@ public class DbClient {
     public static final String DB_TOGGLE_RESOLVED = "DB_TOGGLE_RESOLVED";
     public static final String DB_TEAM_UUID_FOR_NAME = "DB_TEAM_UUID_FOR_NAME";
     public static final String DB_CREATE_MATCH = "DB_CREATE_MATCH";
+    public static final String DB_MATCHES_FOR_TEAM = "DB_MATCHES_FOR_TEAM";
 
     private final EventBus eventBus;
 

@@ -20,8 +20,21 @@
         }
     }
 
-    d3.json('/auth/tournament/' + tournamentUuid + '/teams/' + teamUuid + '/members/data').then(function (data) {
-        renderTeamMembers(data);
-    });
+    function renderMatches(data) {
+        let matches = d3.select('.matches').selectAll('.match').data(data, d => d.id);
+        let entering = matches.enter().append('div').classed('match', true);
+        entering.append('div').text(d => d.created_at_formatted);
+        entering.append('div').text(d => `${d.blue_team_name} vs ${d.red_team_name}`);
+    }
+
+    d3.json('/auth/tournament/' + tournamentUuid + '/teams/' + teamUuid + '/members/data')
+        .then(function (data) {
+            renderTeamMembers(data);
+        });
+
+    d3.json('/auth/tournament/' + tournamentUuid + '/teams/' + teamUuid + '/matches/data')
+        .then(function (data) {
+            renderMatches(data);
+        });
 
 })();

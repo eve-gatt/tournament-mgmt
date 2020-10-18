@@ -305,16 +305,11 @@ public class TeamsRouter {
     }
 
     private Future<String> pilotNameProcessor(TSV.Row row) {
-        return Future.future(promise -> esi.lookupCharacter(row.getCol(0))
+        return Future.future(promise -> esi.fetchExactMatchCharacter(row.getCol(0))
                 .onFailure(promise::fail)
-                .onSuccess(json -> {
-                    int characterId = json.getJsonArray("result").getInteger(0);
-                    esi.fetchCharacter(characterId)
-                            .onFailure(promise::fail)
-                            .onSuccess(json2 -> {
-                                String name = json2.containsKey("error") ? json2.getString("error") : json2.getString("name");
-                                promise.complete(name);
-                            });
+                .onSuccess(json2 -> {
+                    String name = json2.containsKey("error") ? json2.getString("error") : json2.getString("name");
+                    promise.complete(name);
                 }));
     }
 

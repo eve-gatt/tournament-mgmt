@@ -1,5 +1,6 @@
 package eve.toys.tournmgmt.web.esi;
 
+import eve.toys.tournmgmt.web.AppStreamHelpers;
 import eve.toys.tournmgmt.web.authn.AppRBAC;
 import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.core.CompositeFuture;
@@ -10,6 +11,7 @@ import io.vertx.ext.web.client.WebClient;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.stream.Collectors;
 
 public class Esi {
 
@@ -129,8 +131,28 @@ public class Esi {
         );
     }
 
-    public Future<JsonObject> lookupCharacter(String character) {
-        return lookupByType(character, "character");
+    public Future<JsonObject> lookupCharacter(String name) {
+        return lookupByType(name, "character");
+    }
+
+    public Future<JsonObject> fetchExactMatchCharacter(String name) {
+        return lookupByType(name, "character")
+                .map(output -> output.getJsonArray("result"))
+                .compose(arr -> {
+                    if (arr.size() == 1) {
+                        return fetchCharacter(arr.getInteger(0));
+                    } else {
+                        return CompositeFuture.all(arr.stream()
+                                .map(o -> (Integer) o)
+                                .map(this::fetchCharacter)
+                                .collect(Collectors.toList()))
+                                .map(AppStreamHelpers::compositeFutureToJsonObjects)
+                                .map(matchings -> matchings
+                                        .filter(m -> m.getString("name").equals(name))
+                                        .findFirst()
+                                        .orElse(new JsonObject().put("error", "no exact match for " + name)));
+                    }
+                });
     }
 
     public Future<JsonObject> lookupAlliance(String alliance) {
@@ -156,10 +178,9 @@ public class Esi {
                     .onFailure(promise::fail)
                     .onSuccess(result -> promise.complete(result.bodyAsJsonObject()));
         });
-
     }
 
-    public Future<JsonObject> fetchCharacter(int characterId) {
+    private Future<JsonObject> fetchCharacter(int characterId) {
         return Future.future(promise -> {
             String url = "/characters/" + characterId;
             etagCache.callApi(ESI_BASE + url)
