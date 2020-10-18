@@ -47,6 +47,8 @@ public class DbClient {
     public static final String DB_WRITE_LOGIN = "DB_WRITE_LOGIN";
     public static final String DB_FETCH_REFRESH_TOKEN = "DB_FETCH_REFRESH_TOKEN";
     public static final String DB_TOGGLE_RESOLVED = "DB_TOGGLE_RESOLVED";
+    public static final String DB_TEAM_UUID_FOR_NAME = "DB_TEAM_UUID_FOR_NAME";
+    public static final String DB_CREATE_MATCH = "DB_CREATE_MATCH";
 
     private final EventBus eventBus;
 

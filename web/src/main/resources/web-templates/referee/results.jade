@@ -83,6 +83,8 @@ block append styles
 
 
 mixin results(json)
+    - var uuid = tournament.getString("uuid")
+
     if json.getString("error") != null
         p= json.getString("error")
     else
@@ -123,7 +125,6 @@ mixin results(json)
                                     td= pilot.getString("ship")
                                     td= (!pilot.getBoolean("onTeam") ? "Not on team. " : "") + pilot.getString("skillsMessage")
 
-
 block content
     - var uuid = tournament.getString("uuid")
 
@@ -137,6 +138,15 @@ block content
         .team.red
             h2 Red Team
             mixin results(results.red)
+
+    form.pure-form(action="/auth/tournament/" + uuid + "/referee/record", method="POST")
+        input(name="id", type="hidden", value=results.id)
+        input(name="blueJson", type="hidden", value=results.blue.encode())
+        input(name="redJson", type="hidden", value=results.red.encode())
+        fieldset
+            a(href="/auth/tournament/" + uuid + "/referee") < back
+            | &nbsp;
+            button.pure-button.pure-button-primary(type="submit") Record
 
 block scripts
 

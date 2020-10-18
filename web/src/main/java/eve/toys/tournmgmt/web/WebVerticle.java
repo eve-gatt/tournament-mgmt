@@ -6,6 +6,7 @@ import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.routes.*;
 import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
@@ -35,6 +36,8 @@ import java.util.concurrent.TimeUnit;
 public class WebVerticle extends AbstractVerticle {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebVerticle.class.getName());
 
+    private static final boolean IS_DEV = Boolean.parseBoolean(System.getProperty("isDev", "false"));
+
     private static final boolean pseudoStaticCaching = false;
     private static final String ESI_CLIENT = System.getenv("ESI_CLIENT");
     private static final String ESI_SECRET = System.getenv("ESI_SECRET");
@@ -46,6 +49,7 @@ public class WebVerticle extends AbstractVerticle {
 
         Objects.requireNonNull(ESI_CLIENT, "Please supply ESI_CLIENT");
         Objects.requireNonNull(ESI_SECRET, "Please supply ESI_SECRET");
+        Objects.requireNonNull(IS_DEV, "Please supply an isDev property");
 
         this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
         Esi esi = Esi.create(webClient, CircuitBreaker.create("esi-cb", vertx));
@@ -88,9 +92,11 @@ public class WebVerticle extends AbstractVerticle {
                 .handler(BodyHandler.create())
                 .pathRegex("^(?!/js/|/css/|/assets/).+")
                 .handler(ctx -> addCharacterInfoToContext(ctx)
-                        .compose(v -> addPilotsTeamsToContext(ctx))
-                        .compose(v -> addThunderdomeDeetsToContext(ctx))
-                        .compose(v -> addTournamentInfoToContext(ctx))
+                        .compose(v -> CompositeFuture.all(
+                                addIsDev(ctx),
+                                addPilotsTeamsToContext(ctx),
+                                addThunderdomeDeetsToContext(ctx),
+                                addTournamentInfoToContext(ctx)))
                         .onSuccess(f -> ctx.next())
                         .onFailure(throwable -> {
                             throwable.printStackTrace();
@@ -132,6 +138,11 @@ public class WebVerticle extends AbstractVerticle {
                 .requestHandler(router)
                 .listen(6070);
         startPromise.complete();
+    }
+
+    private Future<Void> addIsDev(RoutingContext ctx) {
+        ctx.data().put("isDev", IS_DEV);
+        return Future.succeededFuture();
     }
 
     private Future<Void> addCharacterInfoToContext(RoutingContext ctx) {

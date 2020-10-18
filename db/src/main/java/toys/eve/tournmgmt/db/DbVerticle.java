@@ -100,8 +100,38 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_WRITE_LOGIN, this::writeLogin);
         vertx.eventBus().consumer(DbClient.DB_FETCH_REFRESH_TOKEN, this::fetchRefreshToken);
         vertx.eventBus().consumer(DbClient.DB_TOGGLE_RESOLVED, this::toggleResolved);
+        vertx.eventBus().consumer(DbClient.DB_TEAM_UUID_FOR_NAME, this::teamUuidForName);
+        vertx.eventBus().consumer(DbClient.DB_CREATE_MATCH, this::createMatch);
 
         startPromise.complete();
+    }
+
+    private void createMatch(Message<JsonObject> msg) {
+        int inputId = msg.body().getInteger("inputsId");
+        String createdBy = msg.body().getString("createdBy");
+        String tournamentUuid = msg.body().getString("tournamentUuid");
+        String blueTeam = msg.body().getString("blueTeam");
+        String redTeam = msg.body().getString("redTeam");
+        String blueJson = msg.body().getString("blueJson");
+        String redJson = msg.body().getString("redJson");
+        sqlClient.updateWithParams("insert into match (reftool_inputs_id, created_by, tournament_uuid, blueTeam, redTeam, blueJson, redJson) " +
+                                   "values(?, ?, ?::uuid, ?::uuid, ?::uuid, ?, ?)",
+                new JsonArray()
+                        .add(inputId)
+                        .add(createdBy)
+                        .add(tournamentUuid)
+                        .add(blueTeam)
+                        .add(redTeam)
+                        .add(blueJson)
+                        .add(redJson),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(null);
+                    }
+                });
     }
 
     private void toggleResolved(Message<JsonObject> msg) {
@@ -121,6 +151,25 @@ public class DbVerticle extends AbstractVerticle {
                         msg.fail(1, ar.cause().getMessage());
                     } else {
                         msg.reply(null);
+                    }
+                });
+    }
+
+    private void teamUuidForName(Message<JsonObject> msg) {
+        String tournamentUuid = msg.body().getString("tournamentUuid");
+        String name = msg.body().getString("teamName");
+        sqlClient.queryWithParams("select uuid from team " +
+                                  "where tournament_uuid = ?::uuid " +
+                                  "and name = ?",
+                new JsonArray()
+                        .add(tournamentUuid)
+                        .add(name),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(ar.result().getRows().get(0).getString("uuid"));
                     }
                 });
     }
@@ -780,7 +829,7 @@ public class DbVerticle extends AbstractVerticle {
                         ar.cause().printStackTrace();
                         msg.fail(1, ar.cause().getMessage());
                     } else {
-                        msg.reply(input);
+                        msg.reply(ar.result().getKeys().getInteger(0));
                     }
                 });
     }

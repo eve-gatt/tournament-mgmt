@@ -6,7 +6,9 @@ import eve.toys.tournmgmt.web.authn.Role;
 import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.match.RefToolInput;
 import io.vertx.core.CompositeFuture;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.oauth2.OAuth2Auth;
@@ -51,10 +53,48 @@ public class RefereeRouter {
                 .handler(refinputs)
                 .handler(this::success)
                 .blockingHandler(this::fail);
+        router.post("/:tournamentUuid/referee/record")
+                .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiserOrReferee))
+                .handler(this::record);
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient, Esi esi, OAuth2Auth oauth2) {
         return new RefereeRouter(vertx, render, dbClient, esi, oauth2).router();
+    }
+
+    private void record(RoutingContext ctx) {
+        MultiMap form = ctx.request().formAttributes();
+        String tournamentUuid = ctx.request().getParam("tournamentUuid");
+        String characterName = ((JsonObject) ctx.data().get("character")).getString("characterName");
+        int id = Integer.parseInt(form.get("id"));
+        String blueJson = form.get("blueJson");
+        String redJson = form.get("redJson");
+
+        CompositeFuture.all(
+                dbClient.callDb(DbClient.DB_TEAM_UUID_FOR_NAME, new JsonObject()
+                        .put("tournamentUuid", tournamentUuid)
+                        .put("teamName", new JsonObject(blueJson).getJsonArray("teams").getJsonObject(0).getString("team_name"))),
+                dbClient.callDb(DbClient.DB_TEAM_UUID_FOR_NAME, new JsonObject()
+                        .put("tournamentUuid", tournamentUuid)
+                        .put("teamName", new JsonObject(redJson).getJsonArray("teams").getJsonObject(0).getString("team_name"))))
+                .compose(f -> {
+                    String blueUuid = (String) ((Message) f.resultAt(0)).body();
+                    String redUuid = (String) ((Message) f.resultAt(1)).body();
+                    return dbClient.callDb(DbClient.DB_CREATE_MATCH, new JsonObject()
+                            .put("inputsId", id)
+                            .put("createdBy", characterName)
+                            .put("tournamentUuid", tournamentUuid)
+                            .put("blueTeam", blueUuid)
+                            .put("redTeam", redUuid)
+                            .put("blueJson", blueJson)
+                            .put("redJson", redJson));
+                })
+                .onFailure(ctx::fail)
+                .onSuccess(msg -> {
+                    render.renderPage(ctx, "/referee/record-success",
+                            new JsonObject());
+                });
+
     }
 
     private void home(RoutingContext ctx) {
@@ -79,25 +119,25 @@ public class RefereeRouter {
         JsonObject red = new JsonObject();
         JsonObject blue = new JsonObject();
         dbClient.callDb(DbClient.DB_RECORD_REFTOOL_INPUTS, form)
-                .compose(v -> {
+                .compose(msg -> {
                     RefToolInput refToolInput = new RefToolInput(dbClient, esi, oauth2);
                     return CompositeFuture.all(
                             refToolInput.process(form.getString("red"), red, tournamentUuid),
                             refToolInput.process(form.getString("blue"), blue, tournamentUuid)
                             // TODO: validate rule adhere, e.g. max 3x frigates, logi exempt but different rules
-                    );
+                    ).onSuccess(f -> {
+                        JsonObject json = new JsonObject()
+                                .put("id", msg.body())
+                                .put("red", red)
+                                .put("blue", blue);
+                        render.renderPage(ctx, "/referee/results", json);
+                    });
                 })
                 .onFailure(t -> {
                     t.printStackTrace();
                     render.renderPage(ctx, "/referee/results", new JsonObject()
                             .put("red", new JsonObject().put("error", t.getMessage()))
                             .put("blue", new JsonObject().put("error", t.getMessage())));
-                })
-                .onSuccess(f -> {
-                    JsonObject json = new JsonObject()
-                            .put("red", red)
-                            .put("blue", blue);
-                    render.renderPage(ctx, "/referee/results", json);
                 });
     }
 

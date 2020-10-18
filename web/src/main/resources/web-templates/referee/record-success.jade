@@ -1,0 +1,15 @@
+extends ../../layout/tournament-layout
+
+block append styles
+    style.
+
+block content
+    - var uuid = tournament.getString("uuid")
+
+    mixin subtitle("Match recorded")
+
+    p Match successfully recorded.
+    a(href="/auth/tournament/" + uuid + "/referee") Next match
+
+block scripts
+
