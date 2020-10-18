@@ -6,8 +6,14 @@ block append styles
 
         .teams {
             display: grid;
-            grid: auto-flow / 1fr 1fr;
+            grid: auto-flow / 1fr;
             gap: 24px;
+        }
+
+        @media screen and (min-width: 1350px) {
+            .teams {
+                grid: auto-flow / 1fr 1fr;
+            }
         }
 
         .teams > .team {
