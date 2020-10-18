@@ -34,9 +34,7 @@ public class StreamRouter {
         router.get("/stream/:code/overlay/:number").handler(this::overlayNumber);
         router.get("/auth/stream/manage").handler(this::manage);
         router.post("/auth/stream/manage/:number").handler(this::switchTo);
-
         router.get("/stream/:tournamentUuid/matches/latest-match/data").handler(this::latestMatch);
-
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient, Esi esi) {
