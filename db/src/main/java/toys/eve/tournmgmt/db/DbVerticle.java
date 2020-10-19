@@ -106,6 +106,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_ALL_MATCHES, this::allMatches);
         vertx.eventBus().consumer(DbClient.DB_LATEST_MATCH, this::latestMatch);
         vertx.eventBus().consumer(DbClient.DB_MATCH_BY_ID, this::matchById);
+        vertx.eventBus().consumer(DbClient.DB_RECORD_OF_SHIP, this::dbRecordOfShip);
         startPromise.complete();
     }
 
@@ -1026,6 +1027,25 @@ public class DbVerticle extends AbstractVerticle {
                         msg.fail(1, ar.cause().getMessage());
                     } else {
                         msg.reply(ar.result().getRows().get(0));
+                    }
+                });
+    }
+
+    private void dbRecordOfShip(Message<String> msg) {
+        String ship = msg.body();
+        sqlClient.queryWithParams("select * from ships where name = ?",
+                new JsonArray().add(ship),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        List<JsonObject> rows = ar.result().getRows();
+                        if (rows.size() == 1) {
+                            msg.reply(rows.get(0));
+                        } else {
+                            msg.reply(null);
+                        }
                     }
                 });
     }

@@ -80,35 +80,6 @@ public class RefToolInput {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RefToolInput.class.getName());
 
-    private static final List<Tuple2<String, ShipClass>> CATEGORIES = Arrays.asList(
-            Tuple.of("Elite Battleship", ShipClass.Battleship),
-            Tuple.of("Marauder", ShipClass.Battleship),
-            Tuple.of("Battleship", ShipClass.Battleship),
-            Tuple.of("Black Ops", ShipClass.Battleship),
-            Tuple.of("Command Ship", ShipClass.Battlecruiser),
-            Tuple.of("Logistics", ShipClass.Logistics),
-            Tuple.of("Combat Battlecruiser", ShipClass.Battlecruiser),
-            Tuple.of("Strategic Cruiser", ShipClass.Cruiser),
-            Tuple.of("Heavy Assault Cruiser", ShipClass.Cruiser),
-            Tuple.of("Heavy Interdiction Cruiser", ShipClass.Cruiser),
-            Tuple.of("Attack Battlecruiser", ShipClass.Battlecruiser),
-            Tuple.of("Combat Recon Ship", ShipClass.Cruiser),
-            Tuple.of("Force Recon Ship", ShipClass.Cruiser),
-            Tuple.of("Cruiser", ShipClass.Cruiser),
-            Tuple.of("Command Destroyer", ShipClass.Destroyer),
-            Tuple.of("Electronic Attack Ship", ShipClass.Frigate),
-            Tuple.of("Tactical Destroyer", ShipClass.Destroyer),
-            Tuple.of("Covert Ops", ShipClass.Frigate),
-            Tuple.of("Interdictor", ShipClass.Destroyer),
-            Tuple.of("Assault Frigate", ShipClass.Frigate),
-            Tuple.of("Logistics Frigate", ShipClass.Logistics),
-            Tuple.of("Stealth Bomber", ShipClass.Frigate),
-            Tuple.of("Destroyer", ShipClass.Destroyer),
-            Tuple.of("Industrial", ShipClass.Industrial),
-            Tuple.of("Interceptor", ShipClass.Frigate),
-            Tuple.of("Expedition Frigate", ShipClass.Frigate),
-            Tuple.of("Frigate", ShipClass.Frigate),
-            Tuple.of("Corvette", ShipClass.Corvette));
     private final DbClient dbClient;
     private final Esi esi;
     private final OAuth2Auth oauth2;
@@ -131,10 +102,6 @@ public class RefToolInput {
                                 output.put("comp", comp);
                                 String mainTeam = output.getJsonArray("teams").getJsonObject(0).getString("team_name");
                                 return CompositeFuture.all(
-                                        forEachPilot(comp, pilotAndShip -> getCategory(pilotAndShip.getString("ship"))
-                                                .onSuccess(category -> pilotAndShip
-                                                        .put("category", category)
-                                                        .put("class", classOf(category)))),
                                         forEachPilot(comp, pilotAndShip -> pilotIsOnTeam(pilotAndShip.getString("pilot"), mainTeam, tournamentUuid)
                                                 .onSuccess(isOnTeam -> pilotAndShip.put("onTeam", isOnTeam))),
                                         forEachPilot(comp, pilotAndShip -> canPilotFlyShip(pilotAndShip)
@@ -143,8 +110,7 @@ public class RefToolInput {
                             }).onSuccess(v -> {
                                 JsonArray ordered = new JsonArray(output.getJsonArray("comp").stream()
                                         .map(o -> (JsonObject) o)
-                                        .sorted(Comparator.comparing(p -> classIndex(((JsonObject) p).getString("category")))
-                                                .thenComparing(p -> categoryIndex(((JsonObject) p).getString("category"))))
+                                        .sorted(compSorting())
                                         .collect(toList()));
                                 output.put("comp", ordered);
                             }))
@@ -155,40 +121,11 @@ public class RefToolInput {
         });
     }
 
-    private int classIndex(String category) {
-        return CATEGORIES.stream()
-                .filter(t -> t._1().equals(category))
-                .findFirst()
-                .map(t -> t._2().ordinal())
-                .orElse(ShipClass.values().length + 1);
-    }
-
-    private int categoryIndex(String category) {
-        return CATEGORIES.indexOf(CATEGORIES.stream()
-                .filter(t -> t._1().equals(category))
-                .findFirst()
-                .orElse(null));
-    }
-
-    private String classOf(String category) {
-        return CATEGORIES.stream()
-                .filter(t -> t._1().equals(category))
-                .findFirst()
-                .map(t -> t._2().name())
-                .orElse("unknown");
-    }
-
-    private Future<String> getCategory(String ship) {
-        return esi.lookupShip(ship)
-                .map(esiResult -> esiResult.getJsonArray("result").getInteger(0))
-                .compose(esi::fetchType)
-                .map(esiResult -> esiResult.getJsonObject("result").getInteger("group_id"))
-                .compose(esi::fetchGroup)
-                .map(esiResult -> esiResult.getJsonObject("result").getString("name"))
-                .recover(t -> {
-                    LOGGER.error("Looking up category for ship: " + ship, t);
-                    return Future.succeededFuture("unknown");
-                });
+    private Comparator<Object> compSorting() {
+        return Comparator.comparing(p -> ((JsonObject) p).getInteger("points")).reversed()
+                .thenComparing(p -> ((JsonObject) p).getInteger("type_id")).reversed()
+                // should never be used
+                .thenComparing(p -> ((JsonObject) p).getString("pilot"));
     }
 
     private Future<Tuple3<String, String, Object>> addRefreshToken(Tuple2<String, String> ns) {
@@ -251,12 +188,22 @@ public class RefToolInput {
     }
 
     private Future<JsonArray> comp(String input) {
-        return Future.succeededFuture(new JsonArray(Arrays.stream(input.split("\n"))
+        return CompositeFuture.all(Arrays.stream(input.split("\n"))
                 .map(row -> row.split("\t"))
                 .map(split -> new JsonObject()
                         .put("pilot", split[0])
                         .put("ship", split[1]))
-                .collect(toList())));
+                .map(row -> dbClient.callDb(DbClient.DB_RECORD_OF_SHIP, row.getString("ship"))
+                        .map(msg -> {
+                            JsonObject body = (JsonObject) msg.body();
+                            row.put("type_id", body == null ? -1 : body.getInteger("type_id"));
+                            row.put("points", body == null ? -1 : body.getInteger("ao_points"));
+                            row.put("exact_type", body == null ? "unknown" : body.getString("ao_exact_type"));
+                            row.put("overlay", body == null ? "unknown" : body.getString("ao_overlay"));
+                            return row;
+                        }))
+                .collect(toList()))
+                .map(f -> new JsonArray(f.list().stream().map(o -> (JsonObject) o).collect(Collectors.toList())));
     }
 
     private Future<JsonArray> guessTeams(String tournamentUuid, List<String> pilots) {

@@ -53,6 +53,7 @@ public class DbClient {
     public static final String DB_LATEST_MATCH = "DB_LATEST_MATCH";
     public static final String DB_ALL_MATCHES = "DB_ALL_MATCHES";
     public static final String DB_MATCH_BY_ID = "DB_MATCH_BY_ID";
+    public static final String DB_RECORD_OF_SHIP = "DB_RECORD_OF_SHIP";
 
     private final EventBus eventBus;
 

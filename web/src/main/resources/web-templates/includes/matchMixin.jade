@@ -35,7 +35,7 @@ mixin results(json)
             background: -webkit-linear-gradient(left, darkgreen 0%, #00640020 30%, rgba(222, 222, 222, 0) 100%);
         }
 
-        .comp td:nth-child(1), .comp td:nth-child(2), .comp td:nth-child(3) {
+        .comp td:nth-child(1), .comp td:nth-child(2), .comp td:nth-child(3), .comp td:nth-child(4) {
             white-space: nowrap;
         }
 
@@ -76,6 +76,8 @@ mixin results(json)
                                 tr(class=(pilot.getBoolean("onTeam") ? "" : "not-on-team"),
                                     class=(pilot.getString("skillsMessage").isEmpty() ? "" : "skills-not-good"))
                                     td= pilot.getString("pilot")
+                                    td= pilot.getString("exact_type")
+                                    // remove eventually
                                     td= pilot.getString("class")
                                         small= " (" + pilot.getString("category") + ")"
                                     td= pilot.getString("ship")
