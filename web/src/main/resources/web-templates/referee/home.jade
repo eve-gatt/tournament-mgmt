@@ -7,21 +7,11 @@ block append styles
             grid: auto-flow / auto 1fr;
             column-gap: 24px;
             grid-template-areas:
-                 "form screenshots";
+                 "form matches";
         }
 
         .tool form {
             grid-area: form;
-        }
-
-        .tool a {
-            grid-area: screenshots;
-            align-self: start;
-            justify-self: center;
-        }
-
-        .tool img {
-            max-width: 500px;
         }
 
         .pure-control-group + .pure-control-group {
@@ -46,6 +36,12 @@ block append styles
             box-shadow: inset 0 1px 3px blue;
         }
 
+        .match {
+            display: grid;
+            grid: auto-flow / 160px auto;
+            justify-items: start;
+        }
+
 block content
     - var uuid = tournament.getString("uuid")
 
@@ -64,15 +60,12 @@ block content
                 .pure-controls
                     button.pure-button.pure-button-primary(type="submit") Validate
 
-        .docs
-            p.
-                The following things may break the ref tool until a reboot.
-            ul
-                li Do not teleport team back to station once they're in the tournament system.
-                li Do not try to end a match early.
-
-            a(href="/assets/exefile_2020-10-13_16-56-24.png")
-                img(src="/assets/exefile_2020-10-13_16-56-24.png")
+        .matches
+            if matches.size() > 1
+                each match in matches
+                    .match
+                        a(href="/auth/tournament/" + uuid + "/match/" + match.getInteger("id"))= match.getString("created_at_formatted")
+                        a(href="/auth/tournament/" + uuid + "/match/" + match.getInteger("id")) #{match.getString("blue_team_name")} vs #{match.getString("red_team_name")}
 
 block scripts
 

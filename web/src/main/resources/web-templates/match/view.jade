@@ -45,28 +45,21 @@ block append styles
 
 block content
     - var uuid = tournament.getString("uuid")
+    - var blue = match.getJsonObject("bluejson")
+    - var red = match.getJsonObject("redjson")
 
-    mixin subtitle("Referee")
+    mixin subtitle("View match")
 
-    form.pure-form(action="/auth/tournament/" + uuid + "/referee/record", method="POST")
-        input(name="id", type="hidden", value=results.id)
-        input(name="blueJson", type="hidden", value=results.blue.encode())
-        input(name="redJson", type="hidden", value=results.red.encode())
-        fieldset
-            a(href="/auth/tournament/" + uuid + "/referee") < back
-            | &nbsp;
-            button.pure-button.pure-button-primary(type="submit") Record
-            | &nbsp;
-            | Once you are happy with the teams and the match is going ahead with this lineup then click record. If the teams will be making adjustments then click back and repaste once done.
+    | The following information is as the referee sees it before your match starts.
 
     .teams
         .team.blue
             h2 Blue Team
-            mixin results(results.blue)
+            mixin results(blue)
 
         .team.red
             h2 Red Team
-            mixin results(results.red)
+            mixin results(red)
 
 block scripts
 

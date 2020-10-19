@@ -10,6 +10,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
 
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,8 +18,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RenderHelper {
-    public static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final Logger LOGGER = LoggerFactory.getLogger(RenderHelper.class.getName());
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM K:mm a").withZone(ZoneId.of("UTC"));
     private final JadeTemplateEngine engine;
     private final String pathPrefix;
 
@@ -29,6 +30,10 @@ public class RenderHelper {
 
     public static void doRedirect(HttpServerResponse response, String url) {
         response.putHeader("location", url).setStatusCode(302).end();
+    }
+
+    public static JsonObject formatCreatedAt(JsonObject m) {
+        return m.put("created_at_formatted", DATE_FORMAT.format(m.getInstant("created_at")));
     }
 
     public ZonedDateTime parseLandBotTimestamp(Double timestamp) {

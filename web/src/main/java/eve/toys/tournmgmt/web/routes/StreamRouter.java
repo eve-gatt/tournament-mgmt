@@ -10,13 +10,9 @@ import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
 import java.nio.charset.StandardCharsets;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 
 public class StreamRouter {
-
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM K:mm a").withZone(ZoneId.of("UTC"));
 
     private final RenderHelper render;
     private final DbClient dbClient;
@@ -41,14 +37,10 @@ public class StreamRouter {
         return new StreamRouter(vertx, render, dbClient, esi).router();
     }
 
-    private static JsonObject formatCreatedAt(JsonObject m) {
-        return m.put("created_at_formatted", DATE_FORMAT.format(m.getInstant("created_at")));
-    }
-
     private void latestMatch(RoutingContext ctx) {
         dbClient.callDb(DbClient.DB_LATEST_MATCH, null)
                 .map(msg -> (JsonObject) msg.body())
-                .map(StreamRouter::formatCreatedAt)
+                .map(RenderHelper::formatCreatedAt)
                 .onFailure(ctx::fail)
                 .onSuccess(match -> ctx.response().end(match.encode()));
     }

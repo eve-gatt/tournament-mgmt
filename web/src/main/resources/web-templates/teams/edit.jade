@@ -30,6 +30,7 @@ block append styles
         .match {
             display: grid;
             grid: auto-flow / 160px auto;
+            justify-items: start;
         }
 
 block content
@@ -64,14 +65,15 @@ block content
     - var canAlwaysMaintain = isSuperuser || isCreator || roles.contains("organiser")
     - var canMaintainWhenNotLocked = !isLocked && isTeamCaptain
 
-    if canAlwaysMaintain || canMaintainWhenNotLocked
-        a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/add-members") Add team members
+    .actions
+        if canAlwaysMaintain || canMaintainWhenNotLocked
+            a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/add-members") Add team members
+            if isLocked
+                a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/unlock-team") Unlock team
+            else
+                a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/lock-team") Lock team
         if isLocked
-            a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/unlock-team") Unlock team
-        else
-            a(href="/auth/tournament/" + tournamentUuid + "/teams/" + teamUuid + "/lock-team") Lock team
-    if isLocked
-        a(href="/auth/tournament/" + tournamentUuid + "/thunderdome") Thunderdome accounts
+            a(href="/auth/tournament/" + tournamentUuid + "/thunderdome") Thunderdome accounts
 
 block scripts
     script.

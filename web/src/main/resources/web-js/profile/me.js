@@ -11,7 +11,7 @@ import {tournamentActions} from '../modules/actions.js'
             entering.append('td').text(d => d.created_by);
             entering.append('td').text(d => d.team_count);
             entering.append('td').text(d => d.teams_locked);
-            entering.append('td').call(tournamentActions)
+            entering.append('td').classed('actions', true).call(tournamentActions)
         } else {
             d3.select('.tournaments table').style('display', 'none');
         }

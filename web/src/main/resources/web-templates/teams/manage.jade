@@ -85,8 +85,9 @@ block content
                 th Actions
                 th Problems
             tbody
-        if canImport
-            a(href="/auth/tournament/" + uuid + "/teams/import") Import teams
+        .actions
+            if canImport
+                a(href="/auth/tournament/" + uuid + "/teams/import") Import teams
 
 block scripts
     script.

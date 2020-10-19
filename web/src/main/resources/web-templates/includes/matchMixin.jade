@@ -1,0 +1,82 @@
+mixin results(json)
+    style.
+        h3 small {
+            display: block;
+            margin-left: 24px;
+            font-weight: normal;
+        }
+
+        .results {
+            margin-left: 24px;
+        }
+
+        .missingEsi {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .missingEsi .name + .name {
+            margin-left: 20px;
+        }
+
+        .split-teams .multi {
+            display: flex;
+        }
+
+        .split-teams .multi .team + .team {
+            margin-left: 20px;
+        }
+
+        .comp .not-on-team, .comp .skills-not-good {
+            background: -webkit-linear-gradient(left, darkred 0%, #8b000020 30%, rgba(222, 222, 222, 0) 100%);
+        }
+
+        .comp tr:not([class]) {
+            background: -webkit-linear-gradient(left, darkgreen 0%, #00640020 30%, rgba(222, 222, 222, 0) 100%);
+        }
+
+        .comp td:nth-child(1), .comp td:nth-child(2), .comp td:nth-child(3) {
+            white-space: nowrap;
+        }
+
+    - var uuid = tournament.getString("uuid")
+
+    if json.getString("error") != null
+        p= json.getString("error")
+    else
+        .result
+            - var noEsi = json.getJsonArray("noEsi")
+            if noEsi.size() > 0
+                .section
+                    h3 Missing ESI details
+                        small please ask pilot to login to eve.toys and then go back and resubmit
+                    .missingEsi
+                        each name in noEsi
+                            .name= name
+
+            - var teams = json.getJsonArray("teams")
+            .section
+                .split-teams
+                    h3 Team
+                    if teams.size() == 1
+                        p= teams.getJsonObject(0).getString("team_name")
+                    else
+                        p Squad is made of pilots from multiple teams
+                        .multi
+                            each team in teams
+                                .team #{team.getString("team_name")} (#{team.getInteger("count")})
+
+            .section
+                .comp
+                    h3 Team Composition
+                    - var comp = json.getJsonArray("comp")
+                    table.pure-table
+                        tbody
+                            each pilot in comp
+                                tr(class=(pilot.getBoolean("onTeam") ? "" : "not-on-team"),
+                                    class=(pilot.getString("skillsMessage").isEmpty() ? "" : "skills-not-good"))
+                                    td= pilot.getString("pilot")
+                                    td= pilot.getString("class")
+                                        small= " (" + pilot.getString("category") + ")"
+                                    td= pilot.getString("ship")
+                                    td= (!pilot.getBoolean("onTeam") ? "Not on team. " : "") + pilot.getString("skillsMessage")

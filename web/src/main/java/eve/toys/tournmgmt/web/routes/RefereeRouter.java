@@ -10,6 +10,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.oauth2.OAuth2Auth;
 import io.vertx.ext.web.Router;
@@ -23,6 +24,7 @@ import toys.eve.tournmgmt.db.DbClient;
 
 import java.util.Map;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 public class RefereeRouter {
 
@@ -98,17 +100,27 @@ public class RefereeRouter {
     }
 
     private void home(RoutingContext ctx) {
-        JsonObject form = ctx.get("form");
-        if (form == null) {
-            form = new JsonObject()
-                    .put("red", "")
-                    .put("blue", "");
-            ctx.put("results", new JsonObject());
-        }
+        dbClient.callDb(DbClient.DB_ALL_MATCHES, null)
+                .map(msg -> (JsonArray) msg.body())
+                .map(arr -> new JsonArray(arr.stream()
+                        .map(o -> (JsonObject) o)
+                        .map(RenderHelper::formatCreatedAt)
+                        .collect(Collectors.toList())))
+                .onFailure(ctx::fail)
+                .onSuccess(arr -> {
+                    JsonObject form = ctx.get("form");
+                    if (form == null) {
+                        form = new JsonObject()
+                                .put("red", "")
+                                .put("blue", "");
+                        ctx.put("results", new JsonObject());
+                    }
 
-        render.renderPage(ctx, "/referee/home",
-                new JsonObject()
-                        .put("form", form));
+                    render.renderPage(ctx, "/referee/home",
+                            new JsonObject()
+                                    .put("matches", arr)
+                                    .put("form", form));
+                });
     }
 
     private void success(RoutingContext ctx) {
@@ -163,4 +175,5 @@ public class RefereeRouter {
     private Router router() {
         return router;
     }
+
 }

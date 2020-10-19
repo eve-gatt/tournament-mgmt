@@ -51,6 +51,8 @@ public class DbClient {
     public static final String DB_CREATE_MATCH = "DB_CREATE_MATCH";
     public static final String DB_MATCHES_FOR_TEAM = "DB_MATCHES_FOR_TEAM";
     public static final String DB_LATEST_MATCH = "DB_LATEST_MATCH";
+    public static final String DB_ALL_MATCHES = "DB_ALL_MATCHES";
+    public static final String DB_MATCH_BY_ID = "DB_MATCH_BY_ID";
 
     private final EventBus eventBus;
 
