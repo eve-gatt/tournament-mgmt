@@ -2,9 +2,9 @@ extends ../../layout/streamer-layout
 
 block styles
     style.
-        .display {
-            background-image: url("/assets/tmp/exefile_2020-10-17_20-52-11.png")
-        }
+        /*.display {*/
+        /*    background-image: url("/assets/tmp/exefile_2020-10-17_20-52-11.png")*/
+        /*}*/
 
         @font-face {
             font-family: Shentox;
@@ -34,8 +34,16 @@ block styles
             height: 18px;
             width: 596px;
             position: absolute;
-            margin-top: -18px;
+        }
+
+        .red .colour-overlay {
+            margin-top: -16px;
             margin-left: -20px;
+        }
+
+        .blue .colour-overlay {
+            margin-top: -16px;
+            margin-left: -492px;
         }
 
         .red .pilot {
@@ -45,8 +53,9 @@ block styles
         }
 
         .blue .pilot {
+            background-color: #1b1f2f;
             padding: 0 14px;
-            margin: 4px 0;
+            margin: 4px 0 4px -14px;
         }
 
         .pilots.red {
