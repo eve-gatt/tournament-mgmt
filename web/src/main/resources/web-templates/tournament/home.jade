@@ -18,7 +18,8 @@ block content
             span= tournament.getInteger("team_locked_count")
             span &nbsp;teams locked
         p
-            span= tournament.getInteger("pilot_count")
+            // allow for 1 captain per team too
+            span= (tournament.getInteger("pilot_count") + tournament.getInteger("team_count"))
             span &nbsp;pilots registered
 
         - var roles = tournament.getString("roles") == null ? "" : tournament.getString("roles")
