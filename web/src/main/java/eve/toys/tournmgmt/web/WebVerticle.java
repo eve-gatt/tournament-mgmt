@@ -122,7 +122,7 @@ public class WebVerticle extends AbstractVerticle {
         router.route("/auth/superuser/*")
                 .handler(RedirectAuthHandler.create(oauth2, "/login/start")
                         .addAuthority("isSuperuser"));
-        router.mountSubRouter("/auth/superuser", SuperuserRouter.routes(vertx, render, jobClient, dbClient));
+        router.mountSubRouter("/auth/superuser", SuperuserRouter.routes(vertx, render, jobClient, dbClient, esi));
         router.mountSubRouter("/auth/ccp", CCPRouter.routes(vertx, render, dbClient));
         router.mountSubRouter("/", StreamRouter.routes(vertx, render, dbClient, esi));
 

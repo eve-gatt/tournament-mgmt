@@ -3,19 +3,50 @@ extends ../../layout/streamer-layout
 block styles
     style.
         .display {
-            /*background-image: url("/assets/tmp/exefile_2020-10-17_20-52-11.png")*/
+            background-image: url("/assets/tmp/exefile_2020-10-17_20-52-11.png")
+        }
+
+        @font-face {
+            font-family: Shentox;
+            src: url("/assets/fonts/Shentox-Regular.otf") format("opentype");
+        }
+
+        body {
+            font-family: Shentox;
         }
 
         .overlay {
             display: grid;
             width: 1920px;
-            grid: 860px auto / 270px 74px 1fr 74px 270px;
+            grid: 858px auto / 240px 100px 1fr 100px 240px;
             grid-template-areas:
                 ". ... . .... ."
                 ". red . blue .";
             align-items: start;
             justify-items: start;
-            font-size: 12px;
+            font-size: 0.8em;
+            letter-spacing: 0.1em;
+            line-height: 14px;
+        }
+
+        .colour-overlay {
+            opacity: 0.2;
+            height: 18px;
+            width: 596px;
+            position: absolute;
+            margin-top: -18px;
+            margin-left: -20px;
+        }
+
+        .red .pilot {
+            background-color: #271d1d;
+            padding: 0 14px;
+            margin: 4px 0;
+        }
+
+        .blue .pilot {
+            padding: 0 14px;
+            margin: 4px 0;
         }
 
         .pilots.red {
