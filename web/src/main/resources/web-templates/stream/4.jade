@@ -2,9 +2,9 @@ extends ../../layout/streamer-layout
 
 block styles
     style.
-        /*.display {*/
-        /*    background-image: url("/assets/tmp/exefile_2020-10-17_20-52-11.png")*/
-        /*}*/
+        .display {
+            /*background-image: url("/assets/tmp/exefile_2020-10-17_20-52-11.png")*/
+        }
 
         @font-face {
             font-family: Shentox;
@@ -18,7 +18,7 @@ block styles
         .overlay {
             display: grid;
             width: 1920px;
-            grid: 858px auto / 240px 100px 1fr 100px 240px;
+            grid: 858px auto / 175px 150px 1fr 160px 175px;
             grid-template-areas:
                 ". ... . .... ."
                 ". red . blue .";
@@ -32,7 +32,7 @@ block styles
         .colour-overlay {
             opacity: 0.2;
             height: 18px;
-            width: 596px;
+            width: 680px;
             position: absolute;
         }
 
@@ -50,12 +50,14 @@ block styles
             background-color: #271d1d;
             padding: 0 14px;
             margin: 4px 0;
+            width: 100%
         }
 
         .blue .pilot {
             background-color: #1b1f2f;
             padding: 0 14px;
             margin: 4px 0 4px -14px;
+            width: 100%
         }
 
         .pilots.red {

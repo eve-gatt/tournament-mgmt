@@ -8,10 +8,10 @@
         let pilots = overlay.select('.pilots.' + colour).selectAll('.pilot').data(json.comp);
         let enteringPilot = pilots.enter().append('div').classed('pilot', true);
         enteringPilot.append('div')
-            .text(d => d.class);
+            .text(d => d.overlay);
         enteringPilot.append('div')
             .classed('colour-overlay', true)
-            .style('background-color', d => colorScheme(d.class));
+            .style('background-color', d => colorScheme(d.overlay));
     }
 
     function render(match) {

@@ -122,8 +122,8 @@ public class RefToolInput {
     }
 
     private Comparator<Object> compSorting() {
-        return Comparator.comparing(p -> ((JsonObject) p).getInteger("points")).reversed()
-                .thenComparing(p -> ((JsonObject) p).getInteger("type_id")).reversed()
+        return Comparator.comparing(p -> -((JsonObject) p).getInteger("points"))
+                .thenComparing(p -> -((JsonObject) p).getInteger("type_id"))
                 // should never be used
                 .thenComparing(p -> ((JsonObject) p).getString("pilot"));
     }
