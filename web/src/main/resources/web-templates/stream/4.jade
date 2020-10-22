@@ -3,7 +3,7 @@ extends ../../layout/streamer-layout
 block styles
     style.
         .display {
-            /*background-image: url("/assets/tmp/exefile_2020-10-17_20-52-11.png")*/
+            /*background-image: url("/assets/tmp/exefile_2020-10-22_17-39-11.png")*/
         }
 
         @font-face {
@@ -18,60 +18,74 @@ block styles
         .overlay {
             display: grid;
             width: 1920px;
-            grid: 858px auto / 175px 150px 1fr 160px 175px;
+            grid: 858px auto / 1fr 1220px 1fr;
             grid-template-areas:
-                ". ... . .... ."
-                ". red . blue .";
-            align-items: start;
-            justify-items: start;
+                "... ...... ...."
+                "red spacer blue";
             font-size: 0.8em;
             letter-spacing: 0.1em;
             line-height: 14px;
+            column-gap: 8px;
         }
 
         .colour-overlay {
             opacity: 0.2;
             height: 18px;
-            width: 680px;
+            width: 830px;
             position: absolute;
+            margin-top: -16px;
         }
 
         .red .colour-overlay {
-            margin-top: -16px;
-            margin-left: -20px;
+            left: 0;
         }
 
         .blue .colour-overlay {
-            margin-top: -16px;
-            margin-left: -492px;
+            right: 0;
+        }
+
+        .pilots {
+
+        }
+
+        .pilot {
+            margin: 4px 0px;
+            width: 100%;
+            white-space: nowrap;
         }
 
         .red .pilot {
             background-color: #271d1d;
-            padding: 0 14px;
-            margin: 4px 0;
-            width: 100%
+            padding: 0 6px 0 6px;
         }
 
         .blue .pilot {
             background-color: #1b1f2f;
-            padding: 0 14px;
-            margin: 4px 0 4px -14px;
-            width: 100%
+            padding: 0 6px 0 6px;
+            margin-left: -10px; /* tweak here for left align of blue */
         }
 
         .pilots.red {
             grid-area: red;
+            justify-self: end;
         }
 
         .pilots.blue {
             grid-area: blue;
+            justify-self: start;
+        }
+
+        .spacer {
+            /*border: 1px solid green;*/
+            /*width: 100%;*/
+            /*height: 100%;*/
         }
 
 block content
 
     .overlay
         .pilots.red
+        .spacer(style="grid-area: spacer")
         .pilots.blue
 
 block scripts
