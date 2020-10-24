@@ -5,4 +5,3 @@ create table streamers
             primary key,
     uuid uuid    not null
 );
-
