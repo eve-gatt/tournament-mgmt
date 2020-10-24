@@ -3,14 +3,12 @@ package eve.toys.tournmgmt.web.routes;
 import eve.toys.tournmgmt.web.esi.Esi;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 public class StreamRouter {
 
@@ -26,10 +24,17 @@ public class StreamRouter {
         this.dbClient = dbClient;
         this.esi = esi;
         this.eventBus = vertx.eventBus();
-        router.get("/stream/:code/overlay").handler(this::overlay);
-        router.get("/stream/:code/overlay/:number").handler(this::overlayNumber);
+
+        router.get("/stream/:code/overlay")
+                .handler(this::checkCode)
+                .handler(this::defaultOverlay);
+        router.get("/stream/:code/overlay/:number")
+                .handler(this::checkCode)
+                .handler(this::overlayNumber);
+
         router.get("/auth/stream/manage").handler(this::manage);
         router.post("/auth/stream/manage/:number").handler(this::switchTo);
+
         router.get("/stream/:tournamentUuid/matches/latest-match/data").handler(this::latestMatch);
     }
 
@@ -55,14 +60,13 @@ public class StreamRouter {
         JsonObject character = (JsonObject) ctx.data().get("character");
         String characterName = character.getString("characterName");
 
-        dbClient.callDb(DbClient.DB_FETCH_REFRESH_TOKEN, characterName)
+        dbClient.callDb(DbClient.DB_FETCH_STREAMER_TOKEN, characterName)
                 .onFailure(ctx::fail)
                 .onSuccess(msg -> {
-                    String refreshToken = ((JsonObject) msg.body()).getString("refresh_token");
-                    String encoded = Base64.getEncoder().encodeToString(refreshToken.getBytes(StandardCharsets.UTF_8));
-                    eventBus.publish("streamer.do-reload",
+                    String uuid = ((JsonObject) msg.body()).getString("uuid");
+                    eventBus.publish("streamer.do-reload." + uuid,
                             new JsonObject()
-                                    .put("location", "/stream/" + encoded + "/overlay/" + number));
+                                    .put("location", "/stream/" + uuid + "/overlay/" + number));
                     ctx.response().end("{}");
                 });
     }
@@ -71,9 +75,23 @@ public class StreamRouter {
         render.renderPage(ctx, "/stream/manage", new JsonObject());
     }
 
-    private void overlay(RoutingContext ctx) {
+    private void checkCode(RoutingContext ctx) {
         String code = ctx.request().getParam("code");
-        String refreshToken = new String(Base64.getDecoder().decode(code));
+        dbClient.callDb(DbClient.DB_STREAMER_BY_CODE, code)
+                .onFailure(ctx::fail)
+                .onSuccess(msg -> {
+                    JsonArray results = (JsonArray) msg.body();
+                    if (results.size() == 1) {
+                        ctx.data().put("streamerCode", code);
+                        ctx.data().put("streamerName", results.getJsonObject(0).getString("name"));
+                        ctx.next();
+                    } else {
+                        ctx.fail(403);
+                    }
+                });
+    }
+
+    private void defaultOverlay(RoutingContext ctx) {
         render.renderPage(ctx, "/stream/1", new JsonObject());
     }
 

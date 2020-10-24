@@ -14,11 +14,9 @@ import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -58,7 +56,9 @@ public class ProfileRouter {
     }
 
     private void me(RoutingContext ctx) {
-        CompositeFuture.all(checkNameInUseReports(ctx.data()), checkStreamerAccess(ctx.data()))
+        CompositeFuture.all(
+                checkNameInUseReports(ctx.data()),
+                checkStreamerAccess(ctx.data()))
                 .onFailure(ctx::fail)
                 .onSuccess(v -> {
                     render.renderPage(ctx, "/profile/me", new JsonObject());
@@ -69,22 +69,16 @@ public class ProfileRouter {
         return Future.future(promise -> {
             JsonObject character = (JsonObject) data.get("character");
             String characterName = character.getString("characterName");
-            Boolean isSuperuser = character.getBoolean("isSuperuser");
-            if (isSuperuser
-                || characterName.equals("Bei ArtJay")
-                || characterName.equals("Kei Hazard")) {
-                dbClient.callDb(DbClient.DB_FETCH_REFRESH_TOKEN, characterName)
-                        .onFailure(promise::fail)
-                        .onSuccess(msg -> {
-                            String refreshToken = ((JsonObject) msg.body()).getString("refresh_token");
-                            String encoded = Base64.getEncoder().encodeToString(refreshToken.getBytes(StandardCharsets.UTF_8));
-                            data.put("streamerOverlayUrl", System.getenv("BASE_URL") + "/stream/" + encoded + "/overlay");
+            dbClient.callDb(DbClient.DB_FETCH_STREAMER_TOKEN, characterName)
+                    .onFailure(promise::fail)
+                    .onSuccess(msg -> {
+                        String uuid = ((JsonObject) msg.body()).getString("uuid");
+                        if (uuid != null) {
+                            data.put("streamerOverlayUrl", System.getenv("BASE_URL") + "/stream/" + uuid + "/overlay");
                             data.put("streamerMgmtUrl", System.getenv("BASE_URL") + "/auth/stream/manage");
-                            promise.complete();
-                        });
-            } else {
-                promise.complete();
-            }
+                        }
+                        promise.complete();
+                    });
         });
     }
 

@@ -9,7 +9,7 @@
 
     eb.onopen = function () {
         console.log('eb.onopen()');
-        eb.registerHandler('streamer.do-reload', function (err, msg) {
+        eb.registerHandler('streamer.do-reload.' + streamerCode, function (err, msg) {
             let location = msg.body.location;
             console.log("Navigating to", location);
             window.location = location;

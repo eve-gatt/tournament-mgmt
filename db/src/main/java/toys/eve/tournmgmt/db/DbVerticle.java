@@ -15,10 +15,7 @@ import io.vertx.ext.sql.SQLConnection;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class DbVerticle extends AbstractVerticle {
@@ -106,8 +103,39 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_ALL_MATCHES, this::allMatches);
         vertx.eventBus().consumer(DbClient.DB_LATEST_MATCH, this::latestMatch);
         vertx.eventBus().consumer(DbClient.DB_MATCH_BY_ID, this::matchById);
-        vertx.eventBus().consumer(DbClient.DB_RECORD_OF_SHIP, this::dbRecordOfShip);
+        vertx.eventBus().consumer(DbClient.DB_RECORD_OF_SHIP, this::recordOfShip);
+        vertx.eventBus().consumer(DbClient.DB_FETCH_STREAMER_TOKEN, this::fetchStreamerToken);
+        vertx.eventBus().consumer(DbClient.DB_STREAMER_BY_CODE, this::streamerByCode);
+
+        LOGGER.info("Starting data fixes");
+        dataFixes();
+        LOGGER.info("Completed data fixes");
+
         startPromise.complete();
+    }
+
+    private void dataFixes() {
+        Future.<ResultSet>future(promise -> sqlClient.query("select count(*) from streamers", promise))
+                .compose(rs -> {
+                    if (rs.getRows().get(0).getInteger("count") == 0) {
+                        return Future.<SQLConnection>future(promise -> {
+                            sqlClient.getConnection(promise);
+                        });
+                    } else {
+                        return Future.failedFuture("not needed");
+                    }
+                })
+                .compose(conn ->
+                        Future.<Void>future(promise -> conn.setAutoCommit(false, promise))
+                                .compose(v -> Future.<List<Integer>>future(promise -> conn.batchWithParams("insert into streamers values (?, ?::uuid)",
+                                        Arrays.asList(
+                                                new JsonArray().add("Gatt2111").add(UUID.randomUUID().toString()),
+                                                new JsonArray().add("Bei ArtJay").add(UUID.randomUUID().toString()),
+                                                new JsonArray().add("Kei Hazard").add(UUID.randomUUID().toString())
+                                        ), promise))
+                                        .compose(ints -> Future.future(conn::commit)))
+                                .onFailure(t -> t.printStackTrace())
+                                .onSuccess(v -> LOGGER.info("Streamers created")));
     }
 
     private void createMatch(Message<JsonObject> msg) {
@@ -193,6 +221,40 @@ public class DbVerticle extends AbstractVerticle {
                         } else {
                             msg.reply(new JsonObject().put("character_name", user));
                         }
+                    }
+                });
+    }
+
+    private void fetchStreamerToken(Message<String> msg) {
+        String user = msg.body();
+        sqlClient.queryWithParams("select uuid from streamers where name = ?",
+                new JsonArray().add(user),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        ResultSet result = ar.result();
+                        if (result.getNumRows() == 1) {
+                            msg.reply(result.getRows().get(0));
+                        } else {
+                            msg.reply(new JsonObject().put("character_name", user));
+                        }
+                    }
+                });
+    }
+
+    private void streamerByCode(Message<String> msg) {
+        String uuid = msg.body();
+        sqlClient.queryWithParams("select name from streamers where uuid = ?::uuid",
+                new JsonArray().add(uuid),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        ResultSet result = ar.result();
+                        msg.reply(new JsonArray(result.getRows()));
                     }
                 });
     }
@@ -1031,7 +1093,7 @@ public class DbVerticle extends AbstractVerticle {
                 });
     }
 
-    private void dbRecordOfShip(Message<String> msg) {
+    private void recordOfShip(Message<String> msg) {
         String ship = msg.body();
         sqlClient.queryWithParams("select * from ships where name = ?",
                 new JsonArray().add(ship),
