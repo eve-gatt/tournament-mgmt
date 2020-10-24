@@ -3,6 +3,7 @@ extends ../../layout/streamer-layout
 block styles
     style.
         .display {
+            /*background-image: url("/assets/tmp/exefile_2020-10-22_17-39-11.png")*/
         }
 
         @font-face {
@@ -78,7 +79,8 @@ block styles
         .names {
             grid-area: names;
             display: grid;
-            grid: auto-flow / 1fr 394px 1fr;
+            grid: auto-flow / 1fr 272px 1fr;
+            /*grid: auto-flow / 1fr 394px 1fr;*/
             grid-template-areas:
                 "redname . bluename";
             font-size: 1.8em;
@@ -87,7 +89,7 @@ block styles
         }
 
         .names > div {
-            padding: 6px;
+            padding: 6px 20px;
         }
 
         .redname {
