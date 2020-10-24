@@ -10,6 +10,8 @@ import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 
+import java.util.UUID;
+
 public class StreamRouter {
 
     private final RenderHelper render;
@@ -77,6 +79,13 @@ public class StreamRouter {
 
     private void checkCode(RoutingContext ctx) {
         String code = ctx.request().getParam("code");
+
+        try {
+            UUID.fromString(code);
+        } catch (IllegalArgumentException e) {
+            ctx.fail(403);
+            return;
+        }
         dbClient.callDb(DbClient.DB_STREAMER_BY_CODE, code)
                 .onFailure(ctx::fail)
                 .onSuccess(msg -> {
