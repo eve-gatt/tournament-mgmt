@@ -3,7 +3,6 @@ extends ../../layout/streamer-layout
 block styles
     style.
         .display {
-            /*background-image: url("/assets/tmp/exefile_2020-10-22_17-39-11.png")*/
         }
 
         @font-face {
@@ -18,8 +17,9 @@ block styles
         .overlay {
             display: grid;
             width: 1920px;
-            grid: 858px auto / 1fr 1220px 1fr;
+            grid: 777px 81px auto / 1fr 1220px 1fr;
             grid-template-areas:
+                "... names  ...."
                 "... ...... ...."
                 "red spacer blue";
             font-size: 0.8em;
@@ -75,6 +75,33 @@ block styles
             justify-self: start;
         }
 
+        .names {
+            grid-area: names;
+            display: grid;
+            grid: auto-flow / 1fr 394px 1fr;
+            grid-template-areas:
+                "redname . bluename";
+            font-size: 1.8em;
+            align-items: end;
+            white-space: nowrap;
+        }
+
+        .names > div {
+            padding: 6px;
+        }
+
+        .redname {
+            grid-area: redname;
+            justify-self: end;
+            background-color: #510a0a;
+        }
+
+        .bluename {
+            grid-area: bluename;
+            justify-self: start;
+            background-color: #00204a;
+        }
+
         .spacer {
             /*border: 1px solid green;*/
             /*width: 100%;*/
@@ -84,6 +111,9 @@ block styles
 block content
 
     .overlay
+        .names
+            .redname
+            .bluename
         .pilots.red
         .spacer(style="grid-area: spacer")
         .pilots.blue

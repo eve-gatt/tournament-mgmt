@@ -60,6 +60,10 @@
         "Wildcard Stealth Bomber": "yellow",
     }
 
+    function sizeName(name) {
+        return name.length > 25 ? name.substring(0, 23) + '...' : name;
+    }
+
     function pilots(match, colour) {
         let json = JSON.parse(match[colour + 'json']);
         let pilots = overlay.select('.pilots.' + colour).selectAll('.pilot').data(json.comp);
@@ -72,6 +76,8 @@
     }
 
     function render(match) {
+        overlay.select('.redname').text(sizeName("420 MLG TWINTURBO 3000 EMPIRE ALLIANCE RELOADED"));
+        overlay.select('.bluename').text(sizeName(match.blue_team_name.toUpperCase()));
         pilots(match, 'red');
         pilots(match, 'blue');
     }
