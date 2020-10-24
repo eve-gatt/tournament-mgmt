@@ -61,7 +61,7 @@
     }
 
     function sizeName(name) {
-        return name.length > 25 ? name.substring(0, 23) + '...' : name;
+        return (name.length > 25 ? name.substring(0, 23) + '...' : name).toUpperCase();
     }
 
     function pilots(match, colour) {
@@ -76,8 +76,8 @@
     }
 
     function render(match) {
-        overlay.select('.redname').text(sizeName("420 MLG TWINTURBO 3000 EMPIRE ALLIANCE RELOADED"));
-        overlay.select('.bluename').text(sizeName(match.blue_team_name.toUpperCase()));
+        overlay.select('.redname').text(sizeName(match.red_team_name));
+        overlay.select('.bluename').text(sizeName(match.blue_team_name));
         pilots(match, 'red');
         pilots(match, 'blue');
     }
