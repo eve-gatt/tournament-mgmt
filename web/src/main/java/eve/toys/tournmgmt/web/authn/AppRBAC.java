@@ -28,18 +28,19 @@ public class AppRBAC implements OAuth2RBAC {
         this.eventBus = eventBus;
     }
 
-    public static void refreshIfNeeded(AccessToken user, Handler<Void> handler) {
-        if (user.expired()) {
+    public static void refreshIfNeeded(AccessToken user, Handler<AsyncResult<Void>> handler) {
+        if (user.opaqueAccessToken() == null || user.expired()) {
             LOGGER.info("Refreshing token");
             user.refresh(ar -> {
                 if (ar.failed()) {
                     ar.cause().printStackTrace();
+                    handler.handle(Future.failedFuture(user.opaqueRefreshToken() + " failed to refresh"));
                 } else {
-                    handler.handle(null);
+                    handler.handle(Future.succeededFuture());
                 }
             });
         } else {
-            handler.handle(null);
+            handler.handle(Future.succeededFuture());
         }
     }
 
@@ -70,6 +71,10 @@ public class AppRBAC implements OAuth2RBAC {
                 });
     }
 
+    public static boolean isSuperuser(String characterName) {
+        return characterName.equals(SUPERUSER);
+    }
+
     @Override
     public void isAuthorized(AccessToken user, String authority, Handler<AsyncResult<Boolean>> handler) {
         // TODO: remember to user.clearCache() to have this re-evaluated if persisted perms changes
@@ -95,10 +100,6 @@ public class AppRBAC implements OAuth2RBAC {
                         }
                     });
         }
-    }
-
-    public static boolean isSuperuser(String characterName) {
-        return characterName.equals(SUPERUSER);
     }
 
 }

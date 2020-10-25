@@ -150,6 +150,10 @@ public class WebVerticle extends AbstractVerticle {
         return Future.future(promise -> {
             if (ctx.user() != null) {
                 AppRBAC.refreshIfNeeded((AccessToken) ctx.user(), v -> {
+                    if (v.failed()) {
+                        promise.complete();
+                        return;
+                    }
                     JsonObject parsed = KeycloakHelper.parseToken(((AccessToken) ctx.user()).opaqueAccessToken());
                     JsonObject character = new JsonObject()
                             .put("characterName", parsed.getString("name"))

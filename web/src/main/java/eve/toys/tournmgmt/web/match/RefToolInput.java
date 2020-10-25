@@ -1,5 +1,6 @@
 package eve.toys.tournmgmt.web.match;
 
+import eve.toys.tournmgmt.web.authn.AppRBAC;
 import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.esi.ShipSkillChecker;
 import io.vavr.Tuple;
@@ -128,8 +129,18 @@ public class RefToolInput {
                 .thenComparing(p -> ((JsonObject) p).getString("pilot"));
     }
 
-    private Future<Tuple3<String, String, Object>> addRefreshToken(Tuple2<String, String> ns) {
-        return dbClient.callDb(DbClient.DB_FETCH_REFRESH_TOKEN, ns._1()).map(msg -> ns.append(((JsonObject) msg.body()).getString("refresh_token")));
+    private Future<Tuple3<String, String, String>> addRefreshToken(Tuple2<String, String> ns) {
+        return dbClient.callDb(DbClient.DB_FETCH_REFRESH_TOKEN, ns._1())
+                .map(msg -> ((JsonObject) msg.body()))
+                .compose(result -> {
+                    if (result.getString("refresh_token") == null) {
+                        return Future.failedFuture("no refresh token found");
+                    } else {
+                        return Future.succeededFuture(result.getString("refresh_token"));
+                    }
+                })
+                .map(ns::append)
+                .recover(t -> Future.succeededFuture(ns.append(null)));
     }
 
     private Future<String> canPilotFlyShip(JsonObject pilotAndShip) {
@@ -144,10 +155,10 @@ public class RefToolInput {
                 });
     }
 
-    private Future<String> doSkillsThing(Tuple3<String, String, Object> t) {
+    private Future<String> doSkillsThing(Tuple3<String, String, String> t) {
         String shipName = t._2();
         OAuth2TokenImpl token = new OAuth2TokenImpl(oauth2, new JsonObject().put("refresh_token", t._3()));
-        return Future.future(token::refresh)
+        return Future.<Void>future(promise -> AppRBAC.refreshIfNeeded(token, promise))
                 .compose(v -> {
                     JsonObject parsed = KeycloakHelper.parseToken(((AccessToken) token).opaqueAccessToken());
                     int characterId = Integer.parseInt(parsed.getString("sub").split(":")[2]);
@@ -168,7 +179,8 @@ public class RefToolInput {
                                                (toonLevel == 0 ? "untrained" : "only " + toonLevel + ".");
                                     })
                                     .collect(Collectors.joining(" ")));
-                });
+                })
+                .recover(throwable -> Future.succeededFuture("Invalid ESI."));
     }
 
     private CompositeFuture forEachPilot(JsonArray comp, Function<JsonObject, Future<?>> fn) {
@@ -180,7 +192,7 @@ public class RefToolInput {
 
     private Future<Boolean> pilotIsOnTeam(String pilot, String team, String tournamentUuid) {
         return dbClient.callDb(DbClient.DB_TEAMS_BY_PILOT, pilot)
-                .map(msg -> msg.body())
+                .map(Message::body)
                 .map(teams -> ((JsonArray) teams).stream()
                         .map(o -> (JsonObject) o)
                         .filter(t -> t.getString("tournament_uuid").equals(tournamentUuid))
@@ -239,7 +251,7 @@ public class RefToolInput {
         return CompositeFuture.all(pilots.stream().map(pilot -> dbClient.callDb(DbClient.DB_FETCH_REFRESH_TOKEN, pilot)).collect(toList()))
                 .map(f -> f.list().stream()
                         .map(msg -> (Message<JsonObject>) msg)
-                        .map(msg -> msg.body())
+                        .map(Message::body)
                         .filter(json -> json.getString("refresh_token") == null)
                         .map(json -> json.getString("character_name"))
                         .collect(toList()));

@@ -1,7 +1,6 @@
 package eve.toys.tournmgmt.web.esi;
 
 import eve.toys.tournmgmt.web.AppStreamHelpers;
-import eve.toys.tournmgmt.web.authn.AppRBAC;
 import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -80,21 +79,18 @@ public class Esi {
 
     public Future<JsonObject> fetchCharacterSkills(AccessToken user, int characterId) {
         return Future.future(promise -> {
-            AppRBAC.refreshIfNeeded(user, v -> {
-                String url = "/characters/" + characterId + "/skills/";
-                user.fetch(ESI_BASE + url, ar -> {
-                    if (ar.failed()) {
-                        promise.fail(ar.cause());
-                        return;
-                    }
-                    if (ar.result().statusCode() != 200) {
-                        promise.fail(ar.result().statusCode()
-                                     + "\n" + url);
-                        return;
-                    }
-                    promise.complete(ar.result().jsonObject());
-                });
-
+            String url = "/characters/" + characterId + "/skills/";
+            user.fetch(ESI_BASE + url, ar -> {
+                if (ar.failed()) {
+                    promise.fail(ar.cause());
+                    return;
+                }
+                if (ar.result().statusCode() != 200) {
+                    promise.fail(ar.result().statusCode()
+                                 + "\n" + url);
+                    return;
+                }
+                promise.complete(ar.result().jsonObject());
             });
         });
     }
@@ -188,4 +184,5 @@ public class Esi {
                     .onSuccess(result -> promise.complete(result.bodyAsJsonObject()));
         });
     }
+
 }
