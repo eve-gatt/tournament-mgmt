@@ -10,8 +10,8 @@ mixin myTeam
 doctype html
 html
     head
-        script(async, src="https://www.googletagmanager.com/gtag/js?id=UA-159453647-3")
         if !isDev
+            script(async, src="https://www.googletagmanager.com/gtag/js?id=UA-159453647-3")
             script.
                 window.dataLayer = window.dataLayer || [];
                 function gtag() {
