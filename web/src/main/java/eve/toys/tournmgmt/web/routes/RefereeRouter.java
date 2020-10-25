@@ -8,6 +8,7 @@ import eve.toys.tournmgmt.web.match.RefToolInput;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -17,7 +18,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.api.RequestParameters;
 import io.vertx.ext.web.api.validation.HTTPRequestValidationHandler;
-import io.vertx.ext.web.api.validation.ParameterType;
+import io.vertx.ext.web.api.validation.ParameterTypeValidator;
 import io.vertx.ext.web.api.validation.ValidationException;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
@@ -32,20 +33,28 @@ public class RefereeRouter {
     private final DbClient dbClient;
     private final Esi esi;
     private final OAuth2Auth oauth2;
+    private final EventBus eventBus;
     private final Router router;
 
-    public RefereeRouter(Vertx vertx, RenderHelper render, DbClient dbClient, Esi esi, OAuth2Auth oauth2) {
+    public RefereeRouter(Vertx vertx, RenderHelper render, DbClient dbClient, Esi esi, OAuth2Auth oauth2, EventBus eventBus) {
         router = Router.router(vertx);
         this.render = render;
         this.dbClient = dbClient;
         this.esi = esi;
         this.oauth2 = oauth2;
+        this.eventBus = eventBus;
 
         AuthnRule isOrganiserOrReferee = AuthnRule.create().role(Role.ORGANISER, Role.REFEREE).isSuperuser();
 
         HTTPRequestValidationHandler refinputs = HTTPRequestValidationHandler.create()
-                .addFormParam("red", ParameterType.GENERIC_STRING, true)
-                .addFormParam("blue", ParameterType.GENERIC_STRING, true);
+                .addFormParamWithCustomTypeValidator("red",
+                        ParameterTypeValidator.createStringTypeValidator("\\p{ASCII}+", null),
+                        true,
+                        false)
+                .addFormParamWithCustomTypeValidator("blue",
+                        ParameterTypeValidator.createStringTypeValidator("\\p{ASCII}+", null),
+                        true,
+                        false);
 
         router.get("/:tournamentUuid/referee")
                 .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiserOrReferee))
@@ -54,14 +63,20 @@ public class RefereeRouter {
                 .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiserOrReferee))
                 .handler(refinputs)
                 .handler(this::success)
-                .blockingHandler(this::fail);
+                .failureHandler(this::fail);
+        router.get("/:tournamentUuid/referee/record")
+                .handler(RefereeRouter::redirectToRefHome);
         router.post("/:tournamentUuid/referee/record")
                 .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiserOrReferee))
                 .handler(this::record);
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient, Esi esi, OAuth2Auth oauth2) {
-        return new RefereeRouter(vertx, render, dbClient, esi, oauth2).router();
+        return new RefereeRouter(vertx, render, dbClient, esi, oauth2, vertx.eventBus()).router();
+    }
+
+    private static void redirectToRefHome(RoutingContext ctx) {
+        RenderHelper.doRedirect(ctx.response(), "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/referee");
     }
 
     private void record(RoutingContext ctx) {
@@ -91,8 +106,12 @@ public class RefereeRouter {
                             .put("blueJson", blueJson)
                             .put("redJson", redJson));
                 })
+                .compose(f -> dbClient.callDb(DbClient.DB_LATEST_MATCH, null)
+                        .map(msg -> (JsonObject) msg.body())
+                        .map(RenderHelper::formatCreatedAt))
                 .onFailure(ctx::fail)
-                .onSuccess(msg -> {
+                .onSuccess(match -> {
+                    eventBus.publish("streamer.new-match", match.encode());
                     render.renderPage(ctx, "/referee/record-success",
                             new JsonObject());
                 });
@@ -154,7 +173,6 @@ public class RefereeRouter {
     }
 
     private void fail(RoutingContext ctx) {
-        RenderHelper.doRedirect(ctx.response(), "/auth/tournament/" + ctx.request().getParam("tournamentUuid") + "/referee");
         Throwable failure = ctx.failure();
         if (failure instanceof ValidationException) {
             JsonObject form = ctx.request().formAttributes().entries().stream().collect(formEntriesToJson());

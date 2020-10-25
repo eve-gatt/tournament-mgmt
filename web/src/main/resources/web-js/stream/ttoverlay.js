@@ -1,5 +1,8 @@
 (function () {
 
+    var eb = new EventBus("/ws");
+    eb.enableReconnect(true);
+
     // let colorScheme = d3.scaleOrdinal(d3.schemeCategory10);
     let overlay = d3.select('.overlay');
 
@@ -18,7 +21,7 @@
         "Industrial": "grey",
         "Interceptor": "yellow",
         "Logistics Cruiser": "red",
-        "Logistics Frigate": "yellow",
+        "Logistics Frigate": "red",
         "Marauder": "green",
         "Mining Frigate": "yellow",
         "Navy Battlecruiser": "blue",
@@ -66,7 +69,8 @@
 
     function pilots(match, colour) {
         let json = JSON.parse(match[colour + 'json']);
-        let pilots = overlay.select('.pilots.' + colour).selectAll('.pilot').data(json.comp);
+        let pilots = overlay.select('.pilots.' + colour).selectAll('.pilot').data(json.comp, d => match.id + "/" + d.pilot);
+        pilots.exit().remove();
         let enteringPilot = pilots.enter().append('div').classed('pilot', true);
         enteringPilot.append('div')
             .text(d => d.overlay);
@@ -86,5 +90,11 @@
         .then(function (data) {
             render(data);
         });
+
+    eb.onopen = function () {
+        eb.registerHandler('streamer.new-match', function (err, msg) {
+            render(JSON.parse(msg.body));
+        });
+    }
 
 })();
