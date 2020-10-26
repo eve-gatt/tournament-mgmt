@@ -124,6 +124,11 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: SUPERUSER
+            - name: DISCORD_WEBHOOK
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DISCORD_WEBHOOK
 
       imagePullSecrets:
         - name: regcred

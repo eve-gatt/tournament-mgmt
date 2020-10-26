@@ -15,18 +15,23 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import toys.eve.tournmgmt.db.DbClient;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class JobVerticle extends AbstractVerticle {
     private static final Logger LOGGER = LoggerFactory.getLogger(JobVerticle.class.getName());
-    private static final String WEBHOOK = "https://discordapp.com/api/webhooks/764837845532672050/a-ZCY7CQd2yNU1HNV4uWbwniS_CGm9llQNYYLaXVox8F81Dd38ePfQs2hLq0FzfZdmRE";
+    private static final String WEBHOOK = System.getenv("DISCORD_WEBHOOK");
     private static final boolean IS_DEV = Boolean.parseBoolean(System.getProperty("isDev", "false"));
     private WebClient webClient;
     private Esi esi;
     private DbClient dbClient;
 
     public void start(Promise<Void> startPromise) {
+
+        Objects.requireNonNull(IS_DEV);
+        Objects.requireNonNull(WEBHOOK);
+
         LOGGER.info("Initialising jobs");
         this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
         this.esi = Esi.create(webClient, CircuitBreaker.create("esi-cb", vertx));
