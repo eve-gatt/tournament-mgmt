@@ -9,23 +9,32 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
+import toys.eve.tournmgmt.db.HistoricalClient;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class StreamRouter {
 
     private final RenderHelper render;
     private final DbClient dbClient;
+    private final HistoricalClient historical;
     private final Esi esi;
     private final Router router;
     private final EventBus eventBus;
+    private final Map<Integer, String> tournaments = new HashMap<>();
 
-    public StreamRouter(Vertx vertx, RenderHelper render, DbClient dbClient, Esi esi) {
+    public StreamRouter(Vertx vertx, RenderHelper render, DbClient dbClient, HistoricalClient historical, Esi esi) {
         router = Router.router(vertx);
         this.render = render;
         this.dbClient = dbClient;
+        this.historical = historical;
         this.esi = esi;
         this.eventBus = vertx.eventBus();
+
+        initialiseTournaments();
 
         router.get("/stream/:code/overlay")
                 .handler(this::checkCode)
@@ -38,10 +47,40 @@ public class StreamRouter {
         router.post("/auth/stream/manage/:number").handler(this::switchTo);
 
         router.get("/stream/:tournamentUuid/matches/latest-match/data").handler(this::latestMatch);
+        router.get("/stream/:tournamentUuid/history/:name").handler(this::historicalDataForTeam);
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient, Esi esi) {
-        return new StreamRouter(vertx, render, dbClient, esi).router();
+    public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient, HistoricalClient historical, Esi esi) {
+        return new StreamRouter(vertx, render, dbClient, historical, esi).router();
+    }
+
+    private void initialiseTournaments() {
+        tournaments.put(0, "AT10");
+        tournaments.put(1, "AT11");
+        tournaments.put(4, "AT12");
+        tournaments.put(6, "AT13");
+        tournaments.put(15, "AT14");
+        tournaments.put(16, "AT15");
+        tournaments.put(17, "AT16");
+        tournaments.put(-2, "AT8");
+    }
+
+    private void historicalDataForTeam(RoutingContext ctx) {
+        historical.callDb(HistoricalClient.Call.HISTORICAL_FETCH_MATCHES_BY_TEAM, ctx.request().getParam("name"))
+                .map(msg -> (JsonArray) msg.body())
+                .map(data -> new JsonArray(data.stream()
+                        .map(o -> (JsonObject) o)
+                        .map(match -> matchWithTournamentName(match))
+                        .collect(Collectors.toList()))
+                )
+                .onFailure(ctx::fail)
+                .onSuccess(data -> ctx.response().end(data.encode()));
+    }
+
+    private JsonObject matchWithTournamentName(JsonObject match) {
+        int tournamentId = match.getInteger("Tournament");
+        String tournamentName = tournaments.getOrDefault(tournamentId, "unknown");
+        return match.put("tournamentName", tournamentName);
     }
 
     private void latestMatch(RoutingContext ctx) {

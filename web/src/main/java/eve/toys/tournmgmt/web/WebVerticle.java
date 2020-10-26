@@ -29,6 +29,7 @@ import io.vertx.ext.web.sstore.SessionStore;
 import io.vertx.ext.web.templ.jade.JadeTemplateEngine;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
+import toys.eve.tournmgmt.db.HistoricalClient;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -43,6 +44,7 @@ public class WebVerticle extends AbstractVerticle {
     private static final String ESI_SECRET = System.getenv("ESI_SECRET");
     private WebClient webClient;
     private DbClient dbClient;
+    private HistoricalClient historicalClient;
 
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
@@ -54,6 +56,7 @@ public class WebVerticle extends AbstractVerticle {
         this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
         Esi esi = Esi.create(webClient, CircuitBreaker.create("esi-cb", vertx));
         dbClient = new DbClient(vertx.eventBus());
+        historicalClient = new HistoricalClient(vertx.eventBus());
         JobClient jobClient = new JobClient(vertx.eventBus());
 
         SessionStore sessionStore = LocalSessionStore.create(vertx);
@@ -124,7 +127,7 @@ public class WebVerticle extends AbstractVerticle {
                         .addAuthority("isSuperuser"));
         router.mountSubRouter("/auth/superuser", SuperuserRouter.routes(vertx, render, jobClient, dbClient, esi));
         router.mountSubRouter("/auth/ccp", CCPRouter.routes(vertx, render, dbClient));
-        router.mountSubRouter("/", StreamRouter.routes(vertx, render, dbClient, esi));
+        router.mountSubRouter("/", StreamRouter.routes(vertx, render, dbClient, historicalClient, esi));
 
         SockJSHandler sockJSHandler = SockJSHandler.create(vertx, new SockJSHandlerOptions());
         sockJSHandler.bridge(new BridgeOptions()

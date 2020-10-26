@@ -58,7 +58,7 @@ public class DbVerticle extends AbstractVerticle {
                 .put("url", URL)
                 .put("user", USER)
                 .put("password", PASSWORD);
-        sqlClient = JDBCClient.createShared(vertx, config);
+        sqlClient = JDBCClient.createShared(vertx, config, "main");
 
         vertx.eventBus().consumer(DbClient.DB_CREATE_TOURNAMENT, this::createTournament);
         vertx.eventBus().consumer(DbClient.DB_EDIT_TOURNAMENT, this::editTournament);

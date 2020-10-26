@@ -7,6 +7,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import toys.eve.tournmgmt.common.vertx.GlobalOptions;
 import toys.eve.tournmgmt.db.DbVerticle;
+import toys.eve.tournmgmt.db.HistoricalDbVerticle;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,7 @@ public class SingleProcessMain {
 
         List<Future> workers = new ArrayList<>();
         workers.add(deployHelper(vertx, DbVerticle.class, new DeploymentOptions().setWorker(true)));
+        workers.add(deployHelper(vertx, HistoricalDbVerticle.class, new DeploymentOptions().setWorker(true)));
         workers.add(deployHelper(vertx, JobVerticle.class, new DeploymentOptions().setWorker(true)));
 
         CompositeFuture.all(workers)
