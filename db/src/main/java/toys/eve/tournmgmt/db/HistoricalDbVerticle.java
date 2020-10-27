@@ -45,7 +45,7 @@ public class HistoricalDbVerticle extends AbstractVerticle {
                                   "from matches " +
                                   "where RedTeam = ? " +
                                   "   or BlueTeam = ? " +
-                                  "order by Tournament, MatchNo",
+                                  "order by Tournament, MatchNo, SeriesNo",
                 new JsonArray().add(teamName).add(teamName),
                 ar -> {
                     if (ar.failed()) {

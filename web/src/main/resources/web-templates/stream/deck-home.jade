@@ -8,9 +8,29 @@ block append styles
             gap: 12px;
         }
 
+        .widget {
+            display: grid;
+            grid: auto auto / auto;
+        }
+
+        .widget h3 {
+            place-items: center;
+        }
+
+        .widget .w {
+            justify-self: stretch;
+            align-self: start;
+        }
+
+        .w.clear {
+            font-size: 2em;
+            text-align: center;
+        }
+
         .w {
             --padding: 20px 15px;
             font-size: 0.5em;
+            cursor: pointer;
             /*transform: scale(0.5);*/
             /*transform-origin: left top;*/
         }
@@ -26,6 +46,10 @@ block content
     h2 Current match
     .widgets
         .widget
+            h3 Clear
+            .w.clear
+                | clear
+        .widget
             h3 Red Team History
             .w.red-team-history
         .widget
@@ -40,8 +64,9 @@ block scripts
         eb.enableReconnect(true);
 
         function requestWidget(colour) {
-            eb.publish('widget-request', {colour: colour});
+            eb.publish('streamer.widget-request', {colour: colour});
         }
+        d3.select('.clear').on('click', e => eb.publish('streamer.widget-clear'));
         streamInit5('.red-team-history', 'red');
         d3.select('.red-team-history').on('click', e => requestWidget('red'));
         streamInit5('.blue-team-history', 'blue');
