@@ -1080,7 +1080,7 @@ public class DbVerticle extends AbstractVerticle {
                         "from match " +
                         "inner join team as blue on match.blueteam = blue.uuid " +
                         "inner join team as red on match.redteam = red.uuid " +
-                        "where match.id = (select max(id) from match)",
+                        "where match.id = (select id from match order by created_at desc limit 1)",
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();

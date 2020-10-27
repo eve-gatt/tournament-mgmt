@@ -8,7 +8,7 @@
     class Widget {
         constructor(selString, colour) {
             this.selector = d3.select(selString).append('div')
-                .classed('widget-5 animate__animated animate__delay-1s', true);
+                .classed('widget-5 animate__animated', true);
             this.colour = colour;
 
             let title = this.selector.append('div').classed('title', true);
