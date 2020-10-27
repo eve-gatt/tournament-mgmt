@@ -110,20 +110,18 @@ public class Esi {
                                     .put("tournamentUuid", tournamentUuid)
                                     .put("expectedAlliance", alliance)
                                     .put("character", character);
-                            if (alliance.getJsonArray("result") != null && character.getJsonArray("result") != null) {
-                                String url = "/characters/" + character.getJsonArray("result").getInteger(0);
-                                etagCache.callApi(ESI_BASE + url)
-                                        .onFailure(promise::fail)
-                                        .onSuccess(result -> {
-                                            Integer allianceId = result.body().toJsonObject().getInteger("alliance_id");
-                                            out.put("actualAlliance", allianceId);
-                                            promise.complete(out);
-                                        });
+                            if (alliance.getJsonArray("result") != null) {
+                                Integer allianceId = character.getInteger("alliance_id");
+                                out.put("actualAlliance", allianceId);
+                                promise.complete(out);
                             } else {
                                 promise.complete(out);
                             }
                         })
-                        .onFailure(Throwable::printStackTrace)
+                        .onFailure(throwable -> {
+                            System.err.println("failed esi.checkMembership()");
+                            throwable.printStackTrace();
+                        })
         );
     }
 
@@ -135,7 +133,9 @@ public class Esi {
         return lookupByType(name, "character")
                 .map(output -> output.getJsonArray("result"))
                 .compose(arr -> {
-                    if (arr.size() == 1) {
+                    if (arr.size() == 0) {
+                        return Future.failedFuture("could not find character: " + name);
+                    } else if (arr.size() == 1) {
                         return fetchCharacter(arr.getInteger(0));
                     } else {
                         return CompositeFuture.all(arr.stream()

@@ -35,7 +35,7 @@ public class CaptainAllianceMembershipValidation implements Validation {
                     JsonArray expected = json.getJsonObject("expectedAlliance").getJsonArray("result");
                     String error = "";
                     if (expected != null && !expected.getInteger(0).equals(json.getInteger("actualAlliance"))) {
-                        error = json.getJsonObject("character").getString("character")
+                        error = json.getJsonObject("character").getString("name")
                                 + " is not in "
                                 + json.getJsonObject("expectedAlliance").getString("alliance");
                     }
@@ -55,7 +55,7 @@ public class CaptainAllianceMembershipValidation implements Validation {
                 row.getString("uuid"),
                 row.getString("tournament_uuid"),
                 esi.lookupAlliance(row.getString("name")),
-                esi.lookupCharacter(row.getString("captain")));
+                esi.fetchExactMatchCharacter(row.getString("captain")));
     }
 
     @Override
