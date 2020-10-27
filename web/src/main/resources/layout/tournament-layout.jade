@@ -72,6 +72,9 @@ mixin subtitle(name)
         if isSuperuser || isCreator || roles.contains("organiser") || roles.contains("referee")
             a(href="/auth/tournament/" + uuid + "/referee") Referee
 
+        if isSuperuser || isCreator || roles.contains("organiser") || roles.contains("referee")
+            a(href="/auth/tournament/" + uuid + "/stream/deck") Stream Deck
+
     .tournament-header
         if team
             img.logo(src=team.getString("logo") + "?size=128")

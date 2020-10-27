@@ -46,12 +46,25 @@ public class StreamRouter {
         router.get("/auth/stream/manage").handler(this::manage);
         router.post("/auth/stream/manage/:number").handler(this::switchTo);
 
+        router.get("/auth/tournament/:tournamentUuid/stream/deck").handler(this::deckHome);
+
         router.get("/stream/:tournamentUuid/matches/latest-match/data").handler(this::latestMatch);
         router.get("/stream/:tournamentUuid/history/:name").handler(this::historicalDataForTeam);
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient, HistoricalClient historical, Esi esi) {
         return new StreamRouter(vertx, render, dbClient, historical, esi).router();
+    }
+
+    private void deckHome(RoutingContext ctx) {
+        JsonObject tournament = (JsonObject) ctx.data().get("tournament");
+        dbClient.callDb(DbClient.DB_FETCH_STREAMER_TOKEN, tournament.getString("name"))
+                .onFailure(ctx::fail)
+                .onSuccess(msg -> {
+                    String uuid = ((JsonObject) msg.body()).getString("uuid");
+                    render.renderPage(ctx, "/stream/deck-home",
+                            new JsonObject().put("streamerOverlayUrl", System.getenv("BASE_URL") + "/stream/" + uuid + "/overlay/5"));
+                });
     }
 
     private void initialiseTournaments() {

@@ -25,4 +25,8 @@ export function tournamentActions(sel) {
     sel.filter(d => hasRole(d, 'organiser') || hasRole(d, 'referee'))
         .append('a')
         .attr('href', d => '/auth/tournament/' + d.uuid + '/referee').text('Referee')
+
+    sel.filter(d => hasRole(d, 'organiser') || hasRole(d, 'referee'))
+        .append('a')
+        .attr('href', d => '/auth/tournament/' + d.uuid + '/stream/deck').text('Stream Deck')
 }

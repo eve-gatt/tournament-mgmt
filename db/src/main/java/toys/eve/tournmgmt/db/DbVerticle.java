@@ -115,7 +115,7 @@ public class DbVerticle extends AbstractVerticle {
     }
 
     private void dataFixes() {
-        Future.<ResultSet>future(promise -> sqlClient.query("select count(*) from streamers", promise))
+        Future.<ResultSet>future(promise -> sqlClient.query("select count(*) from streamers where name = 'EVE_NT Alliance Open'", promise))
                 .compose(rs -> {
                     if (rs.getRows().get(0).getInteger("count") == 0) {
                         return Future.<SQLConnection>future(promise -> {
@@ -129,9 +129,7 @@ public class DbVerticle extends AbstractVerticle {
                         Future.<Void>future(promise -> conn.setAutoCommit(false, promise))
                                 .compose(v -> Future.<List<Integer>>future(promise -> conn.batchWithParams("insert into streamers values (?, ?::uuid)",
                                         Arrays.asList(
-                                                new JsonArray().add("Gatt2111").add(UUID.randomUUID().toString()),
-                                                new JsonArray().add("Bei ArtJay").add(UUID.randomUUID().toString()),
-                                                new JsonArray().add("Kei Hazard").add(UUID.randomUUID().toString())
+                                                new JsonArray().add("EVE_NT Alliance Open").add(UUID.randomUUID().toString())
                                         ), promise))
                                         .compose(ints -> Future.future(conn::commit)))
                                 .onFailure(t -> t.printStackTrace())

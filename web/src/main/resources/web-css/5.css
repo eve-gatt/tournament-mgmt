@@ -1,0 +1,59 @@
+@font-face {
+    font-family: Shentox;
+    src: url("/assets/fonts/Shentox-Regular.otf") format("opentype");
+}
+
+.widget-5 {
+    font-family: Shentox;
+}
+
+.widget-5 h4 {
+    font-family: Shentox;
+    margin: 0;
+}
+
+.widget-5 {
+    font-size: 2em;
+    color: #de957d;
+    padding: var(--padding, 40px 30px);
+    display: flex;
+    flex-direction: column;
+    place-items: center;
+    position: relative;
+}
+
+.widget-5:after {
+    content: "";
+    background-image: url("/assets/stream/5/sp4.jpg");
+    opacity: 0.5;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    position: absolute;
+    z-index: -1;
+    border-radius: 60px;
+    border: 3px solid #e7673a;
+}
+
+.widget-5 .title {
+    display: flex;
+    place-items: center;
+    margin-bottom: 12px;
+}
+
+.widget-5 .title img {
+    max-width: 64px;
+    opacity: 1.0;
+}
+
+.widget-5 .appear {
+    display: grid;
+    grid: auto-flow / auto 1fr;
+    column-gap: 12px;
+    opacity: 0.9;
+}
+
+.widget-5 .winloss i {
+    margin: 0 6px;
+}

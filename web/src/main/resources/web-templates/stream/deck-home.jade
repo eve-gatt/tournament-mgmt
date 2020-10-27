@@ -1,0 +1,48 @@
+extends ../../layout/tournament-layout
+
+block append styles
+    style.
+        .widgets {
+            display: grid;
+            grid: auto-flow / 1fr 1fr 1fr;
+            gap: 12px;
+        }
+
+        .w {
+            --padding: 20px 15px;
+            font-size: 0.5em;
+            /*transform: scale(0.5);*/
+            /*transform-origin: left top;*/
+        }
+    link(rel="stylesheet" href="/css/5.css")
+
+block content
+    - var uuid = tournament.getString("uuid")
+
+    mixin subtitle("Stream Deck")
+
+    a(href=streamerOverlayUrl, target="_blank") preview full size/stream overlay url
+
+    h2 Current match
+    .widgets
+        .widget
+            h3 Red Team History
+            .w.red-team-history
+        .widget
+            h3 Blue Team History
+            .w.blue-team-history
+
+block scripts
+    - var uuid = tournament.getString("uuid")
+    script(src='/js/stream/5.js')
+    script.
+        var eb = new EventBus("/ws");
+        eb.enableReconnect(true);
+
+        function requestWidget(colour) {
+            eb.publish('widget-request', {colour: colour});
+        }
+        streamInit5('.red-team-history', 'red');
+        d3.select('.red-team-history').on('click', e => requestWidget('red'));
+        streamInit5('.blue-team-history', 'blue');
+        d3.select('.blue-team-history').on('click', e => requestWidget('blue'));

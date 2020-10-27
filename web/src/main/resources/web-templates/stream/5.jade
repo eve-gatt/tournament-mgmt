@@ -1,82 +1,13 @@
 extends ../../layout/streamer-layout
 
 block styles
-    style.
-
-        @font-face {
-            font-family: Shentox;
-            src: url("/assets/fonts/Shentox-Regular.otf") format("opentype");
-        }
-
-        body {
-            font-family: Shentox;
-            background-image: url("/assets/stream/5/sp5.jpg");
-        }
-
-        h4 {
-            font-family: Shentox;
-            margin: 0;
-        }
-
-        .history {
-            font-size: 2em;
-            color: #de957d;
-            padding: 40px 30px;
-            display: flex;
-            flex-direction: column;
-            place-items: center;
-            position: relative;
-        }
-
-        .history:after {
-            content: "";
-            background-image: url("/assets/stream/5/sp4.jpg");
-            opacity: 0.5;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            position: absolute;
-            z-index: -1;
-            border-radius: 60px;
-            border: 3px solid #e7673a;
-        }
-
-        .title {
-            display: flex;
-            place-items: center;
-            opacity: 0.8;
-            margin-bottom: 12px;
-        }
-
-        .title img {
-            max-width: 64px;
-            opacity: 1.0;
-        }
-
-        .appearances {
-
-        }
-
-        .appear {
-            display: grid;
-            grid: auto-flow / auto 1fr;
-            column-gap: 12px;
-            opacity: 0.9;
-        }
-
-        .winloss i {
-            margin: 0 6px;
-        }
+    link(rel="stylesheet" href="/css/5.css")
 
 block content
     //.debug
-    .history.animate__animated.animate__delay-1s
-        .title
-            img
-            h4
-        .appearances
-
+    .history
 
 block scripts
     script(src='/js/stream/5.js')
+    script.
+        window.streamInit5('.history', 'red');
