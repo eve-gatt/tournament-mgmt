@@ -104,6 +104,21 @@ spec:
                 secretKeyRef:
                   name: postgres-secrets
                   key: POSTGRES_PASSWORD
+            - name: HISTORICAL_URL
+              valueFrom:
+                secretKeyRef:
+                  name: historical-secrets
+                  key: HISTORICAL_URL
+            - name: HISTORICAL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: historical-secrets
+                  key: HISTORICAL_USER
+            - name: HISTORICAL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: historical-secrets
+                  key: HISTORICAL_PASSWORD
             - name: ESI_CLIENT
               valueFrom:
                 secretKeyRef:
