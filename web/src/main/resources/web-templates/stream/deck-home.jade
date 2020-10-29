@@ -34,6 +34,11 @@ block append styles
             /*transform: scale(0.5);*/
             /*transform-origin: left top;*/
         }
+
+        .stacked-chart .tick, .line-chart .tick {
+            font-size: 2em;
+        }
+
     link(rel="stylesheet" href="/css/5.css")
 
 block content
@@ -56,14 +61,22 @@ block content
             h3 Blue Team History
             .w.blue-team-history
     .widget
-        h3 Fly to win
-        .w.fly-to-win
+        h3 Sankey
+        .sankey
+    .widget
+        h3 Line Chart
+        .line-chart
+    .widget
+        h3 Stacked
+        .stacked-chart
 
 block scripts
     - var uuid = tournament.getString("uuid")
     script(src='/js/stream/5.js')
     script(src='https://unpkg.com/d3-sankey@0')
     script(src='/js/stream/sankey.js')
+    script(src='/js/stream/line-chart.js')
+    script(src='/js/stream/stacked-chart.js')
     script.
         var eb = new EventBus("/ws");
         eb.enableReconnect(true);
@@ -76,4 +89,6 @@ block scripts
         d3.select('.red-team-history').on('click', e => requestWidget('red'));
         streamInit5('.blue-team-history', 'blue');
         d3.select('.blue-team-history').on('click', e => requestWidget('blue'));
-        streamInitSankey('.fly-to-win');
+        streamInitSankey('.sankey');
+        streamInitLineChart('.line-chart');
+        streamInitStackedChart('.stacked-chart');

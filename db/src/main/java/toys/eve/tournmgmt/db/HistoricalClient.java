@@ -18,6 +18,7 @@ public class HistoricalClient {
 
     public enum Call {
         HISTORICAL_FETCH_MATCHES_BY_TEAM,
-        HISTORICAL_WIN_LOSS_BY_TOURNAMENT_AND_SHIP;
+        HISTORICAL_WIN_LOSS_BY_TOURNAMENT_AND_SHIP,
+        HISTORICAL_WINS_BY_TOURNAMENT_AND_TEAM;
     }
 }

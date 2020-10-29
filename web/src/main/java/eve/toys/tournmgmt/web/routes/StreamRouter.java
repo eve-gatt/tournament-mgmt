@@ -12,6 +12,7 @@ import io.vertx.ext.web.RoutingContext;
 import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 import toys.eve.tournmgmt.db.HistoricalClient;
+import toys.eve.tournmgmt.db.HistoricalClient.Call;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -53,10 +54,64 @@ public class StreamRouter {
         router.get("/stream/:tournamentUuid/matches/latest-match/data").handler(this::latestMatch);
         router.get("/stream/:tournamentUuid/history/:name").handler(this::historicalDataForTeam);
         router.get("/stream/sankey/data").handler(this::sankeyData);
+        router.get("/stream/pickrate/data").handler(this::pickrateData);
+        router.get("/stream/matchwins/data").handler(this::matchwinsData);
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient, HistoricalClient historical, Esi esi) {
         return new StreamRouter(vertx, render, dbClient, historical, esi).router();
+    }
+
+    private void matchwinsData(RoutingContext ctx) {
+        historical.callDb(Call.HISTORICAL_WINS_BY_TOURNAMENT_AND_TEAM, null)
+                .onFailure(ctx::fail)
+                .map(msg -> (JsonArray) msg.body())
+                .onSuccess(rows -> {
+                    JsonArray out = new JsonArray(rows.stream()
+                            .map(o -> (JsonObject) o)
+                            .map(this::withTournamentName)
+                            .collect(Collectors.toList()));
+                    ctx.response().end(out.encode());
+                });
+    }
+
+    private void pickrateData(RoutingContext ctx) {
+        historical.callDb(Call.HISTORICAL_WIN_LOSS_BY_TOURNAMENT_AND_SHIP, null)
+                .onFailure(ctx::fail)
+                .map(msg -> (JsonArray) msg.body())
+                .onSuccess(rows -> {
+                    Set<String> distinctClasses = rows.stream()
+                            .map(o -> (JsonObject) o)
+                            .map(r -> r.getString("SuperClass"))
+                            .collect(Collectors.toSet());
+                    List<String> distinctTournaments = rows.stream()
+                            .map(o -> (JsonObject) o)
+                            .sorted(Comparator.comparing(d -> d.getInteger("Tournament")))
+                            .map(r -> tournaments.getOrDefault(r.getInteger("Tournament"), String.valueOf(r.getInteger("Tournament"))))
+                            .distinct()
+                            .collect(Collectors.toList());
+                    Map<Tuple2<String, String>, Integer> tournamentClass = new HashMap<>();
+                    rows.stream()
+                            .map(o -> (JsonObject) o)
+                            .forEach(row -> {
+                                String tournamentName = tournaments.getOrDefault(row.getInteger("Tournament"), String.valueOf(row.getInteger("Tournament")));
+                                tournamentClass.merge(Tuple.of(tournamentName, row.getString("SuperClass")),
+                                        row.getInteger("used"),
+                                        Integer::sum);
+                            });
+                    JsonArray out = new JsonArray(distinctClasses.stream()
+                            .map(shipClass -> {
+                                return new JsonObject()
+                                        .put("id", shipClass)
+                                        .put("values", new JsonArray(distinctTournaments.stream()
+                                                .map(t -> new JsonObject()
+                                                        .put("tournament", t)
+                                                        .put("used", tournamentClass.getOrDefault(Tuple.of(t, shipClass), 0)))
+                                                .collect(Collectors.toList())));
+                            })
+                            .collect(Collectors.toList()));
+                    ctx.response().end(out.encode());
+                });
     }
 
     private void sankeyData(RoutingContext ctx) {
@@ -68,7 +123,7 @@ public class StreamRouter {
         out.put("nodes", nodes);
         out.put("links", links);
 
-        historical.callDb(HistoricalClient.Call.HISTORICAL_WIN_LOSS_BY_TOURNAMENT_AND_SHIP, null)
+        historical.callDb(Call.HISTORICAL_WIN_LOSS_BY_TOURNAMENT_AND_SHIP, null)
                 .onFailure(ctx::fail)
                 .map(msg -> (JsonArray) msg.body())
                 .onSuccess(rows -> {
@@ -128,8 +183,6 @@ public class StreamRouter {
                     nodesStaging.addAll(distinctTournaments);
                     nodesStaging.addAll(distinctShips.stream().map(Tuple2::_1).collect(Collectors.toList()));
 
-                    System.out.println(nodesStaging);
-
                     nodesStaging.stream()
                             .map(n -> new JsonObject().put("id", n))
                             .forEach(nodes::add);
@@ -178,18 +231,18 @@ public class StreamRouter {
     }
 
     private void historicalDataForTeam(RoutingContext ctx) {
-        historical.callDb(HistoricalClient.Call.HISTORICAL_FETCH_MATCHES_BY_TEAM, ctx.request().getParam("name"))
+        historical.callDb(Call.HISTORICAL_FETCH_MATCHES_BY_TEAM, ctx.request().getParam("name"))
                 .map(msg -> (JsonArray) msg.body())
                 .map(data -> new JsonArray(data.stream()
                         .map(o -> (JsonObject) o)
-                        .map(match -> matchWithTournamentName(match))
+                        .map(match -> withTournamentName(match))
                         .collect(Collectors.toList()))
                 )
                 .onFailure(ctx::fail)
                 .onSuccess(data -> ctx.response().end(data.encode()));
     }
 
-    private JsonObject matchWithTournamentName(JsonObject match) {
+    private JsonObject withTournamentName(JsonObject match) {
         int tournamentId = match.getInteger("Tournament");
         String tournamentName = tournaments.getOrDefault(tournamentId, "unknown");
         return match.put("tournamentName", tournamentName);

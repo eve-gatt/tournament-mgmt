@@ -32,7 +32,6 @@
             .size([width, height]);
 
         d3.json("/stream/sankey/data").then(function (graph) {
-            console.log(graph);
             sankey(graph);
 
             svg.append("g")
@@ -71,7 +70,7 @@
 
             node.append("text")
                 .attr('fill', 'white')
-                .style('font-size', '2em')
+                .style('font-size', '1em')
                 .attr("x", 4)
                 .attr("y", function (d) {
                     return (d.y1 - d.y0) / 2;
