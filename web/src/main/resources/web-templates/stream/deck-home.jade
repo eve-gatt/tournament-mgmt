@@ -55,10 +55,15 @@ block content
         .widget
             h3 Blue Team History
             .w.blue-team-history
+    .widget
+        h3 Fly to win
+        .w.fly-to-win
 
 block scripts
     - var uuid = tournament.getString("uuid")
     script(src='/js/stream/5.js')
+    script(src='https://unpkg.com/d3-sankey@0')
+    script(src='/js/stream/sankey.js')
     script.
         var eb = new EventBus("/ws");
         eb.enableReconnect(true);
@@ -71,3 +76,4 @@ block scripts
         d3.select('.red-team-history').on('click', e => requestWidget('red'));
         streamInit5('.blue-team-history', 'blue');
         d3.select('.blue-team-history').on('click', e => requestWidget('blue'));
+        streamInitSankey('.fly-to-win');

@@ -1,6 +1,8 @@
 package eve.toys.tournmgmt.web.routes;
 
 import eve.toys.tournmgmt.web.esi.Esi;
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonArray;
@@ -11,12 +13,12 @@ import toys.eve.tournmgmt.common.util.RenderHelper;
 import toys.eve.tournmgmt.db.DbClient;
 import toys.eve.tournmgmt.db.HistoricalClient;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class StreamRouter {
+
+    private static final double SHIP_APPEARANCE_THRESHOLD = 10d;
 
     private final RenderHelper render;
     private final DbClient dbClient;
@@ -50,10 +52,105 @@ public class StreamRouter {
 
         router.get("/stream/:tournamentUuid/matches/latest-match/data").handler(this::latestMatch);
         router.get("/stream/:tournamentUuid/history/:name").handler(this::historicalDataForTeam);
+        router.get("/stream/sankey/data").handler(this::sankeyData);
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient, HistoricalClient historical, Esi esi) {
         return new StreamRouter(vertx, render, dbClient, historical, esi).router();
+    }
+
+    private void sankeyData(RoutingContext ctx) {
+
+        JsonObject out = new JsonObject();
+        JsonArray nodes = new JsonArray();
+        JsonArray links = new JsonArray();
+
+        out.put("nodes", nodes);
+        out.put("links", links);
+
+        historical.callDb(HistoricalClient.Call.HISTORICAL_WIN_LOSS_BY_TOURNAMENT_AND_SHIP, null)
+                .onFailure(ctx::fail)
+                .map(msg -> (JsonArray) msg.body())
+                .onSuccess(rows -> {
+                    Set<Tuple2<String, String>> distinctShips = rows.stream()
+                            .map(o -> (JsonObject) o)
+                            .map(r -> Tuple.of(r.getString("Ship"), r.getString("Class")))
+                            .collect(Collectors.toSet());
+                    List<String> distinctTournaments = rows.stream()
+                            .map(o -> (JsonObject) o)
+                            .sorted(Comparator.comparing(d -> d.getInteger("Tournament")))
+                            .map(r -> tournaments.getOrDefault(r.getInteger("Tournament"), String.valueOf(r.getInteger("Tournament"))))
+                            .distinct()
+                            .collect(Collectors.toList());
+                    Map<Tuple2<String, String>, Integer> tournamentToShip = new HashMap<>();
+                    Map<Tuple2<String, String>, Integer> shipToWinLoss = new HashMap<>();
+                    rows.stream()
+                            .map(o -> (JsonObject) o)
+                            .forEach(row -> {
+                                String tournamentName = tournaments.getOrDefault(row.getInteger("Tournament"), String.valueOf(row.getInteger("Tournament")));
+                                tournamentToShip.merge(Tuple.of(tournamentName, row.getString("Ship")),
+                                        row.getInteger("used"),
+                                        Integer::sum);
+                                shipToWinLoss.merge(
+                                        Tuple.of(row.getString("Ship"), row.getString("winloss")),
+                                        row.getInteger("used"),
+                                        Integer::sum);
+                            });
+
+
+                    Map<String, IntSummaryStatistics> shipUsage = tournamentToShip.keySet().stream()
+                            .collect(Collectors.groupingBy(Tuple2::_2, Collectors.summarizingInt(tournamentToShip::get)));
+
+/*
+                    Set<String> removeShips = shipUsage.keySet().stream()
+                            .filter(ship -> shipUsage.get(ship).getAverage() <= SHIP_APPEARANCE_THRESHOLD)
+                            .collect(Collectors.toSet());
+*/
+                    Set<String> removeShips = distinctShips.stream()
+                            .filter(shipAndClass -> {
+                                int wins = shipToWinLoss.getOrDefault(Tuple.of(shipAndClass._1(), "W"), 0);
+                                int losses = shipToWinLoss.getOrDefault(Tuple.of(shipAndClass._1(), "L"), 0);
+                                double winLossRatio = 1d * wins / (wins + losses);
+//                                return !shipAndClass._2().contains("Logistics");
+//                                return false;
+//                                return losses > 0;
+//                                return winLossRatio < 0.8d;
+                                return false;
+                            })
+                            .map(shipAndClass -> shipAndClass._1())
+                            .collect(Collectors.toSet());
+
+                    distinctShips.removeAll(removeShips);
+
+                    List<String> nodesStaging = new ArrayList<>();
+                    nodesStaging.add("win");
+                    nodesStaging.add("loss");
+                    nodesStaging.addAll(distinctTournaments);
+                    nodesStaging.addAll(distinctShips.stream().map(Tuple2::_1).collect(Collectors.toList()));
+
+                    System.out.println(nodesStaging);
+
+                    nodesStaging.stream()
+                            .map(n -> new JsonObject().put("id", n))
+                            .forEach(nodes::add);
+
+                    tournamentToShip.keySet().stream()
+                            .filter(k -> !removeShips.contains(k._2()))
+                            .map(d -> new JsonObject()
+                                    .put("source", nodesStaging.indexOf(d._1()))
+                                    .put("target", nodesStaging.indexOf(d._2()))
+                                    .put("value", tournamentToShip.get(d)))
+                            .forEach(links::add);
+
+                    shipToWinLoss.keySet().stream()
+                            .filter(k -> !removeShips.contains(k._1()))
+                            .map(d -> new JsonObject()
+                                    .put("source", nodesStaging.indexOf(d._1()))
+                                    .put("target", d._2().equals("W") ? nodesStaging.indexOf("win") : nodesStaging.indexOf("loss"))
+                                    .put("value", shipToWinLoss.get(d)))
+                            .forEach(links::add);
+                    ctx.response().end(out.encode());
+                });
     }
 
     private void deckHome(RoutingContext ctx) {
@@ -68,6 +165,9 @@ public class StreamRouter {
     }
 
     private void initialiseTournaments() {
+        tournaments.put(-1, "AT9");
+        tournaments.put(-2, "AT8");
+        tournaments.put(-3, "AT7");
         tournaments.put(0, "AT10");
         tournaments.put(1, "AT11");
         tournaments.put(4, "AT12");
@@ -75,7 +175,6 @@ public class StreamRouter {
         tournaments.put(15, "AT14");
         tournaments.put(16, "AT15");
         tournaments.put(17, "AT16");
-        tournaments.put(-2, "AT8");
     }
 
     private void historicalDataForTeam(RoutingContext ctx) {
