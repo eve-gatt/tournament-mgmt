@@ -28,7 +28,7 @@
             .text(d => d.created_at_formatted);
         entering.append('a')
             .attr('href', d => `/auth/tournament/${tournamentUuid}/match/${d.id}`)
-            .text(d => `${d.blue_team_name} vs ${d.red_team_name}`);
+            .text(d => `${d.red_team_name} vs ${d.blue_team_name}`);
     }
 
     d3.json('/auth/tournament/' + tournamentUuid + '/teams/' + teamUuid + '/members/data')
