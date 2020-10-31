@@ -37,20 +37,79 @@ public class HistoricalDbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(Call.HISTORICAL_FETCH_MATCHES_BY_TEAM.name(), this::fetchMatchesByTeam);
         vertx.eventBus().consumer(Call.HISTORICAL_WIN_LOSS_BY_TOURNAMENT_AND_SHIP.name(), this::winlossByTournamentAndShip);
         vertx.eventBus().consumer(Call.HISTORICAL_WINS_BY_TOURNAMENT_AND_TEAM.name(), this::winsByTournamentAndTeam);
+        vertx.eventBus().consumer(Call.HISTORICAL_WINS_BY_TOURNAMENT_AND_PLAYER.name(), this::winsByTournamentAndPlayer);
 
         startPromise.complete();
     }
 
     private void winsByTournamentAndTeam(Message msg) {
-        sqlClient.query("select t.Tournament, Team, count(*) as wins\n" +
+        sqlClient.query("select t.Tournament,\n" +
+                        "       Team,\n" +
+                        "       case when t.Team = m.Victor then 'W' else 'L' end as winloss,\n" +
+                        "       count(*) as count\n" +
                         "from teams t\n" +
                         "         inner join\n" +
                         "     matches m on t.Tournament = m.Tournament\n" +
                         "         and t.MatchNo = m.MatchNo\n" +
                         "         and t.SeriesNo = m.SeriesNo\n" +
-                        "         and t.Team = m.Victor\n" +
-                        "group by Tournament, Team\n" +
-                        "order by Tournament, wins desc\n",
+                        "group by Tournament, Team, winloss\n" +
+                        "order by Tournament, count desc;",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(new JsonArray(ar.result().getRows()));
+                    }
+                });
+    }
+
+    private void winsByTournamentAndPlayer(Message msg) {
+        sqlClient.query("select m.Tournament,\n" +
+                        "       p.Player,\n" +
+                        "       case when p.Team = m.Victor then 'W' else 'L' end as winloss,\n" +
+                        "       count(*)                                          as count\n" +
+                        "from matches m\n" +
+                        "         inner join\n" +
+                        "     players p on m.Tournament = p.Tournament and\n" +
+                        "                  m.MatchNo = p.MatchNo and\n" +
+                        "                  m.SeriesNo = p.SeriesNo\n" +
+                        "where p.Player in (\n" +
+                        "                   'Aimsucks',\n" +
+                        "                   'Mira Chieve',\n" +
+                        "                   'Vlad Starlord',\n" +
+                        "                   'Kane Carnifex',\n" +
+                        "                   'StarFleetCommander',\n" +
+                        "                   'Sp3ctr380',\n" +
+                        "                   'Tyrion Hekki',\n" +
+                        "                   'xXNemXx',\n" +
+                        "                   'Hansy Babes',\n" +
+                        "                   'Ithugor Wells',\n" +
+                        "                   'Soldarius',\n" +
+                        "                   'Stowesh',\n" +
+                        "                   'michael Rinah',\n" +
+                        "                   'Alasker',\n" +
+                        "                   'Cyclo Hexanol',\n" +
+                        "                   'Eargonall Kaundur',\n" +
+                        "                   'dexter xio',\n" +
+                        "                   'Nika NOisER',\n" +
+                        "                   'DrHorrible',\n" +
+                        "                   'Reire Murasame',\n" +
+                        "                   'Kentril Ul-Diomed',\n" +
+                        "                   'NEWBEEGOGOGO',\n" +
+                        "                   'Rixx Javix',\n" +
+                        "                   'Levi Nineveh',\n" +
+                        "                   'Plejaden',\n" +
+                        "                   'Melinda I',\n" +
+                        "                   'Davak Kateelo',\n" +
+                        "                   'Yukiko Kami',\n" +
+                        "                   'Xoorauch Destroyer',\n" +
+                        "                   'TheLastSparton',\n" +
+                        "                   'PiLINchi',\n" +
+                        "                   'Dirk Stetille'\n" +
+                        "    )\n" +
+                        "group by Tournament, p.Player, winloss\n" +
+                        "order by Tournament, count desc\n",
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();

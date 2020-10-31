@@ -55,20 +55,72 @@ public class StreamRouter {
         router.get("/stream/:tournamentUuid/history/:name").handler(this::historicalDataForTeam);
         router.get("/stream/sankey/data").handler(this::sankeyData);
         router.get("/stream/pickrate/data").handler(this::pickrateData);
-        router.get("/stream/matchwins/data").handler(this::matchwinsData);
+        router.get("/stream/topWinnersTeam/data").handler(this::topWinnersTeam);
+        router.get("/stream/topWinnersCaptain/data").handler(ctx -> topWinLossCaptain(ctx, "W"));
+        router.get("/stream/topLosersCaptain/data").handler(ctx -> topWinLossCaptain(ctx, "L"));
+        router.get("/stream/topRatioCaptain/data").handler(this::topRatioCaptain);
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient, HistoricalClient historical, Esi esi) {
         return new StreamRouter(vertx, render, dbClient, historical, esi).router();
     }
 
-    private void matchwinsData(RoutingContext ctx) {
+    private void topRatioCaptain(RoutingContext ctx) {
+        historical.callDb(Call.HISTORICAL_WINS_BY_TOURNAMENT_AND_PLAYER, null)
+                .onFailure(ctx::fail)
+                .map(msg -> (JsonArray) msg.body())
+                .onSuccess(rows -> {
+                    Map<String, Tuple2<Integer, Integer>> winsAndLosses = new HashMap<>();
+                    rows.stream()
+                            .map(o -> (JsonObject) o)
+                            .forEach(row -> {
+                                if (row.getString("winloss").equals("W")) {
+                                    winsAndLosses.merge(
+                                            row.getString("Player"),
+                                            Tuple.of(row.getInteger("count"), 0),
+                                            (a, b) -> Tuple.of(a._1 + b._1, a._2 + b._2));
+                                } else {
+                                    winsAndLosses.merge(
+                                            row.getString("Player"),
+                                            Tuple.of(0, row.getInteger("count")),
+                                            (a, b) -> Tuple.of(a._1 + b._1, a._2 + b._2));
+                                }
+                            });
+                    JsonArray out = new JsonArray(winsAndLosses.keySet().stream()
+                            .map(captain -> {
+                                Tuple2<Integer, Integer> value = winsAndLosses.get(captain);
+                                return new JsonObject()
+                                        .put("tournamentName", "all")
+                                        .put("captain", captain)
+                                        .put("count", value._1 * 100 / (value._1 + value._2));
+                            })
+                            .collect(Collectors.toList()));
+                    ctx.response().end(out.encode());
+                });
+    }
+
+    private void topWinnersTeam(RoutingContext ctx) {
         historical.callDb(Call.HISTORICAL_WINS_BY_TOURNAMENT_AND_TEAM, null)
                 .onFailure(ctx::fail)
                 .map(msg -> (JsonArray) msg.body())
                 .onSuccess(rows -> {
                     JsonArray out = new JsonArray(rows.stream()
                             .map(o -> (JsonObject) o)
+                            .filter(row -> row.getString("winloss").equals("W"))
+                            .map(this::withTournamentName)
+                            .collect(Collectors.toList()));
+                    ctx.response().end(out.encode());
+                });
+    }
+
+    private void topWinLossCaptain(RoutingContext ctx, String winloss) {
+        historical.callDb(Call.HISTORICAL_WINS_BY_TOURNAMENT_AND_PLAYER, null)
+                .onFailure(ctx::fail)
+                .map(msg -> (JsonArray) msg.body())
+                .onSuccess(rows -> {
+                    JsonArray out = new JsonArray(rows.stream()
+                            .map(o -> (JsonObject) o)
+                            .filter(row -> row.getString("winloss").equals(winloss))
                             .map(this::withTournamentName)
                             .collect(Collectors.toList()));
                     ctx.response().end(out.encode());

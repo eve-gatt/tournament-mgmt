@@ -1,6 +1,6 @@
 (function () {
 
-    function init(sel) {
+    function init(sel, url, grouper, label) {
         var margin = {top: 60, right: 20, bottom: 20, left: 300},
             width = 1400 - margin.left - margin.right,
             height = 450 - margin.top - margin.bottom;
@@ -21,24 +21,24 @@
                 .align(0.1),
             z = d3.scaleOrdinal(d3.schemeSet3);
 
-        d3.json("/stream/matchwins/data").then(function (inData) {
+        d3.json(url).then(function (inData) {
 
-            var data = Array.from(d3.group(inData, d => d.Team),
-                ([team, value]) => ({team, value}));
+            var data = Array.from(d3.group(inData, d => d[grouper]),
+                ([grouper, value]) => ({grouper, value}));
 
-            data.forEach(team => team.total = team.value.map(d => d.wins).reduce((a, b) => a + b));
+            data.forEach(grouper => grouper.total = grouper.value.map(d => d.count).reduce((a, b) => a + b));
 
             var keys = [...new Set(data.map(t => t.value.map(v => v.tournamentName)).flat())];
 
             var value = (d, key) => {
                 let wins = d.value.find(e => e.tournamentName === key)
-                return wins ? wins.wins : 0;
+                return wins ? wins.count : 0;
             };
             data = data.sort((a, b) => d3.descending(a.total, b.total))
                 .slice(0, 10);
 
             x.domain([0, d3.max(data, function (d) {return d.total;})]).nice();
-            y.domain(data.map(d => d.team));
+            y.domain(data.map(d => d.grouper));
             z.domain(keys);
 
             let series = d3.stack().keys(keys).value(value)(data)
@@ -52,7 +52,7 @@
                 .selectAll("rect")
                 .data(function (d) { return d; })
                 .enter().append("rect")
-                .attr("y", function (d) { return y(d.data.team); })
+                .attr("y", function (d) { return y(d.data.grouper); })
                 .attr("x", function (d) { return x(d[0]); })
                 .attr("width", function (d) { return x(d[1]) - x(d[0]); })
                 .attr("height", y.bandwidth())
@@ -75,7 +75,7 @@
                 .attr("fill", "#ffffff")
                 .attr("font-weight", "bold")
                 .attr("text-anchor", "start")
-                .text("Match wins")
+                .text("Match " + label)
                 .style('font-size', '2em')
                 .attr("transform", "translate(" + (-width) + ",-40)");
 
