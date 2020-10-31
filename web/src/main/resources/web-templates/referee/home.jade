@@ -40,7 +40,17 @@ block append styles
             display: grid;
             grid: auto-flow / 160px auto;
             justify-items: start;
+            align-items: end;
         }
+
+        .match .vs {
+            color: #e2e2e2;
+        }
+
+        .winner::after {
+            content: url('https://i.imgur.com/BPcXk8F.png');
+        }
+
 
 block content
     - var uuid = tournament.getString("uuid")
@@ -61,11 +71,13 @@ block content
                     button.pure-button.pure-button-primary(type="submit") Validate
 
         .matches
-            if matches.size() > 1
+            if matches.size() > 0
                 each match in matches
                     .match
                         a(href="/auth/tournament/" + uuid + "/match/" + match.getInteger("id"))= match.getString("created_at_formatted")
-                        a(href="/auth/tournament/" + uuid + "/match/" + match.getInteger("id")) #{match.getString("blue_team_name")} vs #{match.getString("red_team_name")}
+                        a(href="/auth/tournament/" + uuid + "/match/" + match.getInteger("id"))
+                            span(class=match.getString("red_team_name").equals(match.getString("winner")) ? "winner" : null)= match.getString("red_team_name")
+                            span.vs &nbsp;vs&nbsp;
+                            span(class=match.getString("blue_team_name").equals(match.getString("winner")) ? "winner" : null)= match.getString("blue_team_name")
 
 block scripts
-

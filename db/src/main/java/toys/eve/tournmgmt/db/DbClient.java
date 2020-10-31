@@ -56,6 +56,7 @@ public class DbClient {
     public static final String DB_RECORD_OF_SHIP = "DB_RECORD_OF_SHIP";
     public static final String DB_FETCH_STREAMER_TOKEN = "DB_FETCH_STREAMER_TOKEN";
     public static final String DB_STREAMER_BY_CODE = "DB_STREAMER_BY_CODE";
+    public static final String DB_RECORD_MATCH_RESULT = "DB_RECORD_MATCH_RESULT";
 
     private final EventBus eventBus;
 

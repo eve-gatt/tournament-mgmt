@@ -18,6 +18,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.api.RequestParameters;
 import io.vertx.ext.web.api.validation.HTTPRequestValidationHandler;
+import io.vertx.ext.web.api.validation.ParameterType;
 import io.vertx.ext.web.api.validation.ParameterTypeValidator;
 import io.vertx.ext.web.api.validation.ValidationException;
 import toys.eve.tournmgmt.common.util.RenderHelper;
@@ -56,6 +57,15 @@ public class RefereeRouter {
                         true,
                         false);
 
+        HTTPRequestValidationHandler resultInputs = HTTPRequestValidationHandler.create()
+                .addFormParam("matchId", ParameterType.INT, true)
+                .addFormParamWithCustomTypeValidator("winner",
+                        ParameterTypeValidator.createStringTypeValidator("\\p{ASCII}+", null),
+                        true,
+                        false)
+                .addFormParamWithCustomTypeValidator("publish", new CheckboxValidator(false), false, true);
+
+
         router.get("/:tournamentUuid/referee")
                 .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiserOrReferee))
                 .handler(this::home);
@@ -69,6 +79,13 @@ public class RefereeRouter {
         router.post("/:tournamentUuid/referee/record")
                 .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiserOrReferee))
                 .handler(this::record);
+        router.get("/:tournamentUuid/referee/record-result")
+                .handler(RefereeRouter::redirectToRefHome);
+        router.post("/:tournamentUuid/referee/record-result")
+                .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiserOrReferee))
+                .handler(resultInputs)
+                .handler(this::recordResult)
+                .failureHandler(RefereeRouter::redirectToRefHome);
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient, Esi esi, OAuth2Auth oauth2) {
@@ -86,17 +103,18 @@ public class RefereeRouter {
         int id = Integer.parseInt(form.get("id"));
         String blueJson = form.get("blueJson");
         String redJson = form.get("redJson");
-
+        String redTeamName = new JsonObject(redJson).getJsonArray("teams").getJsonObject(0).getString("team_name");
+        String blueTeamName = new JsonObject(blueJson).getJsonArray("teams").getJsonObject(0).getString("team_name");
         CompositeFuture.all(
                 dbClient.callDb(DbClient.DB_TEAM_UUID_FOR_NAME, new JsonObject()
                         .put("tournamentUuid", tournamentUuid)
-                        .put("teamName", new JsonObject(blueJson).getJsonArray("teams").getJsonObject(0).getString("team_name"))),
+                        .put("teamName", blueTeamName)),
                 dbClient.callDb(DbClient.DB_TEAM_UUID_FOR_NAME, new JsonObject()
                         .put("tournamentUuid", tournamentUuid)
-                        .put("teamName", new JsonObject(redJson).getJsonArray("teams").getJsonObject(0).getString("team_name"))))
+                        .put("teamName", redTeamName)))
                 .compose(f -> {
-                    String blueUuid = (String) ((Message) f.resultAt(0)).body();
-                    String redUuid = (String) ((Message) f.resultAt(1)).body();
+                    String blueUuid = ((Message<String>) f.resultAt(0)).body();
+                    String redUuid = ((Message<String>) f.resultAt(1)).body();
                     return dbClient.callDb(DbClient.DB_CREATE_MATCH, new JsonObject()
                             .put("inputsId", id)
                             .put("createdBy", characterName)
@@ -106,16 +124,30 @@ public class RefereeRouter {
                             .put("blueJson", blueJson)
                             .put("redJson", redJson));
                 })
-                .compose(f -> dbClient.callDb(DbClient.DB_LATEST_MATCH, null)
-                        .map(msg -> (JsonObject) msg.body())
-                        .map(RenderHelper::formatCreatedAt))
+                .compose(matchIdsMsg -> {
+                    Integer matchId = ((JsonArray) matchIdsMsg.body()).getInteger(0);
+                    return dbClient.callDb(DbClient.DB_MATCH_BY_ID, matchId)
+                            .map(msg -> (JsonObject) msg.body())
+                            .map(RenderHelper::formatCreatedAt);
+                })
                 .onFailure(ctx::fail)
                 .onSuccess(match -> {
                     eventBus.publish("streamer.new-match", match.encode());
                     render.renderPage(ctx, "/referee/record-success",
-                            new JsonObject());
+                            new JsonObject()
+                                    .put("matchId", match.getInteger("id"))
+                                    .put("red", redTeamName)
+                                    .put("blue", blueTeamName));
                 });
 
+    }
+
+    private void recordResult(RoutingContext ctx) {
+        RequestParameters params = ctx.get("parsedParameters");
+        JsonObject form = params.toJson().getJsonObject("form");
+        dbClient.callDb(DbClient.DB_RECORD_MATCH_RESULT, form)
+                .onFailure(ctx::fail)
+                .onSuccess(v -> redirectToRefHome(ctx));
     }
 
     private void home(RoutingContext ctx) {

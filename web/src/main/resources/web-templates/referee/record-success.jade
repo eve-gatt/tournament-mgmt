@@ -2,6 +2,21 @@ extends ../../layout/tournament-layout
 
 block append styles
     style.
+        .red {
+            color: red;
+        }
+
+        .blue {
+            color: blue;
+        }
+
+        .winner {
+            border: 2px solid transparent;
+        }
+
+        .winner.selected {
+            border: 2px solid #f99e00;
+        }
 
 block content
     - var uuid = tournament.getString("uuid")
@@ -9,7 +24,33 @@ block content
     mixin subtitle("Match recorded")
 
     p Match successfully recorded.
-    a(href="/auth/tournament/" + uuid + "/referee") Next match
+
+    h2 Result
+
+    form.pure-form.pure-form-aligned(action="/auth/tournament/" + uuid + "/referee/record-result", method="POST")
+        input(name="matchId", type="hidden", value=matchId)
+        input#winner(name="winner", type="hidden")
+        fieldset
+            .pure-control-group
+                label Who won?
+                a(href="#").red.winner= red
+                | &nbsp;&nbsp;&nbsp;
+                a(href="#").blue.winner= blue
+            .pure-control-group
+                label Publish result?
+                input(type="checkbox", name="publish")
+            .pure-controls
+                button.pure-button.pure-button-primary(type="submit") Record result
+
+    a(href="/auth/tournament/" + uuid + "/referee") Ignore and go to next match
 
 block scripts
+    script.
+        d3.selectAll('.winner')
+            .on('click', function (e) {
+                let team = d3.select(this).text();
+                d3.selectAll('.winner').classed('selected', false);
+                d3.select(this).classed('selected', true);
+                d3.select('#winner').node().value = team;
+            });
 

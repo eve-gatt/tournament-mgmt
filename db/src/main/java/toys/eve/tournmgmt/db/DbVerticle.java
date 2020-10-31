@@ -106,6 +106,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_RECORD_OF_SHIP, this::recordOfShip);
         vertx.eventBus().consumer(DbClient.DB_FETCH_STREAMER_TOKEN, this::fetchStreamerToken);
         vertx.eventBus().consumer(DbClient.DB_STREAMER_BY_CODE, this::streamerByCode);
+        vertx.eventBus().consumer(DbClient.DB_RECORD_MATCH_RESULT, this::recordMatchResult);
 
         LOGGER.info("Starting data fixes");
         dataFixes();
@@ -154,6 +155,24 @@ public class DbVerticle extends AbstractVerticle {
                         .add(redTeam)
                         .add(blueJson)
                         .add(redJson),
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(ar.result().getKeys());
+                    }
+                });
+    }
+
+    private void recordMatchResult(Message<JsonObject> msg) {
+        int matchId = msg.body().getInteger("matchId");
+        String winner = msg.body().getString("winner");
+        boolean publish = msg.body().getBoolean("publish");
+
+        sqlClient.updateWithParams("update match set winner = ?, publish = ? " +
+                                   "where id = ?",
+                new JsonArray().add(winner).add(publish).add(matchId),
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
@@ -1027,11 +1046,13 @@ public class DbVerticle extends AbstractVerticle {
                                   "match.created_by as ref, " +
                                   "match.created_at, " +
                                   "blue.name as blue_team_name, " +
-                                  "red.name as red_team_name " +
+                                  "red.name as red_team_name, " +
+                                  "winner " +
                                   "from match " +
                                   "inner join team as blue on match.blueteam = blue.uuid " +
                                   "inner join team as red on match.redteam = red.uuid " +
-                                  "where blueteam = ?::uuid or redteam = ?::uuid " +
+                                  "where (blueteam = ?::uuid or redteam = ?::uuid) " +
+                                  "and match.publish = true " +
                                   "order by created_at",
                 new JsonArray().add(teamUuid).add(teamUuid),
                 ar -> {
@@ -1051,10 +1072,12 @@ public class DbVerticle extends AbstractVerticle {
                         "match.created_by as ref, " +
                         "match.created_at, " +
                         "blue.name as blue_team_name, " +
-                        "red.name as red_team_name " +
+                        "red.name as red_team_name, " +
+                        "winner " +
                         "from match " +
                         "inner join team as blue on match.blueteam = blue.uuid " +
                         "inner join team as red on match.redteam = red.uuid " +
+                        "where match.publish = true " +
                         "order by created_at",
                 ar -> {
                     if (ar.failed()) {

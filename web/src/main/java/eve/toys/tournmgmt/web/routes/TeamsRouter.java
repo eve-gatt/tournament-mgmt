@@ -277,7 +277,7 @@ public class TeamsRouter {
                                                 .put("tournamentUuid", tournamentUuid)
                                                 .put("pilot", pilot))))
                         .collect(Collectors.toList()))
-                .map(CompositeFuture::all)
+                .compose(CompositeFuture::all)
                 .onFailure(ctx::fail)
                 .onSuccess(result -> doRedirect(ctx.response(), teamUrl(ctx, "/edit")));
     }
