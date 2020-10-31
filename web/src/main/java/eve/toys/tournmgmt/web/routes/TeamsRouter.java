@@ -271,13 +271,12 @@ public class TeamsRouter {
                 .compose(v -> dbClient.callDb(DbClient.DB_PILOTS_AND_CAPTAIN_BY_TEAM, teamUuid))
                 .map(TeamsRouter::toListOfPilots)
                 .map(pilots -> pilots.stream()
-                        .map(pilot -> (Future) Future.future(promise ->
-                                dbClient.callDb(DbClient.DB_MAYBE_ALLOCATE_TD_ACCOUNT,
-                                        new JsonObject()
-                                                .put("tournamentUuid", tournamentUuid)
-                                                .put("pilot", pilot))))
+                        .map(pilot -> (Future) dbClient.callDb(DbClient.DB_MAYBE_ALLOCATE_TD_ACCOUNT,
+                                new JsonObject()
+                                        .put("tournamentUuid", tournamentUuid)
+                                        .put("pilot", pilot)))
                         .collect(Collectors.toList()))
-                .map(CompositeFuture::all)
+                .compose(CompositeFuture::all)
                 .onFailure(ctx::fail)
                 .onSuccess(result -> doRedirect(ctx.response(), teamUrl(ctx, "/edit")));
     }
