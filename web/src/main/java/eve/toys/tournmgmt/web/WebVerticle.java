@@ -54,7 +54,7 @@ public class WebVerticle extends AbstractVerticle {
         Objects.requireNonNull(IS_DEV, "Please supply an isDev property");
 
         this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
-        Esi esi = Esi.create(webClient, CircuitBreaker.create("esi-cb", vertx));
+        Esi esi = Esi.create(webClient, CircuitBreaker.create("esi-cb", vertx), vertx);
         dbClient = new DbClient(vertx.eventBus());
         historicalClient = new HistoricalClient(vertx.eventBus());
         JobClient jobClient = new JobClient(vertx.eventBus());

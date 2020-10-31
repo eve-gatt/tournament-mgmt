@@ -34,7 +34,7 @@ public class JobVerticle extends AbstractVerticle {
 
         LOGGER.info("Initialising jobs");
         this.webClient = WebClient.create(vertx, new WebClientOptions().setUserAgent(System.getProperty("http.agent")));
-        this.esi = Esi.create(webClient, CircuitBreaker.create("esi-cb", vertx));
+        this.esi = Esi.create(webClient, CircuitBreaker.create("esi-cb", vertx), vertx);
         this.dbClient = new DbClient(vertx.eventBus());
         vertx.eventBus().consumer(JobClient.JOB_CHECK_CAPTAIN_ALLIANCE_MEMBERSHIP, this::checkCaptainAllianceMembership);
         vertx.eventBus().consumer(JobClient.JOB_CHECK_PILOTS_ALLIANCE_MEMBERSHIP, this::checkPilotsAllianceMembership);

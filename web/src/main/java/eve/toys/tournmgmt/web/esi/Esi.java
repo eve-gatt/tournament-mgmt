@@ -4,6 +4,7 @@ import eve.toys.tournmgmt.web.AppStreamHelpers;
 import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.oauth2.AccessToken;
 import io.vertx.ext.web.client.WebClient;
@@ -17,12 +18,12 @@ public class Esi {
     public static final String ESI_BASE = "https://esi.evetech.net/latest";
     private final ETagCache etagCache;
 
-    private Esi(WebClient webClient, CircuitBreaker circuitBreaker) {
-        this.etagCache = new ETagCache(webClient, circuitBreaker);
+    private Esi(WebClient webClient, CircuitBreaker circuitBreaker, Vertx vertx) {
+        this.etagCache = new ETagCache(webClient, circuitBreaker, vertx);
     }
 
-    public static Esi create(WebClient webClient, CircuitBreaker circuitBreaker) {
-        return new Esi(webClient, circuitBreaker);
+    public static Esi create(WebClient webClient, CircuitBreaker circuitBreaker, Vertx vertx) {
+        return new Esi(webClient, circuitBreaker, vertx);
     }
 
     private static String encode(String string) {
