@@ -61,6 +61,7 @@ block content
     - var isCreator = tournament.getBoolean("is_creator")
     - var roles = tournament.getString("roles") == null ? "" : tournament.getString("roles")
     - var canImport = isSuperuser || isCreator || roles.contains("organiser")
+    - var canRemove = isSuperuser || isCreator || roles.contains("organiser")
 
     mixin subtitle("Teams")
 
@@ -92,4 +93,6 @@ block content
 block scripts
     script.
         const uuid = '#{uuid}';
+        const canRemove = #{canRemove}
+
     script(src='/js/teams/manage.js')

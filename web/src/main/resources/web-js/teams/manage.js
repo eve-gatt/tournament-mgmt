@@ -7,10 +7,12 @@
     function actions(sel) {
         sel.append('a')
             .attr('href', d => '/auth/tournament/' + uuid + '/teams/' + d.uuid + '/edit')
-            .text('View/Edit');
-        sel.append('a')
-            .attr('href', d => '/auth/tournament/' + uuid + '/teams/' + d.uuid + '/remove')
-            .text('Remove');
+            .text('View');
+        if (canRemove) {
+            sel.append('a')
+                .attr('href', d => '/auth/tournament/' + uuid + '/teams/' + d.uuid + '/remove')
+                .text('Remove');
+        }
     }
 
     function renderTeams(data) {
