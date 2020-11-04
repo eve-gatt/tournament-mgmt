@@ -83,9 +83,12 @@ public class StreamRouter {
         dbClient.callDb(DbClient.DB_FETCH_STREAMER_TOKEN, tournament.getString("name"))
                 .onFailure(ctx::fail)
                 .onSuccess(msg -> {
+                    JsonArray widgets = streamConfig.widgetAsJson();
                     String uuid = ((JsonObject) msg.body()).getString("uuid");
                     render.renderPage(ctx, "/stream/deck-home",
-                            new JsonObject().put("streamerOverlayUrl", System.getenv("BASE_URL") + "/stream/" + uuid + "/overlay/5"));
+                            new JsonObject()
+                                    .put("streamerOverlayUrl", System.getenv("BASE_URL") + "/stream/" + uuid + "/overlay/5")
+                                    .put("widgets", widgets));
                 });
     }
 
@@ -107,7 +110,7 @@ public class StreamRouter {
                 .map(msg -> (JsonArray) msg.body())
                 .map(data -> new JsonArray(data.stream()
                         .map(o -> (JsonObject) o)
-                        .map(match -> withTournamentName(match))
+                        .map(this::withTournamentName)
                         .collect(Collectors.toList()))
                 )
                 .onFailure(ctx::fail)

@@ -46,7 +46,7 @@ mixin results(json)
     else
         .result
             - var noEsi = json.getJsonArray("noEsi")
-            if noEsi.size() > 0
+            if noEsi && noEsi.size() > 0
                 .section
                     h3 Missing ESI details
                         small please ask pilot to login to eve.toys and then go back and resubmit

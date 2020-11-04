@@ -58,4 +58,17 @@ public class TopWinRatioAmongstCaptains implements Command {
                 });
         return promise.future();
     }
+
+    @Override
+    public String getCustom(String customProperty) {
+        switch (customProperty) {
+            case "grouper":
+                return "captain";
+            case "sublabel":
+                return "win ratio";
+            default:
+                return null;
+        }
+    }
+
 }

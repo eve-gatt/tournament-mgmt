@@ -35,6 +35,18 @@ public class TopWinnersByTeam implements Command {
         return promise.future();
     }
 
+    @Override
+    public String getCustom(String customProperty) {
+        switch (customProperty) {
+            case "grouper":
+                return "Team";
+            case "sublabel":
+                return "wins";
+            default:
+                return null;
+        }
+    }
+
     private JsonObject withTournamentName(JsonObject match) {
         int tournamentId = match.getInteger("Tournament");
         String tournamentName = tournaments.getOrDefault(tournamentId, "unknown");

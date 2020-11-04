@@ -10,4 +10,16 @@ public class TopLosersAmongstCaptains extends TopWinnersOrLosersAmongstCaptains 
         super(historical, tournaments, "L");
     }
 
+    @Override
+    public String getCustom(String customProperty) {
+        switch (customProperty) {
+            case "grouper":
+                return "Player";
+            case "sublabel":
+                return "losses";
+            default:
+                return null;
+        }
+    }
+
 }

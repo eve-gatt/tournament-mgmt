@@ -4,18 +4,14 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 
 public class Widget {
+    private final WidgetType widgetType;
     private final String label;
     private final Command command;
-    private final int param;
 
-    public Widget(String label, Command command) {
-        this(label, command, -1);
-    }
-
-    public Widget(String label, Command command, int param) {
+    public Widget(WidgetType widgetType, String label, Command command) {
+        this.widgetType = widgetType;
         this.label = label;
         this.command = command;
-        this.param = param;
     }
 
     public Future<JsonObject> fetch() {
@@ -37,5 +33,17 @@ public class Widget {
             split[i] = split[i].substring(0, 1).toUpperCase() + split[i].substring(1);
         }
         return String.join("", split);
+    }
+
+    public WidgetType getWidgetType() {
+        return widgetType;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public String getCustom(String customProperty) {
+        return command.getCustom(customProperty);
     }
 }

@@ -50,34 +50,10 @@ block content
 
     h2 Current match
     .widgets
+        - each w in widgets
         .widget
-            h3 Clear
-            .w.clear
-                | clear
-        .widget
-            h3 Red Team History
-            .w.red-team-history
-        .widget
-            h3 Blue Team History
-            .w.blue-team-history
-    .widget
-        h3 Sankey
-        .sankey
-    .widget
-        h3 Line Chart
-        .line-chart
-    .widget
-        h3 Top winners by team
-        .top-winners-team
-    .widget
-        h3 Top winners amongst captains
-        .top-winners-captains
-    .widget
-        h3 Top losers amongst captains
-        .top-losers-captains
-    .widget
-        h3 Top win ratio amongst captains
-        .top-ratio-captains
+            h3= w.getString("label")
+            .w(class=w.getString("name"))
 
 block scripts
     - var uuid = tournament.getString("uuid")
@@ -93,14 +69,26 @@ block scripts
         function requestWidget(colour) {
             eb.publish('streamer.widget-request', {colour: colour});
         }
-        d3.select('.clear').on('click', e => eb.publish('streamer.widget-clear'));
-        streamInit5('.red-team-history', 'red');
-        d3.select('.red-team-history').on('click', e => requestWidget('red'));
-        streamInit5('.blue-team-history', 'blue');
-        d3.select('.blue-team-history').on('click', e => requestWidget('blue'));
-        streamInitSankey('.sankey');
-        streamInitLineChart('.line-chart');
-        streamInitStackedChart('.top-winners-team', "/stream/topWinnersByTeam/data", "Team", "wins");
-        streamInitStackedChart('.top-winners-captains', "/stream/topWinnersAmongstCaptains/data", "Player", "wins");
-        streamInitStackedChart('.top-losers-captains', "/stream/topLosersAmongstCaptains/data", "Player", "losses");
-        streamInitStackedChart('.top-ratio-captains', "/stream/topWinRatioAmongstCaptains/data", "captain", "win ratio");
+
+    - each w in widgets
+    - var widgetName = w.getString("name")
+    case w.getString("type")
+        when "CLEAR"
+            script.
+                d3.select('.#{widgetName}')
+                    .text('clear')
+                    .on('click', e => eb.publish('streamer.widget-clear'));
+        when "TEAM_HISTORY"
+            script.
+                var selector = '.#{w.getString("colour")}TeamHistory';
+                d3.select(selector).on('click', e => requestWidget('#{w.getString("colour")}'));
+                streamInit5(selector, '#{w.getString("colour")}');
+        when "SANKEY"
+            script.
+                streamInitSankey('.#{widgetName}');
+        when "LINE"
+            script.
+                streamInitLineChart('.#{widgetName}');
+        when "STACKED"
+            script.
+                streamInitStackedChart('.#{widgetName}', ' / stream /#{widgetName}/data', '#{w.getString("grouper")}', '#{w.getString("sublabel")}');
