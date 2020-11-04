@@ -21,7 +21,9 @@
             .x(function (d) {return x(d.tournament);})
             .y(function (d) {return y(d.used);});
 
-        d3.json("/stream/pickrate/data").then(function (shipClasses) {
+        d3.json("/stream/shipChoices/data").then(function (data) {
+
+            var shipClasses = data.data;
 
             x.domain([...new Set(shipClasses.map(c => c.values.map(t => t.tournament)).flat(1))]);
             y.domain([0,

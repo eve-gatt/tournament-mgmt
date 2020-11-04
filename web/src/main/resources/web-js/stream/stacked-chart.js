@@ -23,7 +23,7 @@
 
         d3.json(url).then(function (inData) {
 
-            var data = Array.from(d3.group(inData, d => d[grouper]),
+            var data = Array.from(d3.group(inData.data, d => d[grouper]),
                 ([grouper, value]) => ({grouper, value}));
 
             data.forEach(grouper => grouper.total = grouper.value.map(d => d.count).reduce((a, b) => a + b));

@@ -100,7 +100,7 @@ block scripts
         d3.select('.blue-team-history').on('click', e => requestWidget('blue'));
         streamInitSankey('.sankey');
         streamInitLineChart('.line-chart');
-        streamInitStackedChart('.top-winners-team', "/stream/topWinnersTeam/data", "Team", "wins");
-        streamInitStackedChart('.top-winners-captains', "/stream/topWinnersCaptain/data", "Player", "wins");
-        streamInitStackedChart('.top-losers-captains', "/stream/topLosersCaptain/data", "Player", "losses");
-        streamInitStackedChart('.top-ratio-captains', "/stream/topRatioCaptain/data", "captain", "win ratio");
+        streamInitStackedChart('.top-winners-team', "/stream/topWinnersByTeam/data", "Team", "wins");
+        streamInitStackedChart('.top-winners-captains', "/stream/topWinnersAmongstCaptains/data", "Player", "wins");
+        streamInitStackedChart('.top-losers-captains', "/stream/topLosersAmongstCaptains/data", "Player", "losses");
+        streamInitStackedChart('.top-ratio-captains', "/stream/topWinRatioAmongstCaptains/data", "captain", "win ratio");
