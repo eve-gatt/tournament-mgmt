@@ -71,7 +71,7 @@ block scripts
         }
 
     each w in widgets
-        var widgetName = w.getString("name")
+        - var widgetName = w.getString("name")
         case w.getString("type")
             when "CLEAR"
                 script.
@@ -91,4 +91,4 @@ block scripts
                     streamInitLineChart('.#{widgetName}');
             when "STACKED"
                 script.
-                    streamInitStackedChart('.#{widgetName}', ' / stream /#{widgetName}/data', '#{w.getString("grouper")}', '#{w.getString("sublabel")}');
+                    streamInitStackedChart('.#{widgetName}', '/stream/#{widgetName}/data', '#{w.getString("grouper")}', '#{w.getString("sublabel")}');
