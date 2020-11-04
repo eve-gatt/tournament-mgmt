@@ -50,10 +50,10 @@ block content
 
     h2 Current match
     .widgets
-        - each w in widgets
-        .widget
-            h3= w.getString("label")
-            .w(class=w.getString("name"))
+        each w in widgets
+            .widget
+                h3= w.getString("label")
+                .w(class=w.getString("name"))
 
 block scripts
     - var uuid = tournament.getString("uuid")
@@ -70,25 +70,25 @@ block scripts
             eb.publish('streamer.widget-request', {colour: colour});
         }
 
-    - each w in widgets
-    - var widgetName = w.getString("name")
-    case w.getString("type")
-        when "CLEAR"
-            script.
-                d3.select('.#{widgetName}')
-                    .text('clear')
-                    .on('click', e => eb.publish('streamer.widget-clear'));
-        when "TEAM_HISTORY"
-            script.
-                var selector = '.#{w.getString("colour")}TeamHistory';
-                d3.select(selector).on('click', e => requestWidget('#{w.getString("colour")}'));
-                streamInit5(selector, '#{w.getString("colour")}');
-        when "SANKEY"
-            script.
-                streamInitSankey('.#{widgetName}');
-        when "LINE"
-            script.
-                streamInitLineChart('.#{widgetName}');
-        when "STACKED"
-            script.
-                streamInitStackedChart('.#{widgetName}', ' / stream /#{widgetName}/data', '#{w.getString("grouper")}', '#{w.getString("sublabel")}');
+    each w in widgets
+        var widgetName = w.getString("name")
+        case w.getString("type")
+            when "CLEAR"
+                script.
+                    d3.select('.#{widgetName}')
+                        .text('clear')
+                        .on('click', e => eb.publish('streamer.widget-clear'));
+            when "TEAM_HISTORY"
+                script.
+                    var selector = '.#{w.getString("colour")}TeamHistory';
+                    d3.select(selector).on('click', e => requestWidget('#{w.getString("colour")}'));
+                    streamInit5(selector, '#{w.getString("colour")}');
+            when "SANKEY"
+                script.
+                    streamInitSankey('.#{widgetName}');
+            when "LINE"
+                script.
+                    streamInitLineChart('.#{widgetName}');
+            when "STACKED"
+                script.
+                    streamInitStackedChart('.#{widgetName}', ' / stream /#{widgetName}/data', '#{w.getString("grouper")}', '#{w.getString("sublabel")}');
