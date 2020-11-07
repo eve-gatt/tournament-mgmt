@@ -31,8 +31,6 @@ block append styles
             --padding: 20px 15px;
             font-size: 0.5em;
             cursor: pointer;
-            /*transform: scale(0.5);*/
-            /*transform-origin: left top;*/
         }
 
         .tick {
@@ -65,14 +63,15 @@ block scripts
         var eb = new EventBus("/ws");
         eb.enableReconnect(true);
 
-        function requestWidget(colour) {
-            eb.publish('streamer.widget-request', {colour: colour});
+        function requestWidget(json) {
+            eb.publish('streamer.widget-request', json);
         }
 
     each w in widgets
         - var widgetName = w.getString("name")
+        - var widgetJson = w.encode();
         script.
-            d3.select('.#{widgetName}').on('click', e => requestWidget('#{widgetName}'));
+            d3.select('.#{widgetName}').on('click', e => requestWidget('!{widgetJson}'));
         case w.getString("type")
             when "CLEAR"
                 script.

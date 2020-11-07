@@ -9,10 +9,23 @@ block styles
 
         .overlay {
             font-family: Shentox;
+            width: 1440px;
+            height: 810px;
         }
 
+        .tick {
+            font-size: 2em;
+        }
+    link(rel="stylesheet" href="/css/5.css")
+
 block content
-    .overlay
+    .overlay.animate__animated
 
 block scripts
+    script(src='/js/stream/5.js')
+    script(src='https://unpkg.com/d3-sankey@0')
+    script(src='/js/stream/sankey.js')
+    script(src='/js/stream/line-chart.js')
+    script(src='/js/stream/stacked-chart.js')
+
     script(src='/js/stream/shared.js')

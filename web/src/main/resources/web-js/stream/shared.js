@@ -5,25 +5,50 @@
     var eb = new EventBus("/ws");
     eb.enableReconnect(true);
 
-    function hide() {
-        this.selector.classed('animate__zoomIn', false)
+    function hide(then) {
+        d3.select('.overlay').classed('animate__zoomIn', false)
             .classed('animate__zoomOut', true)
-            .on('animationend', () => {
-
-            });
+            .on('animationend', then);
     }
 
     function unhide() {
-        this.selector.classed('animate__zoomOut', false)
-            .classed('animate__zoomIn', true)
-            .on('animationend', () => {
-                this.selector.classed('animate__zoomIn', false);
-            });
+        setTimeout(() => {
+            d3.select('.overlay').classed('animate__zoomOut', false)
+                .classed('animate__zoomIn', true)
+                .on('animationend', () => {
+                    d3.select('.overlay').classed('animate__zoomIn', false);
+                });
+        }, 200);
     }
 
     eb.onopen = function () {
 
         eb.registerHandler('streamer.widget-request', function (err, msg) {
+
+            hide(() => {
+                d3.select('.overlay').html(null);
+                let widget = JSON.parse(msg.body);
+                switch (widget.type) {
+                    case "CLEAR":
+                        d3.select('.overlay')
+                            .text('clear')
+                            .on('click', e => eb.publish('streamer.widget-clear'));
+                        break;
+                    case "TEAM_HISTORY":
+                        streamInit5('.overlay', widget.colour, `/stream/${widget.colour}TeamHistory/data`);
+                        break;
+                    case "SANKEY":
+                        streamInitSankey('.overlay');
+                        break;
+                    case "LINE":
+                        streamInitLineChart('.overlay');
+                        break;
+                    case "STACKED":
+                        streamInitStackedChart('.overlay', `/stream/${widget.name}/data`, widget.grouper, widget.sublabel);
+                        break;
+                }
+                unhide();
+            });
 
         });
 
