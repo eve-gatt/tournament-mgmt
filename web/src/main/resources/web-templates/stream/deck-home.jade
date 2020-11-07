@@ -46,9 +46,8 @@ block content
 
     mixin subtitle("Stream Deck")
 
-    a(href=streamerOverlayUrl, target="_blank") preview full size/stream overlay url
+    a(href=streamerOverlayUrl, target="_blank") click to preview stream overlay (use this url in OBS)
 
-    h2 Current match
     .widgets
         each w in widgets
             .widget
@@ -72,6 +71,8 @@ block scripts
 
     each w in widgets
         - var widgetName = w.getString("name")
+        script.
+            d3.select('.#{widgetName}').on('click', e => requestWidget('#{widgetName}'));
         case w.getString("type")
             when "CLEAR"
                 script.
@@ -80,9 +81,7 @@ block scripts
                         .on('click', e => eb.publish('streamer.widget-clear'));
             when "TEAM_HISTORY"
                 script.
-                    var selector = '.#{w.getString("colour")}TeamHistory';
-                    d3.select(selector).on('click', e => requestWidget('#{w.getString("colour")}'));
-                    streamInit5(selector, '#{w.getString("colour")}');
+                    streamInit5('.#{widgetName}', '#{w.getString("colour")}', '/stream/#{w.getString("colour")}TeamHistory/data');
             when "SANKEY"
                 script.
                     streamInitSankey('.#{widgetName}');

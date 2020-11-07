@@ -6,10 +6,11 @@
     eb.enableReconnect(true);
 
     class Widget {
-        constructor(selString, colour) {
+        constructor(selString, colour, dataUrl) {
             this.selector = d3.select(selString).append('div')
                 .classed('widget-5 animate__animated', true);
             this.colour = colour;
+            this.dataUrl = dataUrl;
 
             let title = this.selector.append('div').classed('title', true);
             title.append('img');
@@ -64,7 +65,7 @@
                 this.latestMatch = match;
                 this.fetchHistory(match).then(history => this.render(match, history));
             } else {
-                d3.json('/stream/93e30c88-c769-48a8-a547-7d464bab5d14/matches/latest-match/data')
+                d3.json(this.dataUrl)
                     .then(match => {
                         this.latestMatch = match;
                         this.fetchHistory(match).then(history => this.render(match, history));
@@ -90,8 +91,8 @@
 
     }
 
-    function init(sel, c) {
-        let w = new Widget(sel, c);
+    function init(sel, c, dataUrl) {
+        let w = new Widget(sel, c, dataUrl);
         widgets.push(w);
         w.start();
     }

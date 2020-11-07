@@ -50,18 +50,18 @@ public class StreamRouter {
         router.get("/stream/:code/overlay")
                 .handler(this::checkCode)
                 .handler(this::defaultOverlay);
+        router.get("/stream/:code/overlay/shared")
+                .handler(this::checkCode)
+                .handler(this::sharedOverlay);
         router.get("/stream/:code/overlay/:number")
                 .handler(this::checkCode)
                 .handler(this::overlayNumber);
 
         router.get("/auth/stream/manage").handler(this::manage);
         router.post("/auth/stream/manage/:number").handler(this::switchTo);
-
         router.get("/auth/tournament/:tournamentUuid/stream/deck").handler(this::deckHome);
-
         router.get("/stream/:tournamentUuid/matches/latest-match/data").handler(this::latestMatch);
         router.get("/stream/:tournamentUuid/history/:name").handler(this::historicalDataForTeam);
-
         router.get("/stream/:widgetName/data").handler(this::processWidgetDataRequest);
     }
 
@@ -87,7 +87,7 @@ public class StreamRouter {
                     String uuid = ((JsonObject) msg.body()).getString("uuid");
                     render.renderPage(ctx, "/stream/deck-home",
                             new JsonObject()
-                                    .put("streamerOverlayUrl", System.getenv("BASE_URL") + "/stream/" + uuid + "/overlay/5")
+                                    .put("streamerOverlayUrl", System.getenv("BASE_URL") + "/stream/" + uuid + "/overlay/shared")
                                     .put("widgets", widgets));
                 });
     }
@@ -129,6 +129,10 @@ public class StreamRouter {
                 .map(RenderHelper::formatCreatedAt)
                 .onFailure(ctx::fail)
                 .onSuccess(match -> ctx.response().end(match.encode()));
+    }
+
+    private void sharedOverlay(RoutingContext ctx) {
+        render.renderPage(ctx, "/stream/shared", new JsonObject());
     }
 
     private void overlayNumber(RoutingContext ctx) {

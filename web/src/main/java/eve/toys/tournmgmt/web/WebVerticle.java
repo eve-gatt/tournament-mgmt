@@ -59,7 +59,7 @@ public class WebVerticle extends AbstractVerticle {
         dbClient = new DbClient(vertx.eventBus());
         historicalClient = new HistoricalClient(vertx.eventBus());
         JobClient jobClient = new JobClient(vertx.eventBus());
-        Config streamConfig = Config.configure(historicalClient);
+        Config streamConfig = Config.configure(dbClient, historicalClient);
 
         SessionStore sessionStore = LocalSessionStore.create(vertx);
 
