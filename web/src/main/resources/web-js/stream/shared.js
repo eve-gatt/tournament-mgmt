@@ -30,9 +30,6 @@
                 let widget = JSON.parse(msg.body);
                 switch (widget.type) {
                     case "CLEAR":
-                        d3.select('.overlay')
-                            .text('clear')
-                            .on('click', e => eb.publish('streamer.widget-clear'));
                         break;
                     case "TEAM_HISTORY":
                         streamInit5('.overlay', widget.colour, `/stream/${widget.colour}TeamHistory/data`);

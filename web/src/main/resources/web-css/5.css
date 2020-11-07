@@ -3,6 +3,11 @@
     src: url("/assets/fonts/Shentox-Regular.otf") format("opentype");
 }
 
+.widget-5-wrapper {
+    display: grid;
+    justify-items: center;
+}
+
 .widget-5 {
     font-family: Shentox;
 }

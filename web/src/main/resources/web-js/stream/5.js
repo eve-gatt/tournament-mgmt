@@ -7,7 +7,9 @@
 
     class Widget {
         constructor(selString, colour, dataUrl) {
-            this.selector = d3.select(selString).append('div')
+            this.selector = d3.select(selString)
+                .append('div').classed('widget-5-wrapper', true)
+                .append('div')
                 .classed('widget-5 animate__animated', true);
             this.colour = colour;
             this.dataUrl = dataUrl;
