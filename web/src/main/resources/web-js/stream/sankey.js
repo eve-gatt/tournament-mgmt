@@ -30,7 +30,7 @@
             .nodePadding(2)
             .size([width, height]);
 
-        d3.json("/stream/sankey/data").then(function (graph) {
+        d3.json("/stream/aTShips/data").then(function (graph) {
             sankey(graph);
 
             svg.append("g")

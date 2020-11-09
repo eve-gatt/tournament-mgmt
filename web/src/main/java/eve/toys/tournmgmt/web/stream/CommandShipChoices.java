@@ -11,11 +11,11 @@ import toys.eve.tournmgmt.db.HistoricalClient;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ShipChoices implements Command {
+public class CommandShipChoices implements Command {
     private final HistoricalClient historical;
     private final Map<Integer, String> tournaments;
 
-    public ShipChoices(HistoricalClient historical, Map<Integer, String> tournaments) {
+    public CommandShipChoices(HistoricalClient historical, Map<Integer, String> tournaments) {
         this.historical = historical;
         this.tournaments = tournaments;
     }
@@ -24,13 +24,14 @@ public class ShipChoices implements Command {
     public Future<JsonObject> fetchData() {
         Promise<JsonObject> promise = Promise.promise();
 
-        historical.callDb(HistoricalClient.Call.HISTORICAL_WIN_LOSS_BY_TOURNAMENT_AND_SHIP, new JsonObject())
+        historical.callDb(HistoricalClient.Call.HISTORICAL_WIN_LOSS_BY_TOURNAMENT_AND_SHIP,
+                new JsonObject().put("whereClause", "where s.Class = 'Command Ship'"))
                 .onFailure(promise::fail)
                 .map(msg -> (JsonArray) msg.body())
                 .onSuccess(rows -> {
                     Set<String> distinctClasses = rows.stream()
                             .map(o -> (JsonObject) o)
-                            .map(r -> r.getString("SuperClass"))
+                            .map(r -> r.getString("Class"))
                             .collect(Collectors.toSet());
                     List<String> distinctTournaments = rows.stream()
                             .map(o -> (JsonObject) o)
@@ -43,7 +44,7 @@ public class ShipChoices implements Command {
                             .map(o -> (JsonObject) o)
                             .forEach(row -> {
                                 String tournamentName = tournaments.getOrDefault(row.getInteger("Tournament"), String.valueOf(row.getInteger("Tournament")));
-                                tournamentClass.merge(Tuple.of(tournamentName, row.getString("SuperClass")),
+                                tournamentClass.merge(Tuple.of(tournamentName, row.getString("Class")),
                                         row.getInteger("used"),
                                         Integer::sum);
                             });

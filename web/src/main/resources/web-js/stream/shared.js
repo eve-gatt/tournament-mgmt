@@ -38,7 +38,7 @@
                         streamInitSankey('.overlay');
                         break;
                     case "LINE":
-                        streamInitLineChart('.overlay');
+                        streamInitLineChart('.overlay', `/stream/${widget.name}/data`);
                         break;
                     case "STACKED":
                         streamInitStackedChart('.overlay', `/stream/${widget.name}/data`, widget.grouper, widget.sublabel);

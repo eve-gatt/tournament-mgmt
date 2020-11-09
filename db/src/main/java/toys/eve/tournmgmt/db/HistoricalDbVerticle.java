@@ -138,7 +138,8 @@ public class HistoricalDbVerticle extends AbstractVerticle {
                 });
     }
 
-    private void winlossByTournamentAndShip(Message<Void> msg) {
+    private void winlossByTournamentAndShip(Message<JsonObject> msg) {
+        String whereClause = msg.body().getString("whereClause");
         sqlClient.query("select Tournament,\n" +
                         "       Ship,\n" +
                         "       Class,\n" +
@@ -162,6 +163,7 @@ public class HistoricalDbVerticle extends AbstractVerticle {
                         "                                p.SeriesNo = m.SeriesNo\n" +
                         "                  inner join ships s on p.Ship = s.Ship\n" +
                         "                  inner join superclasses sc on s.Class = sc.Class\n" +
+                        (whereClause == null ? "" : whereClause) +
                         "         group by m.Tournament,\n" +
                         "                  m.MatchNo,\n" +
                         "                  m.SeriesNo,\n" +

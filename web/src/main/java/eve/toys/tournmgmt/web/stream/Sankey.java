@@ -32,7 +32,8 @@ public class Sankey implements Command {
 
         Promise<JsonObject> promise = Promise.promise();
 
-        historical.callDb(HistoricalClient.Call.HISTORICAL_WIN_LOSS_BY_TOURNAMENT_AND_SHIP, null)
+        historical.callDb(HistoricalClient.Call.HISTORICAL_WIN_LOSS_BY_TOURNAMENT_AND_SHIP,
+                new JsonObject().put("whereClause", "where Limited = 2"))
                 .onFailure(promise::fail)
                 .map(msg -> (JsonArray) msg.body())
                 .onSuccess(rows -> {

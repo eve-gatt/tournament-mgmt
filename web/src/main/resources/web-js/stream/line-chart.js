@@ -1,7 +1,7 @@
 (function () {
 
-    function init(sel) {
-        var margin = {top: 10, right: 200, bottom: 40, left: 60},
+    function init(sel, url) {
+        var margin = {top: 40, right: 200, bottom: 40, left: 60},
             width = 1400 - margin.left - margin.right,
             height = 900 - margin.top - margin.bottom;
 
@@ -20,7 +20,7 @@
             .x(function (d) {return x(d.tournament);})
             .y(function (d) {return y(d.used);});
 
-        d3.json("/stream/shipChoices/data").then(function (data) {
+        d3.json(url).then(function (data) {
 
             var shipClasses = data.data;
 
@@ -42,8 +42,8 @@
                 .attr("y", 6)
                 .attr("dy", "0.71em")
                 .attr("fill", "#ffffff")
-                .style('font-size', '1em')
-                .text("used");
+                .style('font-size', '1.6em')
+                .text("fielded");
 
             var shipClass = svg.selectAll(".shipClass")
                 .data(shipClasses)
@@ -64,7 +64,7 @@
                 .attr("x", 3)
                 .attr("dy", "0.35em")
                 .attr("fill", d => z(d.id))
-                .style('font-size', '2em')
+                .style('font-size', '1.6em')
                 .text(d => d.id);
         });
     }

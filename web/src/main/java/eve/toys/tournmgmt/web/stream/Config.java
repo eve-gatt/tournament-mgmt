@@ -38,8 +38,9 @@ public class Config {
         Widget clear = new Widget(WidgetType.CLEAR, "Clear", new ClearCommand());
         Widget redTeamHistory = new Widget(WidgetType.TEAM_HISTORY, "Red Team History", new TeamHistory(dbClient, historical, tournaments, "red", "Rote Kapelle"));
         Widget blueTeamHistory = new Widget(WidgetType.TEAM_HISTORY, "Blue Team History", new TeamHistory(dbClient, historical, tournaments, "blue", "Templis CALSF"));
-        Widget sankey = new Widget(WidgetType.SANKEY, "Sankey", new Sankey(historical, tournaments));
+        Widget sankey = new Widget(WidgetType.SANKEY, "AT Ships", new Sankey(historical, tournaments));
         Widget shipChoices = new Widget(WidgetType.LINE, "Ship Choices", new ShipChoices(historical, tournaments));
+        Widget commandShipChoices = new Widget(WidgetType.LINE, "Command Ships", new CommandShipChoices(historical, tournaments));
         Widget topWinnersByTeam = new Widget(WidgetType.STACKED, "Top winners by team", new TopWinnersByTeam(historical, tournaments));
         Widget topWinnersByCaptains = new Widget(WidgetType.STACKED, "Top winners amongst captains", new TopWinnersAmongstCaptains(historical, tournaments));
         Widget topLosersByCaptains = new Widget(WidgetType.STACKED, "Top losers amongst captains", new TopLosersAmongstCaptains(historical, tournaments));
@@ -51,6 +52,7 @@ public class Config {
                 blueTeamHistory,
                 sankey,
                 shipChoices,
+                commandShipChoices,
                 topWinnersByTeam,
                 topWinnersByCaptains,
                 topLosersByCaptains,

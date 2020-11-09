@@ -4,7 +4,7 @@ block append styles
     style.
         .widgets {
             display: grid;
-            grid: auto-flow / 1fr 1fr 1fr;
+            grid: auto-flow / 1fr 1fr 1fr 1fr 1fr;
             gap: 12px;
         }
 
@@ -75,9 +75,7 @@ block scripts
         case w.getString("type")
             when "CLEAR"
                 script.
-                    d3.select('.#{widgetName}')
-                        .text('clear')
-                        .on('click', e => eb.publish('streamer.widget-clear'));
+                    d3.select('.#{widgetName}').text('clear');
             when "TEAM_HISTORY"
                 script.
                     streamInit5('.#{widgetName}', '#{w.getString("colour")}', '/stream/#{w.getString("colour")}TeamHistory/data');
@@ -86,7 +84,7 @@ block scripts
                     streamInitSankey('.#{widgetName}');
             when "LINE"
                 script.
-                    streamInitLineChart('.#{widgetName}');
+                    streamInitLineChart('.#{widgetName}', '/stream/#{widgetName}/data');
             when "STACKED"
                 script.
                     streamInitStackedChart('.#{widgetName}', '/stream/#{widgetName}/data', '#{w.getString("grouper")}', '#{w.getString("sublabel")}');
