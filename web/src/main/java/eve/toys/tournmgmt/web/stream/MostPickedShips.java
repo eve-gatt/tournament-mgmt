@@ -8,16 +8,23 @@ import toys.eve.tournmgmt.db.DbClient;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class MostPickedShips implements Command {
     private final DbClient dbClient;
     private final String grouper;
+    private final Predicate<JsonObject> compFilter;
 
     public MostPickedShips(DbClient dbClient, String grouper) {
+        this(dbClient, grouper, o -> true);
+    }
+
+    public MostPickedShips(DbClient dbClient, String grouper, Predicate<JsonObject> compFilter) {
         this.dbClient = dbClient;
         this.grouper = grouper;
+        this.compFilter = compFilter;
     }
 
     @Override
@@ -40,7 +47,8 @@ public class MostPickedShips implements Command {
     private List<String> shipsFielded(JsonObject teamJson) {
         return teamJson.getJsonArray("comp").stream()
                 .map(o -> (JsonObject) o)
-                .map(fielded -> fielded.getString(grouper))
+                .filter(compFilter)
+                .map(fielded -> fielded.getString(grouper) != null ? fielded.getString(grouper) : fielded.getString("ship"))
                 .collect(Collectors.toList());
     }
 }

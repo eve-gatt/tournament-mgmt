@@ -13,6 +13,29 @@ import java.util.stream.Collectors;
 
 public class Config {
 
+    private static final List<String> LOGIS = Arrays.asList(
+            "T1 Support Cruiser",
+            "Logistics Frigate",
+            "Precursor Support Cruiser",
+            "Wildcard Logistics Cruiser",
+            "Precursor Logistics Cruiser",
+            "T1 Support Frigate",
+            "Logistics Cruiser");
+    private static final List<String> EWARS = Arrays.asList(
+            "Wildcard Recon Ship",
+            "Recon Ship",
+            "T1 EWAR Frigate",
+            "Navy EWAR Frigate",
+            "T1 EWAR Cruiser",
+            "Electronic Attack Ship");
+    private static final List<String> BURSTS = Arrays.asList(
+            "Combat Battlecruiser",
+//            "Navy Battlecruiser",
+            "Command Destroyer",
+            "Precursor Command Destroyer",
+            "Command Ship",
+            "Precursor Battlecruiser");
+
     private final Path ROOT_DIR = Paths.get("stream");
     private final List<Widget> widgets = new ArrayList<>();
 
@@ -46,7 +69,10 @@ public class Config {
         Widget topLosersByCaptains = new Widget(WidgetType.STACKED, "Top losers amongst captains", new TopLosersAmongstCaptains(historical, tournaments));
         Widget topWinRatioAmongstCaptains = new Widget(WidgetType.STACKED, "Top win ratio amongst captains", new TopWinRatioAmongstCaptains(historical, tournaments));
         Widget aoMostPickedShips = new Widget(WidgetType.PIE, "Most picked ship", new MostPickedShips(dbClient, "ship"));
-        Widget aoMostPickedClass = new Widget(WidgetType.PIE, "Most picked points class", new MostPickedShips(dbClient, "exact_type"));
+        Widget aoMostPickedClass = new Widget(WidgetType.PIE, "Most picked class", new MostPickedShips(dbClient, "exact_type"));
+        Widget aoMostPickedLogi = new Widget(WidgetType.PIE, "Most picked logi", new MostPickedShips(dbClient, "ship", o -> LOGIS.contains(o.getString("overlay"))));
+        Widget aoMostPickedEwar = new Widget(WidgetType.PIE, "Most picked EWAR", new MostPickedShips(dbClient, "ship", o -> EWARS.contains(o.getString("overlay"))));
+        Widget aoMostPickedLinks = new Widget(WidgetType.PIE, "Most picked bursters", new MostPickedShips(dbClient, "ship", o -> BURSTS.contains(o.getString("overlay"))));
 
         return new Config(Arrays.asList(
                 clear,
@@ -60,7 +86,10 @@ public class Config {
                 topLosersByCaptains,
                 topWinRatioAmongstCaptains,
                 aoMostPickedShips,
-                aoMostPickedClass));
+                aoMostPickedClass,
+                aoMostPickedLogi,
+                aoMostPickedEwar,
+                aoMostPickedLinks));
     }
 
     public Future<JsonObject> fetchData(String widgetName) {

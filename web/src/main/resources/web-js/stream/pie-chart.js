@@ -26,7 +26,7 @@
             const data = Object.entries(inData.data)
                 .map(([name, value]) => ({name, value}))
                 .sort((a, b) => d3.descending(a.value, b.value))
-                .slice(0, 12);
+                .slice(0, 10);
 
             var color = d3.scaleOrdinal()
                 .domain(data.map(d => d.name))
