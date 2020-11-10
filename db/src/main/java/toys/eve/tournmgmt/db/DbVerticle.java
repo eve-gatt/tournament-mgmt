@@ -1066,11 +1066,12 @@ public class DbVerticle extends AbstractVerticle {
     }
 
     private void allMatches(Message<String> msg) {
-        String teamUuid = msg.body();
         sqlClient.query("select " +
                         "match.id, " +
                         "match.created_by as ref, " +
                         "match.created_at, " +
+                        "bluejson, " +
+                        "redjson, " +
                         "blue.name as blue_team_name, " +
                         "red.name as red_team_name, " +
                         "winner " +

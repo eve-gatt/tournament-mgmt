@@ -45,6 +45,8 @@ public class Config {
         Widget topWinnersByCaptains = new Widget(WidgetType.STACKED, "Top winners amongst captains", new TopWinnersAmongstCaptains(historical, tournaments));
         Widget topLosersByCaptains = new Widget(WidgetType.STACKED, "Top losers amongst captains", new TopLosersAmongstCaptains(historical, tournaments));
         Widget topWinRatioAmongstCaptains = new Widget(WidgetType.STACKED, "Top win ratio amongst captains", new TopWinRatioAmongstCaptains(historical, tournaments));
+        Widget aoMostPickedShips = new Widget(WidgetType.PIE, "Most picked ship", new MostPickedShips(dbClient, "ship"));
+        Widget aoMostPickedClass = new Widget(WidgetType.PIE, "Most picked points class", new MostPickedShips(dbClient, "exact_type"));
 
         return new Config(Arrays.asList(
                 clear,
@@ -56,7 +58,9 @@ public class Config {
                 topWinnersByTeam,
                 topWinnersByCaptains,
                 topLosersByCaptains,
-                topWinRatioAmongstCaptains));
+                topWinRatioAmongstCaptains,
+                aoMostPickedShips,
+                aoMostPickedClass));
     }
 
     public Future<JsonObject> fetchData(String widgetName) {

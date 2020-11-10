@@ -43,6 +43,9 @@
                     case "STACKED":
                         streamInitStackedChart('.overlay', `/stream/${widget.name}/data`, widget.grouper, widget.sublabel);
                         break;
+                    case "PIE":
+                        streamInitPieChart('.overlay', `/stream/${widget.name}/data`, widget.grouper, widget.sublabel);
+                        break;
                 }
                 unhide();
             });
