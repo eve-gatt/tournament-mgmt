@@ -71,9 +71,17 @@
         let json = JSON.parse(match[colour + 'json']);
         let pilots = overlay.select('.pilots.' + colour).selectAll('.pilot').data(json.comp, d => match.id + "/" + d.pilot);
         pilots.exit().remove();
-        let enteringPilot = pilots.enter().append('div').classed('pilot', true);
-        enteringPilot.append('div')
-            .text(d => d.overlay);
+        let enteringPilot = pilots.enter().append('div')
+            .classed('pilot', true);
+        let rowWrapper = enteringPilot.append('div').classed('row-wrapper', true);
+        if (colour === 'red') {
+            rowWrapper.append('div').classed('shipname-wrapper', true).append('div').classed('shipname', true).text(d => d.overlay);
+            rowWrapper.append('div').classed('row-spacer', true);
+        }
+        if (colour === 'blue') {
+            rowWrapper.append('div').classed('row-spacer', true);
+            rowWrapper.append('div').classed('shipname-wrapper', true).append('div').classed('shipname', true).text(d => d.overlay);
+        }
         enteringPilot.append('div')
             .classed('colour-overlay', true)
             .style('background-color', d => SCHEME[d.overlay]);

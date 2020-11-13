@@ -18,7 +18,7 @@ block styles
         .overlay {
             display: grid;
             width: 1920px;
-            grid: 777px 81px auto / 1fr 1220px 1fr;
+            grid: 777px 81px auto / 1fr 242px 1fr;
             grid-template-areas:
                 "... names  ...."
                 "... ...... ...."
@@ -32,21 +32,7 @@ block styles
         .colour-overlay {
             opacity: 0.2;
             height: 18px;
-            width: 830px;
-            position: absolute;
             margin-top: -16px;
-        }
-
-        .red .colour-overlay {
-            left: 0;
-        }
-
-        .blue .colour-overlay {
-            right: 0;
-        }
-
-        .pilots {
-
         }
 
         .pilot {
@@ -55,15 +41,26 @@ block styles
             white-space: nowrap;
         }
 
-        .red .pilot {
-            background-color: #271d1d;
-            padding: 0 6px 0 6px;
+        .pilot .row-wrapper {
+            display: grid;
         }
 
-        .blue .pilot {
+        .red .pilot .row-wrapper {
+            grid: auto-flow / auto 478px;
+        }
+
+        .blue .pilot .row-wrapper {
+            grid: auto-flow / 478px auto;
+        }
+
+        .red .pilot .shipname-wrapper {
+            background-color: #271d1d;
+            padding: 0 12px;
+        }
+
+        .blue .pilot .shipname-wrapper {
             background-color: #1b1f2f;
-            padding: 0 6px 0 6px;
-            margin-left: -10px; /* tweak here for left align of blue */
+            padding: 0 12px;
         }
 
         .pilots.red {
@@ -79,12 +76,12 @@ block styles
         .names {
             grid-area: names;
             display: grid;
-            grid: auto-flow / 1fr 272px 1fr;
-            /*grid: auto-flow / 1fr 394px 1fr;*/
+            grid: auto-flow / 400px 360px 400px;
             grid-template-areas:
                 "redname . bluename";
             font-size: 1.8em;
             align-items: end;
+            justify-content: center;
             white-space: nowrap;
         }
 
