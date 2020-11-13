@@ -209,7 +209,8 @@ public class RefToolInput {
                         .map(msg -> {
                             JsonObject body = (JsonObject) msg.body();
                             row.put("type_id", body == null ? -1 : body.getInteger("type_id"));
-                            row.put("points", body == null ? -1 : body.getInteger("at14_points"));
+                            row.put("points", body == null ? -1 : body.getInteger("ao_points"));
+                            row.put("class", body == null ? "unknown" : body.getString("ao_class"));
                             row.put("exact_type", body == null ? "unknown" : body.getString("ao_exact_type"));
                             row.put("overlay", body == null ? "unknown" : body.getString("ao_overlay"));
                             return row;

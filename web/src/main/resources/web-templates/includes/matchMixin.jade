@@ -77,8 +77,6 @@ mixin results(json)
                                     class=(pilot.getString("skillsMessage").isEmpty() ? "" : "skills-not-good"))
                                     td= pilot.getString("pilot")
                                     td= pilot.getString("exact_type")
-                                    // remove eventually
                                     td= pilot.getString("class")
-                                        small= " (" + pilot.getString("category") + ")"
                                     td= pilot.getString("ship")
                                     td= (!pilot.getBoolean("onTeam") ? "Not on team. " : "") + pilot.getString("skillsMessage")
