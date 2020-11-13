@@ -57,6 +57,7 @@ public class DbClient {
     public static final String DB_FETCH_STREAMER_TOKEN = "DB_FETCH_STREAMER_TOKEN";
     public static final String DB_STREAMER_BY_CODE = "DB_STREAMER_BY_CODE";
     public static final String DB_RECORD_MATCH_RESULT = "DB_RECORD_MATCH_RESULT";
+    public static final String DB_WINS_BY_TEAM = "DB_WINS_BY_TEAM";
 
     private final EventBus eventBus;
 

@@ -4,7 +4,7 @@ import eve.toys.tournmgmt.web.authn.AppRBAC;
 import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.job.JobClient;
 import eve.toys.tournmgmt.web.routes.*;
-import eve.toys.tournmgmt.web.stream.Config;
+import eve.toys.tournmgmt.web.stream.StreamDeckConfig;
 import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.CompositeFuture;
@@ -59,7 +59,7 @@ public class WebVerticle extends AbstractVerticle {
         dbClient = new DbClient(vertx.eventBus());
         historicalClient = new HistoricalClient(vertx.eventBus());
         JobClient jobClient = new JobClient(vertx.eventBus());
-        Config streamConfig = Config.configure(dbClient, historicalClient);
+        StreamDeckConfig streamDeckConfig = StreamDeckConfig.configure(dbClient, historicalClient);
 
         SessionStore sessionStore = LocalSessionStore.create(vertx);
 
@@ -129,7 +129,7 @@ public class WebVerticle extends AbstractVerticle {
                         .addAuthority("isSuperuser"));
         router.mountSubRouter("/auth/superuser", SuperuserRouter.routes(vertx, render, jobClient, dbClient, esi));
         router.mountSubRouter("/auth/ccp", CCPRouter.routes(vertx, render, dbClient));
-        router.mountSubRouter("/", StreamRouter.routes(vertx, render, dbClient, historicalClient, esi, streamConfig));
+        router.mountSubRouter("/", StreamRouter.routes(vertx, render, dbClient, historicalClient, esi, streamDeckConfig));
 
         SockJSHandler sockJSHandler = SockJSHandler.create(vertx, new SockJSHandlerOptions());
         sockJSHandler.bridge(new BridgeOptions()

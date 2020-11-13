@@ -1,7 +1,7 @@
 package eve.toys.tournmgmt.web.routes;
 
 import eve.toys.tournmgmt.web.esi.Esi;
-import eve.toys.tournmgmt.web.stream.Config;
+import eve.toys.tournmgmt.web.stream.StreamDeckConfig;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonArray;
@@ -28,7 +28,7 @@ public class StreamRouter {
     private final Esi esi;
     private final Router router;
     private final EventBus eventBus;
-    private final Config streamConfig;
+    private final StreamDeckConfig streamDeckConfig;
     private final Map<Integer, String> tournaments = new HashMap<>();
 
     public StreamRouter(Vertx vertx,
@@ -36,14 +36,14 @@ public class StreamRouter {
                         DbClient dbClient,
                         HistoricalClient historical,
                         Esi esi,
-                        Config streamConfig) {
+                        StreamDeckConfig streamDeckConfig) {
         router = Router.router(vertx);
         this.render = render;
         this.dbClient = dbClient;
         this.historical = historical;
         this.esi = esi;
         this.eventBus = vertx.eventBus();
-        this.streamConfig = streamConfig;
+        this.streamDeckConfig = streamDeckConfig;
 
         initialiseTournaments();
 
@@ -65,12 +65,12 @@ public class StreamRouter {
         router.get("/stream/:widgetName/data").handler(this::processWidgetDataRequest);
     }
 
-    public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient, HistoricalClient historical, Esi esi, Config streamConfig) {
-        return new StreamRouter(vertx, render, dbClient, historical, esi, streamConfig).router();
+    public static Router routes(Vertx vertx, RenderHelper render, DbClient dbClient, HistoricalClient historical, Esi esi, StreamDeckConfig streamDeckConfig) {
+        return new StreamRouter(vertx, render, dbClient, historical, esi, streamDeckConfig).router();
     }
 
     private void processWidgetDataRequest(RoutingContext ctx) {
-        streamConfig.fetchData(ctx.request().getParam("widgetName"))
+        streamDeckConfig.fetchData(ctx.request().getParam("widgetName"))
                 .onFailure(t -> {
                     t.printStackTrace();
                     ctx.next();
@@ -83,7 +83,7 @@ public class StreamRouter {
         dbClient.callDb(DbClient.DB_FETCH_STREAMER_TOKEN, tournament.getString("name"))
                 .onFailure(ctx::fail)
                 .onSuccess(msg -> {
-                    JsonArray widgets = streamConfig.widgetAsJson();
+                    JsonArray widgets = streamDeckConfig.widgetAsJson();
                     String uuid = ((JsonObject) msg.body()).getString("uuid");
                     render.renderPage(ctx, "/stream/deck-home",
                             new JsonObject()

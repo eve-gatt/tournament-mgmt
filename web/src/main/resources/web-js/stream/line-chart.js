@@ -1,15 +1,14 @@
 (function () {
 
     function init(sel, url) {
-        var margin = {top: 40, right: 200, bottom: 40, left: 60},
+        var margin = {top: 40, right: 240, bottom: 40, left: 60},
             width = 1400 - margin.left - margin.right,
             height = 900 - margin.top - margin.bottom;
 
         var svg = d3.select(sel).append("svg")
             .attr("viewBox", "0 0 " + (width + margin.left + margin.right) + " " + (height + margin.top + margin.bottom))
             .append("g")
-            .attr("transform",
-                "translate(" + margin.left + "," + margin.top + ")");
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
         var x = d3.scalePoint().range([0, width]),
             y = d3.scaleLinear().range([height, 0]),
@@ -22,11 +21,11 @@
 
         d3.json(url).then(function (data) {
 
-            var shipClasses = data.data;
+            var series = data.data;
 
-            x.domain([...new Set(shipClasses.map(c => c.values.map(t => t.tournament)).flat(1))]);
+            x.domain([...new Set(series.map(c => c.values.map(t => t.tournament)).flat(1))]);
             y.domain([0,
-                d3.max(shipClasses, c => d3.max(c.values, function (d) {return d.used;}))
+                d3.max(series, c => d3.max(c.values, function (d) {return d.used;}))
             ]);
 
             svg.append("g")
@@ -46,7 +45,7 @@
                 .text("fielded");
 
             var shipClass = svg.selectAll(".shipClass")
-                .data(shipClasses)
+                .data(series)
                 .enter().append("g")
                 .attr("class", "shipClass");
 

@@ -58,6 +58,7 @@ block scripts
     script(src='https://unpkg.com/d3-sankey@0')
     script(src='/js/stream/sankey.js')
     script(src='/js/stream/line-chart.js')
+    script(src='/js/stream/line-chart2.js')
     script(src='/js/stream/stacked-chart.js')
     script(src='/js/stream/pie-chart.js')
     script.
@@ -86,6 +87,9 @@ block scripts
             when "LINE"
                 script.
                     streamInitLineChart('.#{widgetName}', '/stream/#{widgetName}/data');
+            when "LINE2"
+                script.
+                    streamInitLine2Chart('.#{widgetName}', '/stream/#{widgetName}/data');
             when "STACKED"
                 script.
                     streamInitStackedChart('.#{widgetName}', '/stream/#{widgetName}/data', '#{w.getString("grouper")}', '#{w.getString("sublabel")}');

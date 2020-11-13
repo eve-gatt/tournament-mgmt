@@ -25,7 +25,7 @@ public class CommandShipChoices implements Command {
         Promise<JsonObject> promise = Promise.promise();
 
         historical.callDb(HistoricalClient.Call.HISTORICAL_WIN_LOSS_BY_TOURNAMENT_AND_SHIP,
-                new JsonObject().put("whereClause", "where s.Class = 'Command Ship'"))
+                new JsonObject().put("whereClause", "where s.Class = 'Command Ship' or s.Class = 'Command Destroyer'"))
                 .onFailure(promise::fail)
                 .map(msg -> (JsonArray) msg.body())
                 .onSuccess(rows -> {

@@ -40,6 +40,9 @@
                     case "LINE":
                         streamInitLineChart('.overlay', `/stream/${widget.name}/data`);
                         break;
+                    case "LINE2":
+                        streamInitLine2Chart('.overlay', `/stream/${widget.name}/data`);
+                        break;
                     case "STACKED":
                         streamInitStackedChart('.overlay', `/stream/${widget.name}/data`, widget.grouper, widget.sublabel);
                         break;

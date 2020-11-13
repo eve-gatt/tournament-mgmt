@@ -107,6 +107,7 @@ public class DbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(DbClient.DB_FETCH_STREAMER_TOKEN, this::fetchStreamerToken);
         vertx.eventBus().consumer(DbClient.DB_STREAMER_BY_CODE, this::streamerByCode);
         vertx.eventBus().consumer(DbClient.DB_RECORD_MATCH_RESULT, this::recordMatchResult);
+        vertx.eventBus().consumer(DbClient.DB_WINS_BY_TEAM, this::winsByTeamPerDay);
 
         LOGGER.info("Starting data fixes");
         dataFixes();
@@ -219,6 +220,23 @@ public class DbVerticle extends AbstractVerticle {
                         msg.fail(1, ar.cause().getMessage());
                     } else {
                         msg.reply(ar.result().getRows().get(0).getString("uuid"));
+                    }
+                });
+    }
+
+    private void winsByTeamPerDay(Message<JsonObject> msg) {
+        sqlClient.query("select date_trunc('day', created_at) as day, winner, count(*)\n" +
+                        "from match\n" +
+                        "where winner is not null\n" +
+                        "and publish = true\n" +
+                        "group by day, winner\n" +
+                        "order by day\n",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(new JsonArray(ar.result().getRows()));
                     }
                 });
     }

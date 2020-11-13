@@ -5,6 +5,7 @@ public enum WidgetType {
     TEAM_HISTORY,
     SANKEY,
     LINE,
+    LINE2,
     STACKED,
     PIE
 }

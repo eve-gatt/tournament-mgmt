@@ -11,7 +11,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class Config {
+public class StreamDeckConfig {
 
     private static final List<String> LOGIS = Arrays.asList(
             "T1 Support Cruiser",
@@ -39,12 +39,12 @@ public class Config {
     private final Path ROOT_DIR = Paths.get("stream");
     private final List<Widget> widgets = new ArrayList<>();
 
-    public Config(List<Widget> widgets) {
+    public StreamDeckConfig(List<Widget> widgets) {
         this.widgets.addAll(widgets);
         this.widgets.forEach(w -> System.out.println("Configured: " + w.widgetName()));
     }
 
-    public static Config configure(DbClient dbClient, HistoricalClient historical) {
+    public static StreamDeckConfig configure(DbClient dbClient, HistoricalClient historical) {
 
         Map<Integer, String> tournaments = new HashMap<>();
         tournaments.put(-1, "AT9");
@@ -73,8 +73,9 @@ public class Config {
         Widget aoMostPickedLogi = new Widget(WidgetType.PIE, "Most picked logi", new MostPickedShips(dbClient, "ship", o -> LOGIS.contains(o.getString("overlay"))));
         Widget aoMostPickedEwar = new Widget(WidgetType.PIE, "Most picked EWAR", new MostPickedShips(dbClient, "ship", o -> EWARS.contains(o.getString("overlay"))));
         Widget aoMostPickedLinks = new Widget(WidgetType.PIE, "Most picked bursters", new MostPickedShips(dbClient, "ship", o -> BURSTS.contains(o.getString("overlay"))));
+        Widget matchWinsByTeam = new Widget(WidgetType.LINE2, "Match Wins By Team", new MatchWinsByTeam(dbClient));
 
-        return new Config(Arrays.asList(
+        return new StreamDeckConfig(Arrays.asList(
                 clear,
                 redTeamHistory,
                 blueTeamHistory,
@@ -89,7 +90,8 @@ public class Config {
                 aoMostPickedClass,
                 aoMostPickedLogi,
                 aoMostPickedEwar,
-                aoMostPickedLinks));
+                aoMostPickedLinks,
+                matchWinsByTeam));
     }
 
     public Future<JsonObject> fetchData(String widgetName) {
