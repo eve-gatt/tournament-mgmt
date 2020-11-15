@@ -94,8 +94,8 @@
         // data.forEach(d=>console.log(`${new Date(d.created_at)} > ${matchCreatedAt}`))
         if (!matchCreatedAt || data.some(d => new Date(d.created_at) > matchCreatedAt)) return;
 
-        let red = data.filter(d => d.team === 'red');
-        let blue = data.filter(d => d.team === 'blue');
+        let red = data.filter(d => d.team === 'blue');
+        let blue = data.filter(d => d.team === 'red');
 
         function doIt(team, sel) {
             var bans = d3.select(sel).selectAll('.ban').data(team, d => d.type_id);
