@@ -92,7 +92,8 @@
     function renderBans(data) {
 
         // data.forEach(d=>console.log(`${new Date(d.created_at)} > ${matchCreatedAt}`))
-        if (!matchCreatedAt || data.some(d => new Date(d.created_at) > matchCreatedAt)) return;
+        if (!matchCreatedAt ||
+            data.some(d => new Date(d.created_at) > new Date(matchCreatedAt.getTime() + (3 * 60000)))) return;
 
         let red = data.filter(d => d.team === 'blue');
         let blue = data.filter(d => d.team === 'red');
