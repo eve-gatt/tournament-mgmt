@@ -5,6 +5,7 @@
 
     // let colorScheme = d3.scaleOrdinal(d3.schemeCategory10);
     let overlay = d3.select('.overlay');
+    var matchCreatedAt;
 
     const SCHEME = {
         "Assault Frigate": "yellow",
@@ -19,6 +20,7 @@
         "Heavy Assault Cruiser": "purple",
         "Heavy Interdictor": "purple",
         "Industrial": "grey",
+        "Interdictor": "orange",
         "Interceptor": "yellow",
         "Logistics Cruiser": "red",
         "Logistics Frigate": "red",
@@ -87,11 +89,31 @@
             .style('background-color', d => SCHEME[d.overlay]);
     }
 
+    function renderBans(data) {
+
+        if (!matchCreatedAt || data.some(d => new Date(d.created_at) > matchCreatedAt)) return;
+
+        let red = data.filter(d => d.team === 'red');
+        let blue = data.filter(d => d.team === 'blue');
+
+        function doIt(team, sel) {
+            var bans = d3.select(sel).selectAll('.ban').data(team, d => d.type_id);
+            let enteringBan = bans.enter().append('div').classed('ban', true);
+            // enteringBan.append('img').attr('src', d => `https://images.evetech.net/types/${d.type_id}/render?size=64`);
+            enteringBan.append('div').classed('label', true).text(d => d.name);
+        }
+
+        doIt(red, '.red.bans');
+        doIt(blue, '.blue.bans');
+    }
+
     function render(match) {
+        matchCreatedAt = new Date(match.created_at);
         overlay.select('.redname').text(sizeName(match.red_team_name));
         overlay.select('.bluename').text(sizeName(match.blue_team_name));
         pilots(match, 'red');
         pilots(match, 'blue');
+        d3.json('https://open.eve-nt.uk/api/bans').then(renderBans);
     }
 
     d3.json('/stream/93e30c88-c769-48a8-a547-7d464bab5d14/matches/latest-match/data')

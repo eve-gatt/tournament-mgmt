@@ -22,11 +22,11 @@ block styles
         .overlay {
             display: grid;
             width: 1920px;
-            grid: 779px 81px auto / 1fr 242px 1fr;
+            grid: 778px 82px auto / 140px 1fr 242px 1fr 140px;
             grid-template-areas:
-                "... names  ...."
-                "... ...... ...."
-                "red spacer blue";
+                ". ... names  .... ."
+                ". ... ...... .... ."
+                "redbans red spacer blue bluebans";
             font-size: 0.8em;
             letter-spacing: 0.1em;
             line-height: 14px;
@@ -34,9 +34,9 @@ block styles
         }
 
         .colour-overlay {
-            opacity: 0.2;
-            height: 18px;
-            margin-top: -16px;
+            opacity: 0.25;
+            height: 17px;
+            margin-top: -15px;
         }
 
         .pilot {
@@ -111,15 +111,50 @@ block styles
             /*height: 100%;*/
         }
 
+        .bans {
+            /*filter: grayscale(20%);*/
+            padding-left: 6px;
+        }
+
+        .bans .ban {
+            margin-bottom: 4px;
+        }
+
+        .bans .ban img {
+            border-radius: 50%;
+            border: 3px solid #e5e5e5;
+            max-width: 50px;
+        }
+
+        .bans-wrapper.red {
+            grid-area: redbans;
+        }
+
+        .bans-wrapper .title {
+            margin-bottom: 10px;
+            margin-left: 2px;
+        }
+
+        .bans-wrapper.blue {
+            grid-area: bluebans;
+        }
+
+
 block content
 
     .overlay
         .names
             .redname
             .bluename
+        .bans-wrapper.red
+            .title Bans
+            .bans.red
         .pilots.red
         .spacer(style="grid-area: spacer")
         .pilots.blue
+        .bans-wrapper.blue
+            .title Bans
+            .bans.blue
 
 block scripts
     script(src='/js/stream/ttoverlay.js')
