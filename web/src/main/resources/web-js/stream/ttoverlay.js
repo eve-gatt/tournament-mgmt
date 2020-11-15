@@ -91,6 +91,7 @@
 
     function renderBans(data) {
 
+        // data.forEach(d=>console.log(`${new Date(d.created_at)} > ${matchCreatedAt}`))
         if (!matchCreatedAt || data.some(d => new Date(d.created_at) > matchCreatedAt)) return;
 
         let red = data.filter(d => d.team === 'red');
@@ -99,6 +100,7 @@
         function doIt(team, sel) {
             var bans = d3.select(sel).selectAll('.ban').data(team, d => d.type_id);
             let enteringBan = bans.enter().append('div').classed('ban', true);
+            bans.exit().remove();
             // enteringBan.append('img').attr('src', d => `https://images.evetech.net/types/${d.type_id}/render?size=64`);
             enteringBan.append('div').classed('label', true).text(d => d.name);
         }
