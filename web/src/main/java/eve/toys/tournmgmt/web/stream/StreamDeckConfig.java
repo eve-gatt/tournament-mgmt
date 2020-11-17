@@ -68,11 +68,11 @@ public class StreamDeckConfig {
         Widget topWinnersByCaptains = new Widget(WidgetType.STACKED, "Top winners amongst captains", new TopWinnersAmongstCaptains(historical, tournaments));
         Widget topLosersByCaptains = new Widget(WidgetType.STACKED, "Top losers amongst captains", new TopLosersAmongstCaptains(historical, tournaments));
         Widget topWinRatioAmongstCaptains = new Widget(WidgetType.STACKED, "Top win ratio amongst captains", new TopWinRatioAmongstCaptains(historical, tournaments));
-        Widget aoMostPickedShips = new Widget(WidgetType.PIE, "Most picked ship", new MostPickedShips(dbClient, "ship"));
-        Widget aoMostPickedClass = new Widget(WidgetType.PIE, "Most picked class", new MostPickedShips(dbClient, "exact_type"));
-        Widget aoMostPickedLogi = new Widget(WidgetType.PIE, "Most picked logi", new MostPickedShips(dbClient, "ship", o -> LOGIS.contains(o.getString("overlay"))));
-        Widget aoMostPickedEwar = new Widget(WidgetType.PIE, "Most picked EWAR", new MostPickedShips(dbClient, "ship", o -> EWARS.contains(o.getString("overlay"))));
-        Widget aoMostPickedLinks = new Widget(WidgetType.PIE, "Most picked bursters", new MostPickedShips(dbClient, "ship", o -> BURSTS.contains(o.getString("overlay"))));
+        Widget aoMostPickedShips = new Widget(WidgetType.BAR, "Most picked ship", new MostPickedShips(dbClient, "ship"));
+        Widget aoMostPickedClass = new Widget(WidgetType.BAR, "Most picked class", new MostPickedShips(dbClient, "exact_type"));
+        Widget aoMostPickedLogi = new Widget(WidgetType.BAR, "Most picked logi", new MostPickedShips(dbClient, "ship", o -> LOGIS.contains(o.getString("overlay"))));
+        Widget aoMostPickedEwar = new Widget(WidgetType.BAR, "Most picked EWAR", new MostPickedShips(dbClient, "ship", o -> EWARS.contains(o.getString("overlay"))));
+        Widget aoMostPickedLinks = new Widget(WidgetType.BAR, "Most picked bursters", new MostPickedShips(dbClient, "ship", o -> BURSTS.contains(o.getString("overlay"))));
         Widget matchWinsByTeam = new Widget(WidgetType.LINE2, "Match Wins By Team", new MatchWinsByTeam(dbClient));
 
         return new StreamDeckConfig(Arrays.asList(

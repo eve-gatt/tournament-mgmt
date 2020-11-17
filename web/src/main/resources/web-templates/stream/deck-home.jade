@@ -61,6 +61,7 @@ block scripts
     script(src='/js/stream/line-chart2.js')
     script(src='/js/stream/stacked-chart.js')
     script(src='/js/stream/pie-chart.js')
+    script(src='/js/stream/bar-chart.js')
     script.
         var eb = new EventBus("/ws");
         eb.enableReconnect(true);
@@ -96,3 +97,6 @@ block scripts
             when "PIE"
                 script.
                     streamInitPieChart('.#{widgetName}', '/stream/#{widgetName}/data');
+            when "BAR"
+                script.
+                    streamInitBarChart('.#{widgetName}', '/stream/#{widgetName}/data');

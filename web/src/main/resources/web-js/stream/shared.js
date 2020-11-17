@@ -49,6 +49,9 @@
                     case "PIE":
                         streamInitPieChart('.overlay', `/stream/${widget.name}/data`, widget.grouper, widget.sublabel);
                         break;
+                    case "BAR":
+                        streamInitBarChart('.overlay', `/stream/${widget.name}/data`);
+                        break;
                 }
                 unhide();
             });

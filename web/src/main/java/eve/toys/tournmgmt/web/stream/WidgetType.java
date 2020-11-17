@@ -7,5 +7,6 @@ public enum WidgetType {
     LINE,
     LINE2,
     STACKED,
-    PIE
+    PIE,
+    BAR
 }

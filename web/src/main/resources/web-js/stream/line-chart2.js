@@ -37,8 +37,6 @@
                     })
                 }));
 
-            console.log(series);
-
             x.domain([1, allDays.length]);
             y.domain([0,
                 d3.max(series, c => d3.max(c.days, function (d) {return d.cum;}))
@@ -93,10 +91,7 @@
                 .attr("transform", d => "translate(" + (8 + x(d.value.dayIndex)) + "," + y(d.value.cum) + ")")
                 .attr("x", 3)
                 .attr("dy", "0.35em")
-                .attr("fill", d => {
-                    console.log(d);
-                    return z(d.id);
-                })
+                .attr("fill", d => z(d.id))
                 .style('font-size', '1.6em')
                 .text(d => d.id);
         });
