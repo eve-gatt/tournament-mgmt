@@ -72,7 +72,7 @@ public class RefereeRouter {
         router.post("/:tournamentUuid/referee")
                 .handler(ctx -> AppRBAC.tournamentAuthn(ctx, isOrganiserOrReferee))
                 .handler(refinputs)
-                .handler(this::success)
+                .handler(this::processInputs)
                 .failureHandler(this::fail);
         router.get("/:tournamentUuid/referee/record")
                 .handler(RefereeRouter::redirectToRefHome);
@@ -174,7 +174,7 @@ public class RefereeRouter {
                 });
     }
 
-    private void success(RoutingContext ctx) {
+    private void processInputs(RoutingContext ctx) {
         String tournamentUuid = ctx.request().getParam("tournamentUuid");
         RequestParameters params = ctx.get("parsedParameters");
         JsonObject form = params.toJson().getJsonObject("form");

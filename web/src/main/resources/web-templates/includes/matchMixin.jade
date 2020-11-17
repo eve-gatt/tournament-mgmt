@@ -27,7 +27,7 @@ mixin results(json)
             margin-left: 20px;
         }
 
-        .comp .not-on-team, .comp .skills-not-good {
+        .comp .not-on-team, .comp .skills-not-good, .comp .comp-not-valid {
             background: -webkit-linear-gradient(left, darkred 0%, #8b000020 30%, rgba(222, 222, 222, 0) 100%);
         }
 
@@ -74,9 +74,13 @@ mixin results(json)
                         tbody
                             each pilot in comp
                                 tr(class=(pilot.getBoolean("onTeam") ? "" : "not-on-team"),
-                                    class=(pilot.getString("skillsMessage").isEmpty() ? "" : "skills-not-good"))
+                                    class=(pilot.getString("skillsMessage").isEmpty() ? "" : "skills-not-good"),
+                                    class=(pilot.getString("validComp") == null ? "" : "comp-not-valid"))
                                     td= pilot.getString("pilot")
                                     td= pilot.getString("exact_type")
                                     td= pilot.getString("class")
                                     td= pilot.getString("ship")
-                                    td= (!pilot.getBoolean("onTeam") ? "Not on team. " : "") + pilot.getString("skillsMessage")
+                                    td
+                                        span= (!pilot.getBoolean("onTeam") ? "Not on team. " : "")
+                                        span= pilot.getString("skillsMessage")
+                                        span= pilot.getString("validComp")

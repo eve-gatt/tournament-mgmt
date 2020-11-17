@@ -84,6 +84,7 @@ public class RefToolInput {
     private final DbClient dbClient;
     private final Esi esi;
     private final OAuth2Auth oauth2;
+    private final CompRule compRule = new CompRule();
 
     public RefToolInput(DbClient dbClient, Esi esi, OAuth2Auth oauth2) {
         this.dbClient = dbClient;
@@ -99,27 +100,34 @@ public class RefToolInput {
                     pilotsWithoutEsi(pilots).onSuccess(list -> output.put("noEsi", list)),
                     guessTeams(tournamentUuid, pilots).onSuccess(teams -> output.put("teams", teams)))
                     .compose(f ->
-                            comp(input).compose(comp -> {
-                                output.put("comp", comp);
-                                String mainTeam = output.getJsonArray("teams").getJsonObject(0).getString("team_name");
-                                return CompositeFuture.all(
-                                        forEachPilot(comp, pilotAndShip -> pilotIsOnTeam(pilotAndShip.getString("pilot"), mainTeam, tournamentUuid)
-                                                .onSuccess(isOnTeam -> pilotAndShip.put("onTeam", isOnTeam))),
-                                        forEachPilot(comp, pilotAndShip -> canPilotFlyShip(pilotAndShip)
-                                                .onSuccess(msg -> pilotAndShip.put("skillsMessage", msg)))
-                                );
-                            }).onSuccess(v -> {
-                                JsonArray ordered = new JsonArray(output.getJsonArray("comp").stream()
-                                        .map(o -> (JsonObject) o)
-                                        .sorted(compSorting())
-                                        .collect(toList()));
-                                output.put("comp", ordered);
-                            }))
+                            comp(input)
+                                    .compose(comp -> compRule.checkCompRules(comp))
+                                    .compose(comp -> {
+                                        output.put("comp", comp);
+                                        String mainTeam = output.getJsonArray("teams").getJsonObject(0).getString("team_name");
+                                        return CompositeFuture.all(
+                                                forEachPilot(comp, pilotAndShip -> pilotIsOnTeam(pilotAndShip.getString("pilot"), mainTeam, tournamentUuid)
+                                                        .onSuccess(isOnTeam -> pilotAndShip.put("onTeam", isOnTeam))),
+                                                forEachPilot(comp, pilotAndShip -> canPilotFlyShip(pilotAndShip)
+                                                        .onSuccess(msg -> pilotAndShip.put("skillsMessage", msg)))
+                                        );
+                                    })
+                                    .onSuccess(v -> {
+                                        JsonArray ordered = new JsonArray(output.getJsonArray("comp").stream()
+                                                .map(o -> (JsonObject) o)
+                                                .sorted(compSorting())
+                                                .collect(toList()));
+                                        output.put("comp", ordered);
+                                    }))
                     .onFailure(promise::fail)
                     .onSuccess(f -> {
                         promise.complete(output);
                     });
         });
+    }
+
+    private Future<JsonArray> checkCompRules(JsonArray comp) {
+        return compRule.checkCompRules(comp);
     }
 
     private Comparator<Object> compSorting() {
