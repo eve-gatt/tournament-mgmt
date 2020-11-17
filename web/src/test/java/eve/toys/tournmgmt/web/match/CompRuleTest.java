@@ -166,7 +166,6 @@ public class CompRuleTest {
     }
 
     private TestContext assertValidComp(TestContext ctx, JsonArray arr, String matches) {
-        System.out.println(arr.encodePrettily());
         return ctx.assertTrue(arr.stream().map(o -> (JsonObject) o)
                 .map(o -> o.getString("validComp"))
                 .allMatch(validComp -> matches == null ? validComp == null : validComp.equals(matches)));

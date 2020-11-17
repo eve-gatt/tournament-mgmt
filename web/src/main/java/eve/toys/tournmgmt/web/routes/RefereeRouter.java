@@ -153,10 +153,11 @@ public class RefereeRouter {
     private void home(RoutingContext ctx) {
         dbClient.callDb(DbClient.DB_ALL_MATCHES, null)
                 .map(msg -> (JsonArray) msg.body())
-                .map(arr -> new JsonArray(arr.stream()
+                .map(arr -> arr.stream()
                         .map(o -> (JsonObject) o)
                         .map(RenderHelper::formatCreatedAt)
-                        .collect(Collectors.toList())))
+                        .collect(Collectors.toList()))
+                .map(arr -> new JsonArray(arr.subList(arr.size() - 10, arr.size())))
                 .onFailure(ctx::fail)
                 .onSuccess(arr -> {
                     JsonObject form = ctx.get("form");
