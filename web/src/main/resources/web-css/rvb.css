@@ -1,6 +1,6 @@
 .redVsBlue {
     display: grid;
-    grid: auto / 2fr 1fr 2fr;
+    grid: auto / 1fr 1fr 1fr;
 }
 
 .redVsBlue .label {
@@ -17,6 +17,7 @@
 .redVsBlue .team {
     border-radius: 12px;
     padding: 24px;
+    transform: scale(1.4);
 }
 
 .redVsBlue .team.red {
