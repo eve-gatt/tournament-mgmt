@@ -20,24 +20,24 @@
 }
 
 .redVsBlue .team.red {
-    background: radial-gradient(ellipse 90% 140px at 0 0, red, rgba(255, 0, 0, 0.03));
+    background: radial-gradient(ellipse 90% 140px at 0 0, red, rgba(20, 0, 0, 0.9));
     border: 2px solid lightcoral;
 }
 
 .redVsBlue .team.blue {
-    background: radial-gradient(ellipse 90% 140px at 0 0, blue, rgba(0, 0, 255, 0.03));
+    background: radial-gradient(ellipse 90% 140px at 0 0, blue, rgba(0, 0, 20, 0.9));
     border: 2px solid lightblue;
 }
 
 .redVsBlue .team > .title {
     display: flex;
     align-items: center;
-    gap: 12px;
     flex-wrap: nowrap;
 }
 
 .redVsBlue .team > .title .name {
     font-size: 1.8em;
+    margin-left: 12px;
 }
 
 .redVsBlue .roster .match-numbers,
