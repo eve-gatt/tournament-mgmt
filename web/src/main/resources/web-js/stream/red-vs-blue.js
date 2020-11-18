@@ -20,7 +20,7 @@
 
     function render(sel, team) {
         let title = sel.select('.title');
-        title.select('.logo img').attr('src', team.logo + "?size=64");
+        title.select('.logo img').attr('src', team.logo + "?size=128");
         title.select('.name').text(team.name);
 
         let maxMatches = d3.max(team.comp, d => d.history.length);

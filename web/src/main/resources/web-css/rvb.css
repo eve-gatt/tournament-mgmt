@@ -41,6 +41,10 @@
     margin-left: 12px;
 }
 
+.redVsBlue .team > .title img {
+    max-width: 64px;
+}
+
 .redVsBlue .roster .match-numbers,
 .redVsBlue .roster .history {
     display: grid;
