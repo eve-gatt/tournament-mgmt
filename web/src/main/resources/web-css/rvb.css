@@ -70,6 +70,7 @@
 .redVsBlue .roster .pilot > div {
     display: table-cell;
     padding: 4px 12px;
+    white-space: nowrap;
 }
 
 .redVsBlue .fa-times-circle {
