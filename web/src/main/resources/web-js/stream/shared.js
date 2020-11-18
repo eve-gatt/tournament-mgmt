@@ -52,6 +52,9 @@
                     case "BAR":
                         streamInitBarChart('.overlay', `/stream/${widget.name}/data`);
                         break;
+                    case "RED_VS_BLUE":
+                        streamInitRedVsBlue('.overlay', `/stream/${widget.name}/data`);
+                        break;
                 }
                 unhide();
             });

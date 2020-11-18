@@ -22,7 +22,7 @@ block append styles
             align-self: start;
         }
 
-        .w.clear {
+        .w.clear, .w.redVsBlue {
             font-size: 2em;
             text-align: center;
         }
@@ -62,6 +62,7 @@ block scripts
     script(src='/js/stream/stacked-chart.js')
     script(src='/js/stream/pie-chart.js')
     script(src='/js/stream/bar-chart.js')
+    script(src='/js/stream/red-vs-blue.js')
     script.
         var eb = new EventBus("/ws");
         eb.enableReconnect(true);
@@ -100,3 +101,6 @@ block scripts
             when "BAR"
                 script.
                     streamInitBarChart('.#{widgetName}', '/stream/#{widgetName}/data');
+            when "RED_VS_BLUE"
+                script.
+                    d3.select('.#{widgetName}').text('R vs B');

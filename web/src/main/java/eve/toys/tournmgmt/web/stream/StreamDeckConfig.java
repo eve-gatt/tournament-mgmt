@@ -74,6 +74,7 @@ public class StreamDeckConfig {
         Widget aoMostPickedEwar = new Widget(WidgetType.BAR, "Most picked EWAR", new MostPickedShips(dbClient, "ship", o -> EWARS.contains(o.getString("overlay"))));
         Widget aoMostPickedLinks = new Widget(WidgetType.BAR, "Most picked bursters", new MostPickedShips(dbClient, "ship", o -> BURSTS.contains(o.getString("overlay"))));
         Widget matchWinsByTeam = new Widget(WidgetType.LINE2, "Match Wins By Team", new MatchWinsByTeam(dbClient));
+        Widget redVsBlue = new Widget(WidgetType.RED_VS_BLUE, "Red vs Blue", new RedVsBlue(dbClient));
 
         return new StreamDeckConfig(Arrays.asList(
                 clear,
@@ -91,7 +92,8 @@ public class StreamDeckConfig {
                 aoMostPickedLogi,
                 aoMostPickedEwar,
                 aoMostPickedLinks,
-                matchWinsByTeam));
+//                matchWinsByTeam,
+                redVsBlue));
     }
 
     public Future<JsonObject> fetchData(String widgetName) {

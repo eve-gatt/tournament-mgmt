@@ -95,8 +95,8 @@
         if (!matchCreatedAt ||
             data.some(d => new Date(d.created_at) > new Date(matchCreatedAt.getTime() + (3 * 60000)))) return;
 
-        let red = data.filter(d => d.team === 'blue');
-        let blue = data.filter(d => d.team === 'red');
+        let red = data.filter(d => d.team === 'red');
+        let blue = data.filter(d => d.team === 'blue');
 
         function doIt(team, sel) {
             var bans = d3.select(sel).selectAll('.ban').data(team, d => d.type_id);

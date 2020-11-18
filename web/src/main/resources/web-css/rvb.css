@@ -1,0 +1,84 @@
+.redVsBlue {
+    display: grid;
+    grid: auto / 2fr 1fr 2fr;
+}
+
+.redVsBlue .label {
+    text-align: center;
+    color: #f99e00;
+    font-size: 0.8em;
+    margin: 2px;
+}
+
+.redVsBlue .label.left-label {
+    text-align: left
+}
+
+.redVsBlue .team {
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.redVsBlue .team.red {
+    background: radial-gradient(ellipse 90% 140px at 0 0, red, rgba(255, 0, 0, 0.03));
+    border: 2px solid lightcoral;
+}
+
+.redVsBlue .team.blue {
+    background: radial-gradient(ellipse 90% 140px at 0 0, blue, rgba(0, 0, 255, 0.03));
+    border: 2px solid lightblue;
+}
+
+.redVsBlue .team > .title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: nowrap;
+}
+
+.redVsBlue .team > .title .name {
+    font-size: 1.8em;
+}
+
+.redVsBlue .roster .match-numbers,
+.redVsBlue .roster .history {
+    display: grid;
+    place-items: center;
+    grid-auto-flow: column;
+    grid-auto-columns: 32px;
+}
+
+.redVsBlue .roster {
+    display: table;
+    width: 100%;
+}
+
+.redVsBlue .roster .pilot {
+    display: table-row;
+}
+
+.redVsBlue .roster .pilot > div:nth-child(1) {
+    padding: 4px 12px;
+    color: #e2e2e2;
+}
+
+.redVsBlue .roster .pilot > div:nth-child(2) {
+    color: #8d8d8d;
+}
+
+.redVsBlue .roster .pilot > div {
+    display: table-cell;
+    padding: 4px 12px;
+}
+
+.redVsBlue .fa-times-circle {
+    color: red;
+}
+
+.redVsBlue .fa-check-circle {
+    color: green;
+}
+
+.redVsBlue .fa-dot-circle {
+    color: grey;
+}

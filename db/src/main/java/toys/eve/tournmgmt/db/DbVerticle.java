@@ -1063,6 +1063,10 @@ public class DbVerticle extends AbstractVerticle {
                                   "match.id, " +
                                   "match.created_by as ref, " +
                                   "match.created_at, " +
+                                  "redteam, " +
+                                  "blueteam, " +
+                                  "bluejson, " +
+                                  "redjson, " +
                                   "blue.name as blue_team_name, " +
                                   "red.name as red_team_name, " +
                                   "winner " +
@@ -1113,12 +1117,16 @@ public class DbVerticle extends AbstractVerticle {
                         "match.id, " +
                         "match.created_by as ref, " +
                         "match.created_at, " +
+                        "redteam, " +
+                        "blueteam, " +
                         "bluejson, " +
                         "redjson, " +
                         "blue.name as blue_team_name, " +
                         "blue.logo as blue_team_logo, " +
+                        "blue.captain as blue_team_captain, " +
                         "red.name as red_team_name, " +
-                        "red.logo as red_team_logo " +
+                        "red.logo as red_team_logo, " +
+                        "red.captain as red_team_captain " +
                         "from match " +
                         "inner join team as blue on match.blueteam = blue.uuid " +
                         "inner join team as red on match.redteam = red.uuid " +
@@ -1158,12 +1166,16 @@ public class DbVerticle extends AbstractVerticle {
                                   "match.id, " +
                                   "match.created_by as ref, " +
                                   "match.created_at, " +
+                                  "redteam, " +
+                                  "blueteam, " +
                                   "bluejson, " +
                                   "redjson, " +
                                   "blue.name as blue_team_name, " +
                                   "blue.logo as blue_team_logo, " +
+                                  "blue.captain as blue_team_captain, " +
                                   "red.name as red_team_name, " +
-                                  "red.logo as red_team_logo " +
+                                  "red.logo as red_team_logo, " +
+                                  "red.captain as red_team_captain " +
                                   "from match " +
                                   "inner join team as blue on match.blueteam = blue.uuid " +
                                   "inner join team as red on match.redteam = red.uuid " +
