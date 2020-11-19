@@ -12,6 +12,7 @@ import io.vertx.ext.sql.SQLClient;
 import toys.eve.tournmgmt.db.HistoricalClient.Call;
 
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class HistoricalDbVerticle extends AbstractVerticle {
 
@@ -38,8 +39,31 @@ public class HistoricalDbVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(Call.HISTORICAL_WIN_LOSS_BY_TOURNAMENT_AND_SHIP.name(), this::winlossByTournamentAndShip);
         vertx.eventBus().consumer(Call.HISTORICAL_WINS_BY_TOURNAMENT_AND_TEAM.name(), this::winsByTournamentAndTeam);
         vertx.eventBus().consumer(Call.HISTORICAL_WINS_BY_TOURNAMENT_AND_PLAYER.name(), this::winsByTournamentAndPlayer);
+        vertx.eventBus().consumer(Call.HISTORICAL_PILOT_WIN_LOSS.name(), this::pilotWinLoss);
 
         startPromise.complete();
+    }
+
+    private void pilotWinLoss(Message<JsonArray> msg) {
+        String pilots = msg.body().stream()
+                .map(o -> (String) o)
+                .map(o -> "\"" + o + "\"")
+                .collect(Collectors.joining(","));
+        sqlClient.query("select m.Tournament, Player, case when p.Team = m.Victor then 'W' else 'L' end as winloss, count(*) as count\n" +
+                        "from players p\n" +
+                        "         inner join matches m on p.Tournament = m.Tournament\n" +
+                        "    and p.MatchNo = m.MatchNo\n" +
+                        "    and p.SeriesNo = m.SeriesNo\n" +
+                        "where Player in (" + pilots + ")\n" +
+                        "group by m.Tournament, Player, winloss",
+                ar -> {
+                    if (ar.failed()) {
+                        ar.cause().printStackTrace();
+                        msg.fail(1, ar.cause().getMessage());
+                    } else {
+                        msg.reply(new JsonArray(ar.result().getRows()));
+                    }
+                });
     }
 
     private void winsByTournamentAndTeam(Message msg) {

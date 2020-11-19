@@ -1,6 +1,7 @@
 .redVsBlue {
     display: grid;
-    grid: auto / 1fr 1fr 1fr;
+    grid: auto / 1fr 1fr;
+    gap: 24px;
 }
 
 .redVsBlue .label {
@@ -15,9 +16,9 @@
 }
 
 .redVsBlue .team {
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 24px;
-    transform: scale(1.4);
+    font-size: 1.4em;
 }
 
 .redVsBlue .team.red {
@@ -50,7 +51,7 @@
     display: grid;
     place-items: center;
     grid-auto-flow: column;
-    grid-auto-columns: 32px;
+    grid-auto-columns: 42px;
 }
 
 .redVsBlue .roster {
@@ -73,7 +74,7 @@
 
 .redVsBlue .roster .pilot > div {
     display: table-cell;
-    padding: 4px 12px;
+    padding: 4px 8px;
     white-space: nowrap;
 }
 
@@ -87,4 +88,20 @@
 
 .redVsBlue .fa-dot-circle {
     color: grey;
+}
+
+.redVsBlue .roster .tournament-numbers,
+.redVsBlue .roster .tournaments {
+    display: grid;
+    place-items: center;
+    grid-auto-flow: column;
+    grid-auto-columns: 64px;
+}
+
+.redVsBlue .t-record .tournament {
+    color: #8d8d8d;
+}
+
+.redVsBlue .t-record {
+    display: flex;
 }
