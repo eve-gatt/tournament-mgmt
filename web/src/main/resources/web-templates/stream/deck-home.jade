@@ -27,6 +27,10 @@ block append styles
             text-align: center;
         }
 
+        .w img {
+            max-width: 90%;
+        }
+
         .w {
             --padding: 20px 15px;
             font-size: 0.5em;
@@ -103,4 +107,4 @@ block scripts
                     streamInitBarChart('.#{widgetName}', '/stream/#{widgetName}/data');
             when "RED_VS_BLUE"
                 script.
-                    d3.select('.#{widgetName}').text('RvB');
+                    d3.select('.#{widgetName}').append('img').attr('src', '/assets/stream/rvb.png');

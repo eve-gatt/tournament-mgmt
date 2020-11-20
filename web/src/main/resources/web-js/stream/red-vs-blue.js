@@ -43,7 +43,7 @@
         matchLabelRow.append('div');
         matchLabelRow.append('div');
         matchLabelRow.append('div').classed('label', true).text('AO Matches');
-        matchLabelRow.append('div').classed('label', true).text('Previous ATs');
+        matchLabelRow.append('div').classed('label', true).text('AT Form');
 
         let matchNumbersRow = roster.append('div').classed('pilot', true).datum({pilot: 'match-numbers'});
         matchNumbersRow.append('div');
