@@ -6,8 +6,6 @@ import io.vertx.core.json.JsonObject;
 import toys.eve.tournmgmt.db.DbClient;
 import toys.eve.tournmgmt.db.HistoricalClient;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -36,7 +34,6 @@ public class StreamDeckConfig {
             "Command Ship",
             "Precursor Battlecruiser");
 
-    private final Path ROOT_DIR = Paths.get("stream");
     private final List<Widget> widgets = new ArrayList<>();
 
     public StreamDeckConfig(List<Widget> widgets) {
@@ -74,12 +71,15 @@ public class StreamDeckConfig {
         Widget aoMostPickedEwar = new Widget(WidgetType.BAR, "Most picked EWAR", new MostPickedShips(dbClient, "ship", o -> EWARS.contains(o.getString("overlay"))));
         Widget aoMostPickedLinks = new Widget(WidgetType.BAR, "Most picked bursters", new MostPickedShips(dbClient, "ship", o -> BURSTS.contains(o.getString("overlay"))));
         Widget matchWinsByTeam = new Widget(WidgetType.LINE2, "Match Wins By Team", new MatchWinsByTeam(dbClient));
-        Widget redVsBlue = new Widget(WidgetType.RED_VS_BLUE, "Red vs Blue", new RedVsBlue(dbClient, historical, tournaments));
+        Widget redVsBlueCurrent = new Widget(WidgetType.RED_VS_BLUE, "RvB current", new RedVsBlue(dbClient, historical, tournaments, 0));
+        Widget redVsBluePrevious = new Widget(WidgetType.RED_VS_BLUE, "RvB previous", new RedVsBlue(dbClient, historical, tournaments, 1));
 
         return new StreamDeckConfig(Arrays.asList(
                 clear,
-                redTeamHistory,
-                blueTeamHistory,
+                redVsBlueCurrent,
+                redVsBluePrevious,
+//                redTeamHistory,
+//                blueTeamHistory,
                 sankey,
                 shipChoices,
                 commandShipChoices,
@@ -91,9 +91,9 @@ public class StreamDeckConfig {
                 aoMostPickedClass,
                 aoMostPickedLogi,
                 aoMostPickedEwar,
-                aoMostPickedLinks,
-//                matchWinsByTeam,
-                redVsBlue));
+                aoMostPickedLinks
+//                matchWinsByTeam
+        ));
     }
 
     public Future<JsonObject> fetchData(String widgetName) {

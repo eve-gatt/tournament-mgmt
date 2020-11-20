@@ -18,18 +18,20 @@ public class RedVsBlue implements Command {
     private final DbClient dbClient;
     private final HistoricalClient historicalClient;
     private final Map<Integer, String> tournaments;
+    private final int offset;
 
-    public RedVsBlue(DbClient dbClient, HistoricalClient historicalClient, Map<Integer, String> tournaments) {
+    public RedVsBlue(DbClient dbClient, HistoricalClient historicalClient, Map<Integer, String> tournaments, int offset) {
         this.dbClient = dbClient;
         this.historicalClient = historicalClient;
         this.tournaments = tournaments;
+        this.offset = offset;
     }
 
     @Override
     public Future<JsonObject> fetchData() {
         Promise<JsonObject> promise = Promise.promise();
 
-        dbClient.callDb(DbClient.DB_LATEST_MATCH, new JsonObject())
+        dbClient.callDb(DbClient.DB_LATEST_MATCH, offset)
                 .compose(msg -> {
                     JsonObject latest = (JsonObject) msg.body();
                     return CompositeFuture.all(

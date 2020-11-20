@@ -22,7 +22,7 @@ block append styles
             align-self: start;
         }
 
-        .w.clear, .w.redVsBlue {
+        .w.clear, .w.rvBCurrent, .w.rvBPrevious {
             font-size: 2em;
             text-align: center;
         }
@@ -103,4 +103,4 @@ block scripts
                     streamInitBarChart('.#{widgetName}', '/stream/#{widgetName}/data');
             when "RED_VS_BLUE"
                 script.
-                    d3.select('.#{widgetName}').text('R vs B');
+                    d3.select('.#{widgetName}').text('RvB');

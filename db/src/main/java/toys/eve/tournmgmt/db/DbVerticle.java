@@ -1112,25 +1112,27 @@ public class DbVerticle extends AbstractVerticle {
                 });
     }
 
-    private void latestMatch(Message<String> msg) {
-        sqlClient.query("select " +
-                        "match.id, " +
-                        "match.created_by as ref, " +
-                        "match.created_at, " +
-                        "redteam, " +
-                        "blueteam, " +
-                        "bluejson, " +
-                        "redjson, " +
-                        "blue.name as blue_team_name, " +
-                        "blue.logo as blue_team_logo, " +
-                        "blue.captain as blue_team_captain, " +
-                        "red.name as red_team_name, " +
-                        "red.logo as red_team_logo, " +
-                        "red.captain as red_team_captain " +
-                        "from match " +
-                        "inner join team as blue on match.blueteam = blue.uuid " +
-                        "inner join team as red on match.redteam = red.uuid " +
-                        "where match.id = (select id from match order by created_at desc limit 1)",
+    private void latestMatch(Message<Integer> msg) {
+        int offset = msg.body() == null ? 0 : msg.body();
+        sqlClient.queryWithParams("select " +
+                                  "match.id, " +
+                                  "match.created_by as ref, " +
+                                  "match.created_at, " +
+                                  "redteam, " +
+                                  "blueteam, " +
+                                  "bluejson, " +
+                                  "redjson, " +
+                                  "blue.name as blue_team_name, " +
+                                  "blue.logo as blue_team_logo, " +
+                                  "blue.captain as blue_team_captain, " +
+                                  "red.name as red_team_name, " +
+                                  "red.logo as red_team_logo, " +
+                                  "red.captain as red_team_captain " +
+                                  "from match " +
+                                  "inner join team as blue on match.blueteam = blue.uuid " +
+                                  "inner join team as red on match.redteam = red.uuid " +
+                                  "where match.id = (select id from match order by created_at desc limit 1 offset ?)",
+                new JsonArray().add(offset),
                 ar -> {
                     if (ar.failed()) {
                         ar.cause().printStackTrace();
