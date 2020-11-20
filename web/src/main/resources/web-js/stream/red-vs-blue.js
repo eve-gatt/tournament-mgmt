@@ -66,7 +66,7 @@
         captain.append('div').text(d => d.pilot);
         captain.append('div').text(d => d.ship);
         captain.append('div').append('div').classed('history', true).selectAll('h').data(d => d.history)
-            .enter().append('div').call(historyIcon);
+            .enter().append('div').classed('h', true).call(historyIcon);
         captain.append('div').append('div').classed('tournaments', true).selectAll('.t-record')
             .data(d => uniqueATs.map(at => d.tournaments.find(t => t.tournament === at)))
             .enter().append('div').classed('t-record', true).call(tournamentWinLoss);
@@ -79,7 +79,7 @@
         pilot.append('div').text(d => d.pilot);
         pilot.append('div').text(d => d.ship);
         pilot.append('div').append('div').classed('history', true).selectAll('h').data(d => d.history)
-            .enter().append('div').call(historyIcon);
+            .enter().append('div').classed('h', true).call(historyIcon);
         pilot.append('div').append('div').classed('tournaments', true).selectAll('.t-record')
             .data(d => uniqueATs.map(at => d.tournaments.find(t => t.tournament === at)))
             .enter().append('div').classed('t-record', true).call(tournamentWinLoss);
