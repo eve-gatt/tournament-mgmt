@@ -4,6 +4,7 @@ import eve.toys.tournmgmt.web.esi.Esi;
 import eve.toys.tournmgmt.web.job.JobClient;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -13,7 +14,9 @@ import toys.eve.tournmgmt.db.DbClient;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SuperuserRouter {
 
@@ -34,10 +37,76 @@ public class SuperuserRouter {
         router.get("/home").handler(this::home);
         router.get("/job/:jobName").handler(this::job);
         router.get("/ships").handler(this::ships);
+        router.get("/comps").handler(this::comps);
+        router.get("/wildcards").handler(this::wildcards);
+        router.get("/winnerbans").handler(this::winnerbans);
     }
 
     public static Router routes(Vertx vertx, RenderHelper render, JobClient jobClient, DbClient dbClient, Esi esi) {
         return new SuperuserRouter(vertx, render, jobClient, dbClient, esi).router();
+    }
+
+    private void winnerbans(RoutingContext ctx) {
+        int fromMatch = 69;
+        String team = "The Tuskers Co.";
+        dbClient.callDb(DbClient.DB_ALL_MATCHES, null)
+                .onSuccess(msg -> {
+                    JsonArray matches = (JsonArray) msg.body();
+                    List<String> ships = matches.stream().map(o -> (JsonObject) o)
+                            .filter(match -> match.getInteger("id") >= fromMatch)
+                            .filter(match -> match.getString("winner").equals(team))
+                            .peek(match -> System.out.println(match.getInteger("id")))
+                            .map(match -> shipsFromMatch(match, match.getString("red_team_name").equals(team) ? "red" : "blue"))
+                            .flatMap(d -> d.getJsonArray("ships").stream().map(o -> (String) o))
+                            .collect(Collectors.toSet())
+                            .stream()
+                            .sorted()
+                            .collect(Collectors.toList());
+                    ctx.response().end(ships.toString());
+                });
+    }
+
+    private void wildcards(RoutingContext ctx) {
+        dbClient.callDb(DbClient.DB_ALL_MATCHES, null)
+                .onSuccess(msg -> {
+                    JsonArray matches = (JsonArray) msg.body();
+                    JsonArray arr = new JsonArray(matches.stream().map(o -> (JsonObject) o)
+                            .flatMap(match -> Stream.of(wildcardsFromMatch(match, "red"), wildcardsFromMatch(match, "blue")))
+                            .filter(d -> !d.getJsonArray("wildcard").isEmpty())
+                            .collect(Collectors.toList()));
+                    ctx.response().end(arr.encode());
+                });
+    }
+
+    private void comps(RoutingContext ctx) {
+        dbClient.callDb(DbClient.DB_ALL_MATCHES, null)
+                .onSuccess(msg -> {
+                    JsonArray matches = (JsonArray) msg.body();
+                    JsonArray arr = new JsonArray(matches.stream().map(o -> (JsonObject) o)
+                            .flatMap(match -> Stream.of(shipsFromMatch(match, "red"), shipsFromMatch(match, "blue")))
+                            .collect(Collectors.toList()));
+                    ctx.response().end(arr.encode());
+                });
+    }
+
+    private JsonObject wildcardsFromMatch(JsonObject match, String colour) {
+        JsonArray comp = new JsonObject(match.getString(colour + "json")).getJsonArray("comp");
+        return new JsonObject().put("id", match.getInteger("id"))
+                .put("team", match.getString(colour + "_team_name"))
+                .put("wildcard", comp.stream().map(o -> (JsonObject) o)
+                        .filter(row -> row.getString("overlay").toLowerCase().contains("wildcard"))
+                        .map(row -> row.getString("ship"))
+                        .collect(Collectors.toList()));
+    }
+
+    private JsonObject shipsFromMatch(JsonObject match, String colour) {
+        JsonArray comp = new JsonObject(match.getString(colour + "json")).getJsonArray("comp");
+        return new JsonObject().put("id", match.getInteger("id"))
+                .put("team", match.getString(colour + "_team_name"))
+                .put("wildcard", comp.stream().map(o -> (JsonObject) o).anyMatch(row -> row.getString("overlay").toLowerCase().contains("wildcard")))
+                .put("ships", new JsonArray(comp.stream().map(o -> (JsonObject) o)
+                        .map(row -> row.getString("ship"))
+                        .collect(Collectors.toList())));
     }
 
     private void ships(RoutingContext ctx) {
