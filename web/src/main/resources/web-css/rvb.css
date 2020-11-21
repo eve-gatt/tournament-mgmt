@@ -1,3 +1,7 @@
+.overlay {
+    width: 1900px !important;
+}
+
 .redVsBlue {
     display: grid;
     grid: auto / 1fr 1fr;
@@ -18,7 +22,7 @@
 .redVsBlue .team {
     border-radius: 8px;
     padding: 24px;
-    font-size: 1.4em;
+    font-size: 1.2em;
 }
 
 .redVsBlue .team.red {
