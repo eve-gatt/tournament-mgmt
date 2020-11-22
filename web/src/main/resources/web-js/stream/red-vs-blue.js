@@ -41,13 +41,13 @@
 
         let matchLabelRow = roster.append('div').classed('pilot', true).datum({pilot: 'match-title'});
         matchLabelRow.append('div');
-        matchLabelRow.append('div');
+        // matchLabelRow.append('div');
         matchLabelRow.append('div').classed('label', true).text('AO Matches');
         matchLabelRow.append('div').classed('label', true).text('AT Form');
 
         let matchNumbersRow = roster.append('div').classed('pilot', true).datum({pilot: 'match-numbers'});
         matchNumbersRow.append('div');
-        matchNumbersRow.append('div');
+        // matchNumbersRow.append('div');
         let matchNumbers = matchNumbersRow
             .append('div').append('div').classed('match-numbers', true);
         for (let i = 1; i <= maxMatches; i++) {
@@ -64,7 +64,7 @@
         let captain = roster.append('div').classed('pilot', true)
             .datum(team.comp.find(d => d.pilot === team.captain));
         captain.append('div').text(d => d.pilot);
-        captain.append('div').text(d => d.ship);
+        // captain.append('div').text(d => d.ship);
         captain.append('div').append('div').classed('history', true).selectAll('h').data(d => d.history)
             .enter().append('div').classed('h', true).call(historyIcon);
         captain.append('div').append('div').classed('tournaments', true).selectAll('.t-record')
@@ -77,7 +77,7 @@
         let pilots = roster.selectAll('.pilot').data(team.comp.filter(d => d.pilot !== team.captain), d => d.pilot);
         let pilot = pilots.enter().append('div').classed('pilot', true);
         pilot.append('div').text(d => d.pilot);
-        pilot.append('div').text(d => d.ship);
+        // pilot.append('div').text(d => d.ship);
         pilot.append('div').append('div').classed('history', true).selectAll('h').data(d => d.history)
             .enter().append('div').classed('h', true).call(historyIcon);
         pilot.append('div').append('div').classed('tournaments', true).selectAll('.t-record')
