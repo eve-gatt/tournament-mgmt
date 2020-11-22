@@ -1,6 +1,6 @@
 (function () {
 
-    function init(sel, url, grouper, label) {
+    function init(sel, url) {
         var margin = {top: 60, right: 20, bottom: 20, left: 300},
             width = 1400 - margin.left - margin.right,
             height = 450 - margin.top - margin.bottom;
@@ -62,7 +62,7 @@
                 .attr("fill", "#ffffff")
                 .attr("font-weight", "bold")
                 .attr("text-anchor", "start")
-                .text("picks")
+                .text("count")
                 .style('font-size', '2em')
                 .attr("transform", "translate(" + (-width) + ",-40)");
         });

@@ -73,6 +73,7 @@ public class StreamDeckConfig {
         Widget matchWinsByTeam = new Widget(WidgetType.LINE2, "Match Wins By Team", new MatchWinsByTeam(dbClient));
         Widget redVsBlueCurrent = new Widget(WidgetType.RED_VS_BLUE, "RvB current", new RedVsBlue(dbClient, historical, tournaments, 0));
         Widget redVsBluePrevious = new Widget(WidgetType.RED_VS_BLUE, "RvB previous", new RedVsBlue(dbClient, historical, tournaments, 1));
+        Widget aoMostBannedShips = new Widget(WidgetType.BAR, "Most banned ship", new MostBannedShip(dbClient));
 
         return new StreamDeckConfig(Arrays.asList(
                 clear,
@@ -91,7 +92,8 @@ public class StreamDeckConfig {
                 aoMostPickedClass,
                 aoMostPickedLogi,
                 aoMostPickedEwar,
-                aoMostPickedLinks
+                aoMostPickedLinks,
+                aoMostBannedShips
 //                matchWinsByTeam
         ));
     }
