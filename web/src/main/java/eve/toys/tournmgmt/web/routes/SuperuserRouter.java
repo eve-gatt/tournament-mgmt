@@ -47,23 +47,32 @@ public class SuperuserRouter {
     }
 
     private void winnerbans(RoutingContext ctx) {
-        int fromMatch = 69;
-        String team = "The Tuskers Co.";
+        int fromMatch = 111;
         dbClient.callDb(DbClient.DB_ALL_MATCHES, null)
                 .onSuccess(msg -> {
                     JsonArray matches = (JsonArray) msg.body();
-                    List<String> ships = matches.stream().map(o -> (JsonObject) o)
-                            .filter(match -> match.getInteger("id") >= fromMatch)
-                            .filter(match -> match.getString("winner").equals(team))
-                            .peek(match -> System.out.println(match.getInteger("id")))
-                            .map(match -> shipsFromMatch(match, match.getString("red_team_name").equals(team) ? "red" : "blue"))
-                            .flatMap(d -> d.getJsonArray("ships").stream().map(o -> (String) o))
-                            .collect(Collectors.toSet())
-                            .stream()
-                            .sorted()
-                            .collect(Collectors.toList());
-                    ctx.response().end(ships.toString());
+                    String a = "Templis CALSF";
+                    List<String> aBans = bans(fromMatch, a, matches);
+                    String b = "Warlords of the Deep";
+                    List<String> bBans = bans(fromMatch, b, matches);
+                    ctx.response().end(
+                            a + "\n\n" + String.join("\n", aBans) + "\n\n\n"
+                            + b + "\n\n" + String.join("\n", bBans));
                 });
+    }
+
+    private List<String> bans(int fromMatch, String team, JsonArray matches) {
+        List<String> ships = matches.stream().map(o -> (JsonObject) o)
+                .filter(match -> match.getInteger("id") >= fromMatch)
+                .filter(match -> match.getString("winner").equals(team))
+                .peek(match -> System.out.println(match.getInteger("id")))
+                .map(match -> shipsFromMatch(match, match.getString("red_team_name").equals(team) ? "red" : "blue"))
+                .flatMap(d -> d.getJsonArray("ships").stream().map(o -> (String) o))
+                .collect(Collectors.toSet())
+                .stream()
+                .sorted()
+                .collect(Collectors.toList());
+        return ships;
     }
 
     private void wildcards(RoutingContext ctx) {
