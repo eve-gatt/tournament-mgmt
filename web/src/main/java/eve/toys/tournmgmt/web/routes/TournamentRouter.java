@@ -43,6 +43,7 @@ import static toys.eve.tournmgmt.common.util.RenderHelper.tournamentUrl;
 public class TournamentRouter {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneId.of("UTC"));
+    private static final boolean TEAM_MUST_BE_AN_ALLIANCE = false;
 
     private final Router router;
     private final RenderHelper render;
@@ -104,6 +105,10 @@ public class TournamentRouter {
                 .handler(rolesValidator)
                 .handler(this::handleRoles)
                 .failureHandler(this::handleRolesFailure);
+    }
+
+    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient, JobClient jobClient) {
+        return new TournamentRouter(vertx, render, esi, dbClient, jobClient).router();
     }
 
     private void loadTournament(RoutingContext ctx) {
@@ -250,11 +255,11 @@ public class TournamentRouter {
                         .put("tsv", "")
                         .put("placeholder",
                                 "One line per team - team name followed by captain, separated by a comma or tab character. e.g. \n" +
-                                        "The Tuskers,Mira Chieve\n" +
-                                        "Big Alliancia,Captain Jack\n" +
-                                        "\n" +
-                                        "Tab-separated values are the default format when copy and pasting a range from " +
-                                        "Google sheets."));
+                                "The Tuskers,Mira Chieve\n" +
+                                "Big Alliancia,Captain Jack\n" +
+                                "\n" +
+                                "Tab-separated values are the default format when copy and pasting a range from " +
+                                "Google sheets."));
     }
 
     private void handleImportTeams(RoutingContext ctx) {
@@ -272,14 +277,25 @@ public class TournamentRouter {
                     if (msg.isEmpty()) {
                         CompositeFuture.all(tsv.stream().map(row -> Future.future(promise -> esi.lookupAlliance(row.getCol(0))
                                 .onFailure(promise::fail)
-                                .onSuccess(result -> promise.complete(
-                                        result.getJsonObject("lookup").getString("name")
+                                .onSuccess(result -> {
+                                    if (result.getJsonObject("result") != null) {
+                                        promise.complete(
+                                                result.getJsonObject("lookup").getString("name")
                                                 + ","
                                                 + "https://images.evetech.net/alliances/"
                                                 + result.getJsonArray("result").getInteger(0)
                                                 + "/logo"
                                                 + ","
-                                                + row.getCol(1))))).collect(Collectors.toList()))
+                                                + row.getCol(1));
+                                    } else {
+                                        promise.complete(
+                                                row.getCol(0)
+                                                + ","
+                                                + "https://images.evetech.net/alliances/0/logo"
+                                                + ","
+                                                + row.getCol(1));
+                                    }
+                                }))).collect(Collectors.toList()))
                                 .map(f -> f.list().stream()
                                         .map(s -> (String) s)
                                         .collect(Collectors.joining("\n")))
@@ -417,9 +433,11 @@ public class TournamentRouter {
             if (r.containsKey("error")) {
                 result += r.getString("error") + "\n";
             } else {
-                if ("alliance".equals(r.getString("category"))) {
-                    if (r.getJsonArray("result") == null) {
-                        result += r.getString("alliance") + " is not a valid alliance\n";
+                if (TEAM_MUST_BE_AN_ALLIANCE) {
+                    if ("alliance".equals(r.getString("category"))) {
+                        if (r.getJsonArray("result") == null) {
+                            result += r.getString("alliance") + " is not a valid alliance\n";
+                        }
                     }
                 }
                 if ("character".equals(r.getString("category"))) {
@@ -449,10 +467,6 @@ public class TournamentRouter {
                     data.put("roles", out);
                     handler.handle(Future.succeededFuture(result));
                 });
-    }
-
-    public static Router routes(Vertx vertx, RenderHelper render, WebClient webClient, Esi esi, DbClient dbClient, JobClient jobClient) {
-        return new TournamentRouter(vertx, render, esi, dbClient, jobClient).router();
     }
 
     private Router router() {
