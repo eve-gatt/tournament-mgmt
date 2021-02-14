@@ -42,8 +42,8 @@ public class JobVerticle extends AbstractVerticle {
         vertx.eventBus().consumer(JobClient.JOB_PING_DISCORD_RENAME_REQUESTS, this::pingDiscordRenameRequests);
 
         if (!IS_DEV) {
-            delayNMinutesThenEveryMHours(10, 1, JobClient.JOB_CHECK_CAPTAIN_ALLIANCE_MEMBERSHIP);
-            delayNMinutesThenEveryMHours(20, 1, JobClient.JOB_CHECK_PILOTS_ALLIANCE_MEMBERSHIP);
+//            delayNMinutesThenEveryMHours(10, 1, JobClient.JOB_CHECK_CAPTAIN_ALLIANCE_MEMBERSHIP);
+//            delayNMinutesThenEveryMHours(20, 1, JobClient.JOB_CHECK_PILOTS_ALLIANCE_MEMBERSHIP);
             delayNMinutesThenEveryMHours(30, 1, JobClient.JOB_CHECK_PILOTS_ON_ONE_TEAM);
             delayNMinutesThenEveryMHours(40, 6, JobClient.JOB_PING_DISCORD_RENAME_REQUESTS);
         } else {
