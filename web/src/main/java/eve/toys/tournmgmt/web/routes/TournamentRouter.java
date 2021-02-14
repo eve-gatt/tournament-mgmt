@@ -1,7 +1,6 @@
 package eve.toys.tournmgmt.web.routes;
 
 import eve.toys.tournmgmt.web.AppStreamHelpers;
-import eve.toys.tournmgmt.web.Branding;
 import eve.toys.tournmgmt.web.authn.AppRBAC;
 import eve.toys.tournmgmt.web.authn.AuthnRule;
 import eve.toys.tournmgmt.web.authn.Role;
@@ -121,7 +120,7 @@ public class TournamentRouter {
                 .onSuccess(result -> {
                     JsonObject tournament = (JsonObject) result.body();
                     ctx.data().put("tournament", tournament);
-                    ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
+//                    ctx.data().put("tournament_styles", Branding.EVE_NT_STYLES);
                     ctx.next();
                 });
     }
