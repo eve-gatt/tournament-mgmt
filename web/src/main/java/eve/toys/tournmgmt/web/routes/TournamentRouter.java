@@ -277,7 +277,7 @@ public class TournamentRouter {
                         CompositeFuture.all(tsv.stream().map(row -> Future.future(promise -> esi.lookupAlliance(row.getCol(0))
                                 .onFailure(promise::fail)
                                 .onSuccess(result -> {
-                                    if (result.getJsonObject("result") != null) {
+                                    if (result.getJsonArray("result") != null) {
                                         promise.complete(
                                                 result.getJsonObject("lookup").getString("name")
                                                 + ","
