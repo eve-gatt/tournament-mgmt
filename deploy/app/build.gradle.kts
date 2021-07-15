@@ -10,7 +10,7 @@ dependencies {
 }
 
 plugins {
-    id("com.google.cloud.tools.jib") version "2.5.0"
+    id("com.google.cloud.tools.jib") version "3.1.2"
 }
 
 jib {
