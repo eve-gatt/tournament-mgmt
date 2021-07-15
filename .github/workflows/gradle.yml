@@ -43,13 +43,13 @@ jobs:
           GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./gradlew build test jib
+          ./gradlew build test jib[
 
-      - name: Delete regcred
-        run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig -n tournmgmt delete secret regcred
-
-      - name: Update regcred
-        run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig -n tournmgmt create secret docker-registry regcred --docker-server=docker.pkg.github.com --docker-username=${{ github.actor }} --docker-password=${{ secrets.GITHUB_TOKEN }}
+      #      - name: Delete regcred
+      #        run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig -n tournmgmt delete secret regcred
+      #
+      #      - name: Update regcred
+      #        run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig -n tournmgmt create secret docker-registry regcred --docker-server=docker.pkg.github.com --docker-username=${{ github.actor }} --docker-password=${{ secrets.GITHUB_TOKEN }}
 
       - name: Update deployment file
         run: sed -i 's|<VERSION>|'${GITHUB_RUN_ID}'|' $GITHUB_WORKSPACE/deploy/k8s/deployment.yml
