@@ -25,6 +25,9 @@ jobs:
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
+      - name: Log in to DigitalOcean Container Registry with short-lived credentials
+        run: doctl registry login --expiry-seconds 600
+
       - name: Save DigitalOcean kubeconfig
         run: doctl kubernetes cluster kubeconfig show evetoys-cluster > $GITHUB_WORKSPACE/.kubeconfig
 
@@ -39,9 +42,6 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        env:
-          GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./gradlew build test jib
 
