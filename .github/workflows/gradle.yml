@@ -46,7 +46,7 @@ jobs:
           ./gradlew build test jib
 
       - name: Update regcred
-        run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig create secret docker-registry regcred --docker-server=docker.pkg.github.com --docker-username=${{ secrets.GITHUB_ACTOR }} --docker-password=${{ secrets.GITHUB_TOKEN }}
+        run: kubectl --kubeconfig=$GITHUB_WORKSPACE/.kubeconfig create secret docker-registry regcred --docker-server=docker.pkg.github.com --docker-username=${{ github.actor }} --docker-password=${{ secrets.GITHUB_TOKEN }}
 
       - name: Update deployment file
         run: sed -i 's|<VERSION>|'${GITHUB_RUN_ID}'|' $GITHUB_WORKSPACE/deploy/k8s/deployment.yml
