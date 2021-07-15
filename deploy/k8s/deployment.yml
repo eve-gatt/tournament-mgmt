@@ -61,7 +61,6 @@ spec:
     spec:
       containers:
         - name: tournmgmt
-          #          image: giraffeostrich/noodle:latest
           image: registry.digitalocean.com/staker-registry/tournmgmt:1.<VERSION>
           imagePullPolicy: IfNotPresent
           resources:
@@ -145,5 +144,3 @@ spec:
                   name: app-secrets
                   key: DISCORD_WEBHOOK
 
-      imagePullSecrets:
-        - name: regcred
